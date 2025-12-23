@@ -1,16 +1,38 @@
-# React + Vite
+# Eletrostart
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Website institucional da Eletrostart - Materiais Elétricos e Energia Solar.
 
-Currently, two official plugins are available:
+## Sobre o Projeto
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Este projeto é um site desenvolvido em React com Vite e Tailwind CSS, focado em apresentar os produtos e serviços da Eletrostart.
 
-## React Compiler
+## Tecnologias Utilizadas
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **React 18**: Biblioteca JavaScript para construção de interfaces.
+- **Vite**: Ferramenta de build rápida e servidor de desenvolvimento.
+- **Tailwind CSS**: Framework CSS utilitário para estilização.
+- **React Router DOM**: Gerenciamento de rotas e navegação SPA.
+- **Lucide React**: Biblioteca de ícones.
 
-## Expanding the ESLint configuration
+## Estrutura do Projeto
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `/src/pages`: Componentes de página (Home, Products, Services, About, Contact).
+- `/src/components`: Componentes reutilizáveis (Header, Footer, ScrollToTop).
+- `/src/layout`: Layout principal da aplicação.
+- `/docs`: Documentação de engenharia de requisitos e cronograma.
+
+## Como Rodar Localmente
+
+1. Clone o repositório.
+2. Instale as dependências:
+   ```bash
+   npm install
+   ```
+3. Rode o servidor de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
+
+## Licença
+
+Todos os direitos reservados à Eletrostart.
