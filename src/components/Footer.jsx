@@ -99,7 +99,37 @@ const Footer = () => {
                   className="mt-1 flex-shrink-0 text-secondary"
                   size={18}
                 />
-                <span>Rua Exemplo, 123 - Centro, Cidade - UF</span>
+                <div>
+                  <span className="block">Avenida Celso Garcia Cid, 1027</span>
+                  <span className="block">Vila Siam/Centro, Londrina – PR</span>
+                  
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <a 
+                      href="https://www.google.com/maps/search/?api=1&query=Avenida+Celso+Garcia+Cid+1027+Londrina+PR" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                    >
+                      Google Maps
+                    </a>
+                    <a 
+                      href="https://waze.com/ul?q=Avenida+Celso+Garcia+Cid+1027+Londrina+PR" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-cyan-500 text-white text-xs rounded hover:bg-cyan-600 transition-colors"
+                    >
+                      Waze
+                    </a>
+                    <a 
+                      href="https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=Avenida%20Celso%20Garcia%20Cid%2C%201027%20-%20Vila%20Siam%2C%20Londrina%20-%20PR" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-black text-white text-xs rounded hover:bg-gray-800 transition-colors"
+                    >
+                      Uber
+                    </a>
+                  </div>
+                </div>
               </li>
               <li className="flex items-center space-x-3 text-gray-400">
                 <Phone className="flex-shrink-0 text-secondary" size={18} />
