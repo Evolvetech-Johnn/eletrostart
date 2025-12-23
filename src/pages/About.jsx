@@ -105,8 +105,10 @@ const About = () => {
           </div>
         </div>
 
-        <div className="bg-gray-900 text-white rounded-2xl p-10 md:p-16 text-center">
-          <h2 className="text-3xl font-bold mb-6">Missão, Visão e Valores</h2>
+        <div className="bg-gray-900 text-white rounded-2xl p-6 md:p-16 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-6">
+            Missão, Visão e Valores
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10">
             <div>
               <h3 className="text-xl font-bold text-secondary mb-3">Missão</h3>

@@ -6,8 +6,8 @@ const Contact = () => {
     <div className="font-sans">
       <div className="bg-gray-900 text-white py-16">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold mb-4">Fale Conosco</h1>
-          <p className="text-xl text-gray-400 max-w-2xl">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">Fale Conosco</h1>
+          <p className="text-lg md:text-xl text-gray-400 max-w-2xl">
             Estamos prontos para atender você. Entre em contato por telefone,
             e-mail ou visite nossa loja.
           </p>

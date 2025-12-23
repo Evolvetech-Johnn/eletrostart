@@ -42,7 +42,7 @@ const Header = () => {
 
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Link to="/" className="flex items-center">
-          <img src={logo} alt="Eletrostart Logo" className="h-24 w-auto" />
+          <img src={logo} alt="Eletrostart Logo" className="h-16 md:h-24 w-auto transition-all duration-300" />
         </Link>
 
         {/* Desktop Menu */}

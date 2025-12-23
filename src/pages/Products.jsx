@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, ShoppingCart, ArrowRight } from 'lucide-react';
+import { Search, Filter, ShoppingCart, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { categories, products } from '../data/products';
 
 const Products = () => {
@@ -8,6 +8,7 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProducts, setFilteredProducts] = useState(products);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   // Sync state with URL params
   useEffect(() => {
@@ -46,7 +47,7 @@ const Products = () => {
       searchParams.set('category', categoryId);
     }
     setSearchParams(searchParams);
-    // Reset search when changing category for better UX? Maybe not.
+    setIsFiltersOpen(false); // Close filters on mobile after selection
   };
 
   return (
@@ -54,8 +55,8 @@ const Products = () => {
       {/* Hero Header */}
       <div className="bg-primary text-white py-12">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold mb-4">Nossos Produtos</h1>
-          <p className="text-xl text-blue-100 max-w-2xl">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">Nossos Produtos</h1>
+          <p className="text-lg md:text-xl text-blue-100 max-w-2xl">
             Explore nossa linha completa de materiais elétricos e energia solar.
           </p>
         </div>
@@ -66,15 +67,21 @@ const Products = () => {
           
           {/* Sidebar / Filters */}
           <aside className="w-full lg:w-1/4">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
-              <div className="flex items-center justify-between mb-4 lg:mb-6">
+            <div className="bg-white rounded-lg shadow-sm p-4 lg:p-6 sticky top-24">
+              <div 
+                className="flex items-center justify-between cursor-pointer lg:cursor-default"
+                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+              >
                 <h2 className="text-lg font-bold text-gray-800 flex items-center">
                   <Filter size={20} className="mr-2 text-primary" />
                   Categorias
                 </h2>
+                <div className="lg:hidden">
+                  {isFiltersOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </div>
               </div>
               
-              <div className="space-y-2">
+              <div className={`space-y-2 mt-4 lg:mt-6 ${isFiltersOpen ? 'block' : 'hidden lg:block'}`}>
                 <button
                   onClick={() => handleCategoryChange('all')}
                   className={`w-full text-left px-4 py-2 rounded-md transition-colors ${
