@@ -142,13 +142,17 @@ const Footer = () => {
             </ul>
             <div className="flex space-x-4 mt-6">
               <a
-                href="#"
+                href="https://www.facebook.com/eletro.start.1/?locale=pt_BR"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-gray-800 p-2 rounded-full hover:bg-secondary transition-colors"
               >
                 <Facebook size={20} />
               </a>
               <a
-                href="#"
+                href="https://www.instagram.com/eletrostartlondrina"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-gray-800 p-2 rounded-full hover:bg-secondary transition-colors"
               >
                 <Instagram size={20} />
