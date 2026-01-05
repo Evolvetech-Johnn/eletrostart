@@ -6,172 +6,165 @@ import {
   Facebook,
   Instagram,
   Linkedin,
+  ShieldCheck,
+  CreditCard,
+  Truck,
+  RotateCcw
 } from "lucide-react";
 import logo from "../assets/logoeletrostart.png";
 import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-900 text-white pt-12 pb-6">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Company Info */}
-          <div>
-            <div className="flex items-center mb-4 bg-white p-2 rounded w-fit">
-              <img src={logo} alt="Eletrostart Logo" className="h-10 w-auto" />
+    <footer className="bg-[#1a1a1a] text-white pt-16">
+      {/* Service Highlights */}
+      <div className="container mx-auto px-4 pb-12 border-b border-gray-800">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-gray-800 rounded-full text-primary">
+              <Truck size={24} />
             </div>
-            <p className="text-gray-400 mb-4">
-              Soluções completas em materiais elétricos e energia solar para sua
-              casa, empresa ou indústria.
+            <div>
+              <h4 className="font-bold text-sm uppercase">Entrega Rápida</h4>
+              <p className="text-xs text-gray-400">Para toda a região</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-gray-800 rounded-full text-primary">
+              <ShieldCheck size={24} />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm uppercase">Compra Segura</h4>
+              <p className="text-xs text-gray-400">Proteção de dados</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-gray-800 rounded-full text-primary">
+              <RotateCcw size={24} />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm uppercase">Troca Fácil</h4>
+              <p className="text-xs text-gray-400">Até 7 dias grátis</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-gray-800 rounded-full text-primary">
+              <CreditCard size={24} />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm uppercase">Parcelamento</h4>
+              <p className="text-xs text-gray-400">Em até 10x sem juros</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+          {/* Brand & Social */}
+          <div className="lg:col-span-1">
+            <div className="bg-white p-3 rounded mb-6 w-fit">
+              <img src={logo} alt="Eletrostart Logo" className="h-8 w-auto" />
+            </div>
+            <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+              Especialistas em soluções elétricas e energia solar. Qualidade e confiança para seu projeto.
             </p>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-lg font-bold mb-4 border-b-2 border-secondary w-fit pb-1">
-              Links Rápidos
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  to="/"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Início
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/products"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Nossos Produtos
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/services"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Serviços
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/about"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Sobre Nós
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/contact"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Contato
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Services */}
-          <div>
-            <h3 className="text-lg font-bold mb-4 border-b-2 border-secondary w-fit pb-1">
-              Serviços
-            </h3>
-            <ul className="space-y-2">
-              <li className="text-gray-400">Materiais Elétricos</li>
-              <li className="text-gray-400">Instalação Residencial</li>
-              <li className="text-gray-400">Projetos Industriais</li>
-              <li className="text-gray-400">Energia Solar</li>
-            </ul>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h3 className="text-lg font-bold mb-4 border-b-2 border-secondary w-fit pb-1">
-              Contato
-            </h3>
-            <ul className="space-y-3">
-              <li className="flex items-start space-x-3 text-gray-400">
-                <MapPin
-                  className="mt-1 flex-shrink-0 text-secondary"
-                  size={18}
-                />
-                <div>
-                  <span className="block">Avenida Celso Garcia Cid, 1027</span>
-                  <span className="block">Vila Siam/Centro, Londrina – PR</span>
-                  
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <a 
-                      href="https://www.google.com/maps/search/?api=1&query=Avenida+Celso+Garcia+Cid+1027+Londrina+PR" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                    >
-                      Google Maps
-                    </a>
-                    <a 
-                      href="https://waze.com/ul?q=Avenida+Celso+Garcia+Cid+1027+Londrina+PR" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="px-3 py-1 bg-cyan-500 text-white text-xs rounded hover:bg-cyan-600 transition-colors"
-                    >
-                      Waze
-                    </a>
-                    <a 
-                      href="https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=Avenida%20Celso%20Garcia%20Cid%2C%201027%20-%20Vila%20Siam%2C%20Londrina%20-%20PR" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="px-3 py-1 bg-black text-white text-xs rounded hover:bg-gray-800 transition-colors"
-                    >
-                      Uber
-                    </a>
-                  </div>
-                </div>
-              </li>
-              <li className="flex items-center space-x-3 text-gray-400">
-                <Phone className="flex-shrink-0 text-secondary" size={18} />
-                <span>(XX) XXXX-XXXX</span>
-              </li>
-              <li className="flex items-center space-x-3 text-gray-400">
-                <Mail className="flex-shrink-0 text-secondary" size={18} />
-                <span>contato@eletrostart.com.br</span>
-              </li>
-            </ul>
-            <div className="flex space-x-4 mt-6">
-              <a
-                href="https://www.facebook.com/eletro.start.1/?locale=pt_BR"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gray-800 p-2 rounded-full hover:bg-secondary transition-colors"
-              >
+            <div className="flex space-x-4">
+              <a href="#" className="w-10 h-10 bg-gray-800 flex items-center justify-center rounded-full hover:bg-primary transition-colors">
                 <Facebook size={20} />
               </a>
-              <a
-                href="https://www.instagram.com/eletrostartlondrina"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gray-800 p-2 rounded-full hover:bg-secondary transition-colors"
-              >
+              <a href="#" className="w-10 h-10 bg-gray-800 flex items-center justify-center rounded-full hover:bg-primary transition-colors">
                 <Instagram size={20} />
               </a>
-              <a
-                href="#"
-                className="bg-gray-800 p-2 rounded-full hover:bg-secondary transition-colors"
-              >
+              <a href="#" className="w-10 h-10 bg-gray-800 flex items-center justify-center rounded-full hover:bg-primary transition-colors">
                 <Linkedin size={20} />
               </a>
             </div>
           </div>
-        </div>
 
-        <div className="border-t border-gray-800 pt-6 text-center text-gray-500 text-sm">
+          {/* Quick Links */}
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-widest mb-6 text-primary">Institucional</h3>
+            <ul className="space-y-4 text-sm text-gray-400">
+              <li><Link to="/about" className="hover:text-white transition-colors">A Empresa</Link></li>
+              <li><Link to="/contact" className="hover:text-white transition-colors">Nossas Lojas</Link></li>
+              <li><Link to="/privacy" className="hover:text-white transition-colors">Política de Privacidade</Link></li>
+              <li><Link to="/terms" className="hover:text-white transition-colors">Termos de Uso</Link></li>
+              <li><Link to="/work-with-us" className="hover:text-white transition-colors">Trabalhe Conosco</Link></li>
+            </ul>
+          </div>
+
+          {/* Customer Service */}
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-widest mb-6 text-primary">Atendimento</h3>
+            <ul className="space-y-4 text-sm text-gray-400">
+              <li><Link to="/contact" className="hover:text-white transition-colors">Fale Conosco</Link></li>
+              <li><Link to="/faq" className="hover:text-white transition-colors">Dúvidas Frequentes</Link></li>
+              <li><Link to="/shipping" className="hover:text-white transition-colors">Prazos de Entrega</Link></li>
+              <li><Link to="/returns" className="hover:text-white transition-colors">Trocas e Devoluções</Link></li>
+            </ul>
+          </div>
+
+          {/* Contact Details */}
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-widest mb-6 text-primary">Contato</h3>
+            <ul className="space-y-4 text-sm text-gray-400">
+              <li className="flex items-start space-x-3">
+                <MapPin size={18} className="text-primary mt-1 shrink-0" />
+                <span>Av. Celso Garcia Cid, 1027<br />Vila Siam, Londrina - PR</span>
+              </li>
+              <li className="flex items-center space-x-3">
+                <Phone size={18} className="text-primary shrink-0" />
+                <span>(43) XXXX-XXXX</span>
+              </li>
+              <li className="flex items-center space-x-3">
+                <Mail size={18} className="text-primary shrink-0" />
+                <span>contato@eletrostart.com.br</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Payments & Security */}
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-widest mb-6 text-primary">Pagamento</h3>
+            <div className="flex flex-wrap gap-2 mb-8">
+              <div className="bg-gray-800 p-1.5 rounded w-10 h-7 flex items-center justify-center text-[8px] font-bold">VISA</div>
+              <div className="bg-gray-800 p-1.5 rounded w-10 h-7 flex items-center justify-center text-[8px] font-bold">MAST</div>
+              <div className="bg-gray-800 p-1.5 rounded w-10 h-7 flex items-center justify-center text-[8px] font-bold">ELO</div>
+              <div className="bg-gray-800 p-1.5 rounded w-10 h-7 flex items-center justify-center text-[8px] font-bold">PIX</div>
+              <div className="bg-gray-800 p-1.5 rounded w-10 h-7 flex items-center justify-center text-[8px] font-bold">BOL</div>
+            </div>
+
+            <h3 className="text-sm font-bold uppercase tracking-widest mb-4 text-primary">Segurança</h3>
+            <div className="flex space-x-4">
+              <div className="bg-gray-800 p-2 rounded text-green-500">
+                <ShieldCheck size={28} />
+              </div>
+              <div className="bg-gray-800 p-2 rounded text-blue-400">
+                <ShieldCheck size={28} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Copyright */}
+      <div className="bg-[#111111] py-8">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 gap-4 text-center md:text-left">
           <p>
-            &copy; {new Date().getFullYear()} Eletrostart. Todos os direitos
-            reservados.
+            &copy; {new Date().getFullYear()} ELETROSTART COMERCIAL ELETRICA LTDA. CNPJ: XX.XXX.XXX/XXXX-XX<br />
+            Todos os direitos reservados.
           </p>
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-2">
+              <span>Tecnologia:</span>
+              <span className="font-bold text-gray-300">Evolvetech</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span>Design:</span>
+              <span className="font-bold text-gray-300">Eletrostart</span>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
