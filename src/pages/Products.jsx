@@ -14,19 +14,34 @@ const Products = () => {
   // Sync state with URL params
   useEffect(() => {
     const categoryParam = searchParams.get("category");
+    const searchParam = searchParams.get("search");
+
     if (categoryParam) {
       setSelectedCategory(categoryParam);
     } else {
       setSelectedCategory("all");
+    }
+
+    if (searchParam) {
+      setSearchQuery(searchParam);
     }
   }, [searchParams]);
 
   // Filter products
   useEffect(() => {
     let result = products;
+    const filterParam = searchParams.get("filter");
 
     if (selectedCategory !== "all") {
       result = result.filter((product) => product.category === selectedCategory);
+    }
+
+    if (filterParam === "outlet") {
+      // Simulate outlet: first 6 products
+      result = result.slice(0, 6);
+    } else if (filterParam === "offers") {
+      // Simulate offers: products with price < 100
+      result = result.filter(p => p.price < 100);
     }
 
     if (searchQuery) {
@@ -39,7 +54,7 @@ const Products = () => {
     }
 
     setFilteredProducts(result);
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, searchParams]);
 
   const handleCategoryChange = (categoryId) => {
     setSelectedCategory(categoryId);

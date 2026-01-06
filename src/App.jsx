@@ -6,6 +6,13 @@ import Services from "./pages/Services";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Products from "./pages/Products";
+import Account from "./pages/Account";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import WorkWithUs from "./pages/WorkWithUs";
+import FAQ from "./pages/FAQ";
+import Shipping from "./pages/Shipping";
+import Returns from "./pages/Returns";
 import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
@@ -19,6 +26,13 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/products" element={<Products />} />
+          <Route path="/account" element={<Account />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/work-with-us" element={<WorkWithUs />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/shipping" element={<Shipping />} />
+          <Route path="/returns" element={<Returns />} />
         </Routes>
       </Layout>
     </Router>

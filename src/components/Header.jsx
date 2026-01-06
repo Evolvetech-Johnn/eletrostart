@@ -55,17 +55,27 @@ const Header = () => {
 
           {/* Search Bar */}
           <div className="flex-grow max-w-2xl order-3 lg:order-none w-full lg:w-auto">
-            <div className="relative group">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const query = e.target.search.value;
+                if (query) navigate(`/products?search=${query}`);
+              }}
+              className="relative group"
+            >
               <input
                 type="text"
+                name="search"
                 placeholder="O que você está procurando?"
                 className="w-full bg-gray-100 border border-transparent focus:border-primary focus:bg-white px-4 py-2.5 rounded-md outline-none transition-all pr-12 text-sm"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2 text-gray-400">
                 <Mic size={18} className="cursor-pointer hover:text-primary transition-colors" />
-                <Search size={20} className="cursor-pointer hover:text-primary transition-colors" />
+                <button type="submit">
+                  <Search size={20} className="cursor-pointer hover:text-primary transition-colors" />
+                </button>
               </div>
-            </div>
+            </form>
           </div>
 
           {/* User & Cart Icons */}
@@ -131,8 +141,8 @@ const Header = () => {
             <NavLink to="/contact" className={navLinkClass}>CONTATO</NavLink>
             <div className="flex-grow"></div>
             <div className="flex items-center space-x-4 text-[#222998] font-bold text-xs uppercase italic">
-              <span className="hover:text-black cursor-default">Outlet</span>
-              <span className="hover:text-black cursor-default">Ofertas do Dia</span>
+              <Link to="/products?filter=outlet" className="hover:text-black transition-colors">Outlet</Link>
+              <Link to="/products?filter=offers" className="hover:text-black transition-colors">Ofertas do Dia</Link>
             </div>
           </nav>
         </div>
