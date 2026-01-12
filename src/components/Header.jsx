@@ -49,8 +49,9 @@ const Header = () => {
       <div className="border-b border-gray-100">
         <div className="container mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="flex-shrink-0">
+          <Link to="/" className="flex-shrink-0 flex items-center gap-3">
             <img src={logo} alt="Eletrostart Logo" className="h-[52px] md:h-[73px] w-auto" />
+            <span className="text-2xl md:text-3xl font-black text-[#222998] tracking-tight uppercase">ELETROSTART</span>
           </Link>
 
           {/* Search Bar */}
