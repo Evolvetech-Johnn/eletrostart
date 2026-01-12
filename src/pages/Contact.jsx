@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Phone, Mail, MapPin, Clock, MessageSquare, Send, Instagram, Facebook, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 // Configure sua URL do Discord Webhook aqui
-const DISCORD_WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL";
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1460366721880690892/QeRFuO3RlQhtIdpVqAB81L3A1AODrQgqj0zoKobUMnaFz23sR6HUb3yUnXBg8QtXir4p";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
