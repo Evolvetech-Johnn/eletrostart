@@ -50,7 +50,7 @@ const Header = () => {
         <div className="container mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" className="flex-shrink-0">
-            <img src={logo} alt="Eletrostart Logo" className="h-10 md:h-14 w-auto" />
+            <img src={logo} alt="Eletrostart Logo" className="h-[52px] md:h-[73px] w-auto" />
           </Link>
 
           {/* Search Bar */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ShoppingCart, Info } from "lucide-react";
-import { products, categories } from "../data/products";
+import { products, categories, getProductImage, PLACEHOLDER_IMAGE } from "../data/products";
 
 const Home = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -119,9 +119,10 @@ const Home = () => {
             <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-xl transition-all flex flex-col">
               <div className="relative aspect-square overflow-hidden bg-gray-100">
                 <img
-                  src={product.image}
+                  src={getProductImage(product)}
                   alt={product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
                 />
                 <div className="absolute top-4 right-4 bg-secondary text-white text-[10px] font-bold px-2 py-1 rounded italic">
                   OFERTA
@@ -190,9 +191,10 @@ const Home = () => {
             <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-xl transition-all flex flex-col">
               <div className="relative aspect-square overflow-hidden bg-gray-100">
                 <img
-                  src={product.image}
+                  src={getProductImage(product)}
                   alt={product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
                 />
               </div>
               <div className="p-6 flex flex-col flex-grow">

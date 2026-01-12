@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Search, Filter, ShoppingCart, ChevronRight, ChevronDown, LayoutGrid, List, SlidersHorizontal } from "lucide-react";
-import { categories, products } from "../data/products";
+import { categories, products, getProductImage, PLACEHOLDER_IMAGE } from "../data/products";
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -214,9 +214,10 @@ const Products = () => {
                     {/* Image Area */}
                     <div className={`relative overflow-hidden bg-gray-50 ${viewMode === "list" ? "w-full md:w-64 h-64 shrink-0" : "aspect-square"}`}>
                       <img
-                        src={product.image}
+                        src={getProductImage(product)}
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
                       />
                       <div className="absolute top-4 right-4 flex flex-col gap-2">
                         <button className="bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm">
