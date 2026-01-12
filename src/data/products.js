@@ -6,7 +6,13 @@ export const categories = [
     id: 'iluminacao',
     name: 'Iluminação',
     icon: Lightbulb,
-    description: 'Lâmpadas LED, luminárias, refletores e fitas de LED.'
+    description: 'Lâmpadas LED, luminárias, refletores e fitas de LED.',
+    subcategories: [
+      { id: 'lampadas', name: 'Lâmpadas Bulbo LED' },
+      { id: 'paineis', name: 'Painéis LED Plafon' },
+      { id: 'refletores', name: 'Refletores Slim LED' },
+      { id: 'tubulares', name: 'Tubulares T8' }
+    ]
   },
   {
     id: 'protecao',
@@ -82,34 +88,7 @@ export const products = [
     description: 'Cabo com dupla isolação, ideal para extensões e ligações de aparelhos móveis.'
   },
 
-  // Iluminação
-  {
-    id: 4,
-    name: 'Lâmpada LED Bulbo 9W',
-    category: 'iluminacao',
-    price: 9.90,
-    unit: 'Unidade',
-    images: ['/img/iluminacao/4-main.jpg'],
-    description: 'Economia de até 85% de energia. Luz branca fria (6500K).'
-  },
-  {
-    id: 5,
-    name: 'Refletor LED 50W IP65',
-    category: 'iluminacao',
-    price: 45.00,
-    unit: 'Unidade',
-    images: ['/img/iluminacao/5-main.jpg'],
-    description: 'Resistente à água e poeira. Ideal para áreas externas e jardins.'
-  },
-  {
-    id: 6,
-    name: 'Painel LED Embutir 18W Quadrado',
-    category: 'iluminacao',
-    price: 25.90,
-    unit: 'Unidade',
-    images: ['/img/iluminacao/6-main.jpg'],
-    description: 'Design moderno e discreto. Luz uniforme e agradável.'
-  },
+  // Iluminação - produtos detalhados agora em iluminacaoProducts.js
 
   // Disjuntores e Proteção
   {

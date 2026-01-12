@@ -19,7 +19,7 @@ const Services = () => {
         "Engenharia de ponta para sua casa. Planejamos e executamos toda a infraestrutura elétrica focando em segurança, economia e design moderno.",
       icon: <HomeIcon className="w-10 h-10" />,
       color: "bg-[#222998]",
-      tags: ["Manutenção", "Quadros Elétricos", "Automação"],
+      tags: ["Manutenção", "Quadros Elétricos",],
       image: "https://images.unsplash.com/photo-1558444479-c8af551b66b8?auto=format&fit=crop&q=80&w=800"
     },
     {

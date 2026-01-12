@@ -5,7 +5,6 @@ import {
   MapPin,
   Facebook,
   Instagram,
-  Linkedin,
   ShieldCheck,
   CreditCard,
   Truck,
@@ -70,14 +69,11 @@ const Footer = () => {
               Especialistas em soluções elétricas e energia solar. Qualidade e confiança para seu projeto.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="w-10 h-10 bg-gray-800 flex items-center justify-center rounded-full hover:bg-primary transition-colors">
-                <Facebook size={20} />
-              </a>
-              <a href="#" className="w-10 h-10 bg-gray-800 flex items-center justify-center rounded-full hover:bg-primary transition-colors">
+              <a href="https://www.instagram.com/eletrostartlondrina/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-gray-800 flex items-center justify-center rounded-full hover:bg-primary transition-colors">
                 <Instagram size={20} />
               </a>
-              <a href="#" className="w-10 h-10 bg-gray-800 flex items-center justify-center rounded-full hover:bg-primary transition-colors">
-                <Linkedin size={20} />
+              <a href="https://web.facebook.com/eletro.start.1" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-gray-800 flex items-center justify-center rounded-full hover:bg-primary transition-colors">
+                <Facebook size={20} />
               </a>
             </div>
           </div>
@@ -89,6 +85,7 @@ const Footer = () => {
               <li><Link to="/about" className="hover:text-white transition-colors">A Empresa</Link></li>
               <li><Link to="/contact" className="hover:text-white transition-colors">Nossas Lojas</Link></li>
               <li><Link to="/privacy" className="hover:text-white transition-colors">Política de Privacidade</Link></li>
+              <li><Link to="/cookies" className="hover:text-white transition-colors">Política de Cookies</Link></li>
               <li><Link to="/terms" className="hover:text-white transition-colors">Termos de Uso</Link></li>
               <li><Link to="/work-with-us" className="hover:text-white transition-colors">Trabalhe Conosco</Link></li>
             </ul>
@@ -115,7 +112,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center space-x-3">
                 <Phone size={18} className="text-primary shrink-0" />
-                <span>(43) XXXX-XXXX</span>
+                <span>(43) 3029-5020</span>
               </li>
               <li className="flex items-center space-x-3">
                 <Mail size={18} className="text-primary shrink-0" />

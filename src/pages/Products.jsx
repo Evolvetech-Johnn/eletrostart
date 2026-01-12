@@ -1,25 +1,38 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Search, Filter, ShoppingCart, ChevronRight, ChevronDown, LayoutGrid, List, SlidersHorizontal } from "lucide-react";
-import { categories, products, getProductImage, PLACEHOLDER_IMAGE } from "../data/products";
+import { categories, products as baseProducts, getProductImage, PLACEHOLDER_IMAGE } from "../data/products";
+import { iluminacaoProducts } from "../data/iluminacaoProducts";
+import ProductCardWithVariants from "../components/ProductCardWithVariants";
+
+// Combinar produtos base com produtos de iluminação
+const allProducts = [...baseProducts, ...iluminacaoProducts];
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedSubcategory, setSelectedSubcategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredProducts, setFilteredProducts] = useState(products);
+  const [filteredProducts, setFilteredProducts] = useState(allProducts);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
 
   // Sync state with URL params
   useEffect(() => {
     const categoryParam = searchParams.get("category");
+    const subcategoryParam = searchParams.get("subcategory");
     const searchParam = searchParams.get("search");
 
     if (categoryParam) {
       setSelectedCategory(categoryParam);
     } else {
       setSelectedCategory("all");
+    }
+
+    if (subcategoryParam) {
+      setSelectedSubcategory(subcategoryParam);
+    } else {
+      setSelectedSubcategory("");
     }
 
     if (searchParam) {
@@ -29,11 +42,15 @@ const Products = () => {
 
   // Filter products
   useEffect(() => {
-    let result = products;
+    let result = allProducts;
     const filterParam = searchParams.get("filter");
 
     if (selectedCategory !== "all") {
       result = result.filter((product) => product.category === selectedCategory);
+    }
+
+    if (selectedSubcategory) {
+      result = result.filter((product) => product.subcategory === selectedSubcategory);
     }
 
     if (filterParam === "outlet") {
@@ -54,17 +71,30 @@ const Products = () => {
     }
 
     setFilteredProducts(result);
-  }, [selectedCategory, searchQuery, searchParams]);
+  }, [selectedCategory, selectedSubcategory, searchQuery, searchParams]);
 
   const handleCategoryChange = (categoryId) => {
     setSelectedCategory(categoryId);
+    setSelectedSubcategory("");
     if (categoryId === "all") {
       searchParams.delete("category");
+      searchParams.delete("subcategory");
     } else {
       searchParams.set("category", categoryId);
+      searchParams.delete("subcategory");
     }
     setSearchParams(searchParams);
     setIsMobileFiltersOpen(false);
+  };
+
+  const handleSubcategoryChange = (subcategoryId) => {
+    setSelectedSubcategory(subcategoryId);
+    if (subcategoryId) {
+      searchParams.set("subcategory", subcategoryId);
+    } else {
+      searchParams.delete("subcategory");
+    }
+    setSearchParams(searchParams);
   };
 
   return (
@@ -128,21 +158,52 @@ const Products = () => {
                     }`}
                   >
                     <span>Todos</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${selectedCategory === "all" ? "bg-white/20" : "bg-gray-100 group-hover:bg-gray-200"}`}>{products.length}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${selectedCategory === "all" ? "bg-white/20" : "bg-gray-100 group-hover:bg-gray-200"}`}>{allProducts.length}</span>
                   </button>
                   {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => handleCategoryChange(category.id)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-between group ${
-                        selectedCategory === category.id ? "bg-primary text-white" : "text-gray-600 hover:bg-gray-50"
-                      }`}
-                    >
-                      <span className="truncate">{category.name}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${selectedCategory === category.id ? "bg-white/20" : "bg-gray-100 group-hover:bg-gray-200"}`}>
-                        {products.filter(p => p.category === category.id).length}
-                      </span>
-                    </button>
+                    <div key={category.id}>
+                      <button
+                        onClick={() => handleCategoryChange(category.id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-between group ${
+                          selectedCategory === category.id ? "bg-primary text-white" : "text-gray-600 hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className="truncate">{category.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${selectedCategory === category.id ? "bg-white/20" : "bg-gray-100 group-hover:bg-gray-200"}`}>
+                            {allProducts.filter(p => p.category === category.id).length}
+                          </span>
+                          {category.subcategories && category.subcategories.length > 0 && (
+                            <ChevronDown size={14} className={`transition-transform ${selectedCategory === category.id ? "rotate-180" : ""}`} />
+                          )}
+                        </div>
+                      </button>
+                      
+                      {/* Subcategories */}
+                      {selectedCategory === category.id && category.subcategories && category.subcategories.length > 0 && (
+                        <div className="ml-4 mt-2 space-y-1 border-l-2 border-primary/20 pl-3">
+                          <button
+                            onClick={() => handleSubcategoryChange("")}
+                            className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              !selectedSubcategory ? "bg-primary/10 text-primary" : "text-gray-500 hover:bg-gray-50"
+                            }`}
+                          >
+                            Todas
+                          </button>
+                          {category.subcategories.map((sub) => (
+                            <button
+                              key={sub.id}
+                              onClick={() => handleSubcategoryChange(sub.id)}
+                              className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                selectedSubcategory === sub.id ? "bg-primary/10 text-primary" : "text-gray-500 hover:bg-gray-50"
+                              }`}
+                            >
+                              {sub.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -207,63 +268,73 @@ const Products = () => {
                 : "flex flex-col gap-6"
               }>
                 {filteredProducts.map((product) => (
-                  <div 
-                    key={product.id} 
-                    className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 flex ${viewMode === "list" ? "flex-col md:flex-row h-auto" : "flex-col h-full"}`}
-                  >
-                    {/* Image Area */}
-                    <div className={`relative overflow-hidden bg-gray-50 ${viewMode === "list" ? "w-full md:w-64 h-64 shrink-0" : "aspect-square"}`}>
-                      <img
-                        src={getProductImage(product)}
-                        alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
-                      />
-                      <div className="absolute top-4 right-4 flex flex-col gap-2">
-                        <button className="bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm">
-                          <ShoppingCart size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Info Area */}
-                    <div className="p-6 flex flex-col flex-grow">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                          {categories.find(c => c.id === product.category)?.name}
-                        </span>
-                        <div className="flex items-center space-x-1 text-yellow-400">
-                          <span className="text-xs font-bold text-gray-400 mr-1">4.8</span>
+                  product.variants && product.variants.length > 0 ? (
+                    // Use ProductCardWithVariants for products with variants
+                    <ProductCardWithVariants 
+                      key={product.id} 
+                      product={product}
+                      onAddToCart={(prod, variant) => console.log('Add to cart:', prod, variant)}
+                    />
+                  ) : (
+                    // Original card for products without variants
+                    <div 
+                      key={product.id} 
+                      className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 flex ${viewMode === "list" ? "flex-col md:flex-row h-auto" : "flex-col h-full"}`}
+                    >
+                      {/* Image Area */}
+                      <div className={`relative overflow-hidden bg-gray-50 ${viewMode === "list" ? "w-full md:w-64 h-64 shrink-0" : "aspect-square"}`}>
+                        <img
+                          src={getProductImage(product)}
+                          alt={product.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
+                        />
+                        <div className="absolute top-4 right-4 flex flex-col gap-2">
+                          <button className="bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm">
+                            <ShoppingCart size={16} />
+                          </button>
                         </div>
                       </div>
                       
-                      <h3 className="text-lg font-bold text-gray-800 mb-2 group-hover:text-primary transition-colors line-clamp-2 leading-tight">
-                        {product.name}
-                      </h3>
-                      
-                      <p className="text-gray-500 text-sm mb-6 line-clamp-2 leading-relaxed">
-                        {product.description}
-                      </p>
-                      
-                      <div className="mt-auto">
-                        <div className="flex items-baseline space-x-2 mb-4">
-                          <span className="text-2xl font-black text-gray-900 font-mono">
-                            {product.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      {/* Info Area */}
+                      <div className="p-6 flex flex-col flex-grow">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
+                            {categories.find(c => c.id === product.category)?.name}
                           </span>
-                          <span className="text-[10px] text-gray-400 font-bold uppercase">/{product.unit}</span>
+                          <div className="flex items-center space-x-1 text-yellow-400">
+                            <span className="text-xs font-bold text-gray-400 mr-1">4.8</span>
+                          </div>
                         </div>
                         
-                        <div className="flex gap-2">
-                          <button className="flex-1 bg-[#222998] hover:bg-primary text-white py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-md active:scale-95">
-                            Comprar
-                          </button>
-                          <button className="w-12 h-12 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 rounded-xl transition-colors border border-gray-100">
-                            <Filter size={18} />
-                          </button>
+                        <h3 className="text-lg font-bold text-gray-800 mb-2 group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+                          {product.name}
+                        </h3>
+                        
+                        <p className="text-gray-500 text-sm mb-6 line-clamp-2 leading-relaxed">
+                          {product.description}
+                        </p>
+                        
+                        <div className="mt-auto">
+                          <div className="flex items-baseline space-x-2 mb-4">
+                            <span className="text-2xl font-black text-gray-900 font-mono">
+                              {product.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-bold uppercase">/{product.unit}</span>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <button className="flex-1 bg-[#222998] hover:bg-primary text-white py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-md active:scale-95">
+                              Comprar
+                            </button>
+                            <button className="w-12 h-12 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 rounded-xl transition-colors border border-gray-100">
+                              <Filter size={18} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )
                 ))}
               </div>
             ) : (

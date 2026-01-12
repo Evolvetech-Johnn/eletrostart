@@ -28,7 +28,7 @@ const Header = () => {
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-2">
               <Phone size={14} />
-              <span className="font-medium">(XX) XXXX-XXXX</span>
+              <span className="font-medium">(43) 3029-5020</span>
             </div>
             <div className="hidden sm:flex items-center space-x-2">
               <Mail size={14} />
@@ -124,14 +124,32 @@ const Header = () => {
               {/* Dropdown Menu */}
               <div className="absolute top-full left-0 w-64 bg-white shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform origin-top-left border-t-2 border-primary z-[60]">
                 {categories.map((category) => (
-                  <Link
-                    key={category.id}
-                    to={`/products?category=${category.id}`}
-                    className="flex items-center justify-between px-5 py-3.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary border-b border-gray-100 transition-colors"
-                  >
-                    <span>{category.name}</span>
-                    <ChevronDown size={14} className="-rotate-90 opacity-40" />
-                  </Link>
+                  <div key={category.id} className="relative group/sub">
+                    <Link
+                      to={`/products?category=${category.id}`}
+                      className="flex items-center justify-between px-5 py-3.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary border-b border-gray-100 transition-colors"
+                    >
+                      <span>{category.name}</span>
+                      {category.subcategories && category.subcategories.length > 0 && (
+                        <ChevronDown size={14} className="-rotate-90 opacity-40" />
+                      )}
+                    </Link>
+                    
+                    {/* Submenu for subcategories */}
+                    {category.subcategories && category.subcategories.length > 0 && (
+                      <div className="absolute left-full top-0 w-56 bg-white shadow-xl opacity-0 invisible group-hover/sub:opacity-100 group-hover/sub:visible transition-all duration-200 border-l-2 border-primary z-[70]">
+                        {category.subcategories.map((sub) => (
+                          <Link
+                            key={sub.id}
+                            to={`/products?category=${category.id}&subcategory=${sub.id}`}
+                            className="block px-5 py-3 text-sm text-gray-700 hover:bg-primary hover:text-white border-b border-gray-100 transition-colors"
+                          >
+                            {sub.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

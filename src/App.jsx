@@ -13,6 +13,7 @@ import WorkWithUs from "./pages/WorkWithUs";
 import FAQ from "./pages/FAQ";
 import Shipping from "./pages/Shipping";
 import Returns from "./pages/Returns";
+import Cookies from "./pages/Cookies";
 import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
           <Route path="/faq" element={<FAQ />} />
           <Route path="/shipping" element={<Shipping />} />
           <Route path="/returns" element={<Returns />} />
+          <Route path="/cookies" element={<Cookies />} />
         </Routes>
       </Layout>
     </Router>
