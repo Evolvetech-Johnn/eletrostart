@@ -7,7 +7,10 @@ import {
   Zap,
   Menu,
   X,
-  User
+  User,
+  Settings,
+  Package,
+  ShoppingBag
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -19,7 +22,10 @@ const AdminLayout = ({ children }) => {
 
   const menuItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/admin/messages', label: 'Mensagens', icon: MessageSquare }
+    { path: '/admin/messages', label: 'Mensagens', icon: MessageSquare },
+    { path: '/admin/products', label: 'Produtos', icon: Package },
+    { path: '/admin/orders', label: 'Pedidos', icon: ShoppingBag },
+    { path: '/admin/integrations', label: 'Integrações', icon: Settings }
   ];
 
   const isActive = (path) => location.pathname === path;

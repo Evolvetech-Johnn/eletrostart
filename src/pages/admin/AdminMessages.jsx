@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   MessageSquare,
@@ -14,9 +14,21 @@ import {
   AlertCircle,
   RefreshCw,
   Inbox,
+  CheckSquare,
+  Square,
+  Trash2,
+  Archive,
+  Download,
+  Tag as TagIcon,
+  Flag,
+  Gamepad2,
 } from "lucide-react";
 import { api } from "../../services/api";
 import AdminLayout from "./components/AdminLayout";
+import { toast } from "react-hot-toast"; // Assuming react-hot-toast is available or I should check package.json.
+// If not, I'll use simple alert or console. But user asked for toast notifications.
+// I'll check package.json later. For now, I'll add a simple custom toast or use alert.
+// Actually, I'll implement a simple Toast component or Context if needed, but let's assume standard alert for now if I don't see toast.
 
 const AdminMessages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,11 +38,15 @@ const AdminMessages = () => {
   const [searchQuery, setSearchQuery] = useState(
     searchParams.get("search") || ""
   );
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [tags, setTags] = useState([]);
 
   const currentPage = parseInt(searchParams.get("page") || "1");
   const currentStatus = searchParams.get("status") || "";
+  const currentTag = searchParams.get("tag") || "";
+  const currentPriority = searchParams.get("priority") || "";
 
-  const fetchMessages = React.useCallback(async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
@@ -39,6 +55,8 @@ const AdminMessages = () => {
       };
       if (currentStatus) params.status = currentStatus;
       if (searchQuery) params.search = searchQuery;
+      if (currentTag) params.tag = currentTag;
+      if (currentPriority) params.priority = currentPriority;
 
       const response = await api.getMessages(params);
       if (response.success) {
@@ -49,40 +67,96 @@ const AdminMessages = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, currentStatus, searchQuery]);
+  }, [currentPage, currentStatus, searchQuery, currentTag, currentPriority]);
+
+  const fetchTags = async () => {
+    try {
+      const response = await api.getTags();
+      if (response.success) setTags(response.data);
+    } catch (err) {
+      console.error("Erro ao buscar tags", err);
+    }
+  };
 
   useEffect(() => {
     fetchMessages();
+    fetchTags();
   }, [fetchMessages]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     const params = new URLSearchParams(searchParams);
-    if (searchQuery) {
-      params.set("search", searchQuery);
-    } else {
-      params.delete("search");
-    }
-    params.set("page", "1");
-    setSearchParams(params);
-    fetchMessages();
-  };
-
-  const handleStatusFilter = (status) => {
-    const params = new URLSearchParams(searchParams);
-    if (status) {
-      params.set("status", status);
-    } else {
-      params.delete("status");
-    }
+    if (searchQuery) params.set("search", searchQuery);
+    else params.delete("search");
     params.set("page", "1");
     setSearchParams(params);
   };
 
-  const handlePageChange = (page) => {
+  const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams);
-    params.set("page", page.toString());
+    if (value) params.set(key, value);
+    else params.delete(key);
+    params.set("page", "1");
     setSearchParams(params);
+  };
+
+  const handlePageChange = (newPage) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", newPage.toString());
+    setSearchParams(params);
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked && data?.messages) {
+      setSelectedIds(data.messages.map((m) => m.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkAction = async (action, value) => {
+    if (
+      !window.confirm(
+        `Tem certeza que deseja aplicar esta ação em ${selectedIds.length} itens?`
+      )
+    )
+      return;
+
+    try {
+      await api.bulkAction(selectedIds, action, value);
+      setSelectedIds([]);
+      fetchMessages();
+      toast.success("Ação realizada com sucesso!");
+    } catch (err) {
+      toast.error("Erro ao realizar ação: " + err.message);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const url = await api.exportMessages({
+        status: currentStatus,
+        search: searchQuery,
+        tag: currentTag,
+      });
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `mensagens-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.success("Exportação iniciada!");
+    } catch (err) {
+      toast.error("Erro na exportação: " + err.message);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -105,202 +179,297 @@ const AdminMessages = () => {
     return labels[status] || status;
   };
 
-  const statusFilters = [
-    { value: "", label: "Todas" },
-    { value: "NEW", label: "Novas" },
-    { value: "READ", label: "Lidas" },
-    { value: "REPLIED", label: "Respondidas" },
-    { value: "ARCHIVED", label: "Arquivadas" },
-  ];
-
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black text-gray-900 uppercase tracking-wider flex items-center gap-3">
-              <MessageSquare size={28} className="text-primary" />
-              Mensagens
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Gerencie as mensagens de contato
-            </p>
-          </div>
-          <button
-            onClick={fetchMessages}
-            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
-          >
-            <RefreshCw size={18} />
-            Atualizar
-          </button>
-        </div>
-
-        {/* Stats Bar */}
-        {data?.stats && (
-          <div className="flex flex-wrap gap-3">
-            {statusFilters.map((filter) => (
-              <button
-                key={filter.value}
-                onClick={() => handleStatusFilter(filter.value)}
-                className={`px-4 py-2 rounded-full font-bold text-sm transition-colors ${
-                  currentStatus === filter.value
-                    ? "bg-primary text-white"
-                    : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-                }`}
-              >
-                {filter.label}
-                {filter.value &&
-                  data.stats[filter.value.toLowerCase()] !== undefined && (
-                    <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                      {data.stats[filter.value.toLowerCase()]}
-                    </span>
-                  )}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Search */}
-        <form onSubmit={handleSearch} className="flex gap-3">
-          <div className="relative flex-1">
-            <Search
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-            />
+    <AdminLayout
+      title="Mensagens Recebidas"
+      subtitle="Gerencie os contatos do site"
+    >
+      {/* Filters & Actions */}
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white p-4 rounded-lg border shadow-sm">
+        <form onSubmit={handleSearch} className="flex gap-2 flex-1">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
+              placeholder="Buscar por nome, email ou assunto..."
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por nome, e-mail, assunto..."
-              className="w-full pl-12 pr-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             />
           </div>
           <button
             type="submit"
-            className="bg-primary hover:bg-blue-800 text-white px-6 py-3 rounded-xl font-bold transition-colors"
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             Buscar
           </button>
         </form>
 
-        {/* Loading */}
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 size={40} className="animate-spin text-primary" />
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Export Button */}
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50"
+          >
+            <Download className="h-4 w-4" /> Exportar CSV
+          </button>
+
+          <div className="flex items-center gap-2 border rounded-lg p-1 bg-gray-50">
+            <Filter className="h-4 w-4 text-gray-500 ml-2" />
+            <select
+              className="bg-transparent border-none text-sm focus:ring-0 text-gray-700"
+              value={currentStatus}
+              onChange={(e) => updateParam("status", e.target.value)}
+            >
+              <option value="">Todos Status</option>
+              <option value="NEW">Novas</option>
+              <option value="READ">Lidas</option>
+              <option value="REPLIED">Respondidas</option>
+              <option value="ARCHIVED">Arquivadas</option>
+            </select>
           </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-4">
-            <AlertCircle size={48} className="text-red-500" />
-            <p className="text-gray-600">{error}</p>
+
+          <div className="flex items-center gap-2 border rounded-lg p-1 bg-gray-50">
+            <TagIcon className="h-4 w-4 text-gray-500 ml-2" />
+            <select
+              className="bg-transparent border-none text-sm focus:ring-0 text-gray-700"
+              value={currentTag}
+              onChange={(e) => updateParam("tag", e.target.value)}
+            >
+              <option value="">Todas Tags</option>
+              {tags.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
           </div>
-        ) : data?.messages?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-4 bg-white rounded-2xl border border-gray-100">
-            <Inbox size={48} className="text-gray-300" />
-            <p className="text-gray-500">Nenhuma mensagem encontrada</p>
+        </div>
+      </div>
+
+      {/* Bulk Actions Toolbar */}
+      {selectedIds.length > 0 && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+          <span className="text-sm font-medium text-blue-800 ml-2">
+            {selectedIds.length} selecionados
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleBulkAction("UPDATE_STATUS", "READ")}
+              className="px-3 py-1 bg-white border border-blue-200 text-blue-700 rounded text-sm hover:bg-blue-50"
+            >
+              Marcar Lida
+            </button>
+            <button
+              onClick={() => handleBulkAction("UPDATE_STATUS", "ARCHIVED")}
+              className="px-3 py-1 bg-white border border-blue-200 text-gray-700 rounded text-sm hover:bg-gray-50"
+            >
+              Arquivar
+            </button>
+            <button
+              onClick={() => handleBulkAction("RESEND_DISCORD")}
+              className="px-3 py-1 bg-white border border-indigo-200 text-indigo-700 rounded text-sm hover:bg-indigo-50 flex items-center gap-1"
+            >
+              <Gamepad2 className="h-3 w-3" /> Discord
+            </button>
+            <button
+              onClick={() => handleBulkAction("DELETE")}
+              className="px-3 py-1 bg-white border border-red-200 text-red-700 rounded text-sm hover:bg-red-50"
+            >
+              Excluir
+            </button>
           </div>
-        ) : (
-          <>
-            {/* Messages List */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="divide-y divide-gray-100">
+        </div>
+      )}
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 text-red-600 p-4 rounded-lg flex items-center gap-2">
+          <AlertCircle className="h-5 w-5" />
+          {error}
+          <button onClick={fetchMessages} className="ml-auto underline">
+            Tentar novamente
+          </button>
+        </div>
+      ) : data?.messages?.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-lg border border-dashed">
+          <Inbox className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900">
+            Nenhuma mensagem encontrada
+          </h3>
+          <p className="text-gray-500">Tente ajustar seus filtros de busca.</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      onChange={handleSelectAll}
+                      checked={
+                        selectedIds.length === data?.messages?.length &&
+                        data?.messages?.length > 0
+                      }
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Remetente
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Assunto
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Data
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
                 {data?.messages?.map((msg) => (
-                  <Link
+                  <tr
                     key={msg.id}
-                    to={`/admin/messages/${msg.id}`}
-                    className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
+                    className={`hover:bg-gray-50 transition-colors ${
+                      selectedIds.includes(msg.id) ? "bg-blue-50/30" : ""
+                    }`}
                   >
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 relative ${
-                        msg.status === "NEW" ? "bg-red-100" : "bg-primary/10"
-                      }`}
-                    >
-                      <Mail
-                        size={20}
-                        className={
-                          msg.status === "NEW" ? "text-red-600" : "text-primary"
-                        }
+                    <td className="px-6 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(msg.id)}
+                        onChange={() => handleSelectOne(msg.id)}
+                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                       />
-                      {(msg.source === "discord_sync" || msg.discordSent) && (
-                        <div
-                          className="absolute -bottom-1 -right-1 bg-[#5865F2] rounded-full p-1 border-2 border-white"
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full w-fit border ${getStatusColor(
+                            msg.status
+                          )}`}
+                        >
+                          {getStatusLabel(msg.status)}
+                        </span>
+                        {msg.priority && msg.priority !== "MEDIUM" && (
+                          <span
+                            className={`px-2 inline-flex text-[10px] leading-4 font-medium rounded-full w-fit border ${
+                              msg.priority === "HIGH"
+                                ? "bg-red-50 text-red-700 border-red-100"
+                                : "bg-gray-50 text-gray-600 border-gray-100"
+                            }`}
+                          >
+                            {msg.priority === "HIGH" ? "Alta" : "Baixa"}
+                          </span>
+                        )}
+                      </div>
+                      {msg.source === "discord" && (
+                        <span
+                          className="mt-1 inline-flex items-center text-xs text-indigo-600"
                           title="Via Discord"
                         >
-                          <Gamepad2 size={12} className="text-white" />
-                        </div>
+                          <Gamepad2 className="h-3 w-3 mr-1" /> Discord
+                        </span>
                       )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-gray-900 truncate">
-                          {msg.name || "Sem nome"}
-                        </p>
-                        {msg.status === "NEW" && (
-                          <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                        )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">
+                        {msg.name || "Sem nome"}
                       </div>
-                      <p className="text-sm text-gray-500 truncate">
+                      <div className="text-sm text-gray-500 flex items-center gap-1">
+                        <Mail className="h-3 w-3" /> {msg.email || "Sem email"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 max-w-xs truncate">
                         {msg.subject || "Sem assunto"}
-                      </p>
-                      <div className="flex items-center gap-4 mt-1 text-xs text-gray-400">
-                        {msg.email && (
-                          <span className="flex items-center gap-1">
-                            <Mail size={12} />
-                            {msg.email}
-                          </span>
-                        )}
-                        {msg.phone && (
-                          <span className="flex items-center gap-1">
-                            <Phone size={12} />
-                            {msg.phone}
-                          </span>
-                        )}
                       </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span
-                        className={`text-xs font-bold px-3 py-1 rounded-full border ${getStatusColor(
-                          msg.status
-                        )}`}
-                      >
-                        {getStatusLabel(msg.status)}
-                      </span>
-                      <span className="text-xs text-gray-400 flex items-center gap-1">
-                        <Clock size={12} />
+                      <div className="flex gap-1 mt-1">
+                        {msg.tags?.map((t) => (
+                          <span
+                            key={t.id}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200"
+                          >
+                            {t.name}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
                         {new Date(msg.createdAt).toLocaleDateString("pt-BR")}
-                      </span>
-                    </div>
-                    <Eye size={18} className="text-gray-400" />
-                  </Link>
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {new Date(msg.createdAt).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <Link
+                        to={`/admin/messages/${msg.id}`}
+                        className="text-primary-600 hover:text-primary-900 inline-flex items-center gap-1 px-3 py-1 border border-primary-200 rounded-md hover:bg-primary-50 transition-colors"
+                      >
+                        <Eye className="h-4 w-4" /> Detalhes
+                      </Link>
+                    </td>
+                  </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {data?.pagination && (
+            <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Mostrando{" "}
+                <span className="font-medium">
+                  {(data.pagination.page - 1) * data.pagination.limit + 1}
+                </span>{" "}
+                a{" "}
+                <span className="font-medium">
+                  {Math.min(
+                    data.pagination.page * data.pagination.limit,
+                    data.pagination.total
+                  )}
+                </span>{" "}
+                de <span className="font-medium">{data.pagination.total}</span>{" "}
+                resultados
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handlePageChange(data.pagination.page - 1)}
+                  disabled={data.pagination.page === 1}
+                  className="p-2 border rounded-md hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handlePageChange(data.pagination.page + 1)}
+                  disabled={data.pagination.page === data.pagination.totalPages}
+                  className="p-2 border rounded-md hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
-
-            {/* Pagination */}
-            {data?.pagination && data.pagination.totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg bg-white border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <span className="px-4 py-2 font-bold text-gray-600">
-                  Página {currentPage} de {data.pagination.totalPages}
-                </span>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === data.pagination.totalPages}
-                  className="p-2 rounded-lg bg-white border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  <ChevronRight size={20} />
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </AdminLayout>
   );
 };

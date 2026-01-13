@@ -19,9 +19,25 @@ model ContactMessage {
   phone            String?
   subject          String?
   message          String
+  
+  // Discord Sync Metadata
   discordSent      Boolean  @default(false)
   discordMessageId String?
-  status           String   @default("NEW")
+  discordChannel   String?
+  sentAt           DateTime?
+  syncError        String?
+
+  status           String   @default("NEW") // NEW, READ, REPLIED, ARCHIVED
+  priority         String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  
+  // Internal Management
+  notes            String?  // Notas internas (texto livre)
+  assignedToId     String?
+  assignedTo       AdminUser? @relation(fields: [assignedToId], references: [id])
+  
+  tags             Tag[]
+  auditLogs        AuditLog[]
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -34,11 +50,158 @@ model AdminUser {
   email     String   @unique
   password  String
   name      String?
-  role      String   @default("admin")
+  role      String   @default("ADMIN") // SUPER_ADMIN, ADMIN, VIEWER
   active    Boolean  @default(true)
   lastLogin DateTime?
+  
+  assignedMessages ContactMessage[]
+  auditLogs        AuditLog[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("admin_users")
+}
+
+// Tags para classificação
+model Tag {
+  id        String           @id @default(uuid())
+  name      String           @unique
+  color     String           @default("#222998")
+  messages  ContactMessage[]
+  createdAt DateTime         @default(now())
+
+  @@map("tags")
+}
+
+// Log de Auditoria
+model AuditLog {
+  id          String         @id @default(uuid())
+  action      String         // VIEW, UPDATE, DELETE, LOGIN, SYNC, etc.
+  details     String?        // JSON string ou texto
+  
+  userId      String?
+  user        AdminUser?     @relation(fields: [userId], references: [id])
+  
+  targetId    String?        // ID do objeto alvo
+  targetType  String?        // MESSAGE, USER, SYSTEM
+  
+  messageId   String?
+  message     ContactMessage? @relation(fields: [messageId], references: [id])
+  
+  createdAt   DateTime       @default(now())
+
+  @@map("audit_logs")
+}
+
+// Log de Integração (Discord, etc)
+model IntegrationLog {
+  id        String   @id @default(uuid())
+  service   String   @default("DISCORD")
+  status    String   // SUCCESS, ERROR
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@map("integration_logs")
+}
+
+// --- E-commerce Models ---
+
+// Categorias de Produtos
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  image       String?
+  products    Product[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("categories")
+}
+
+// Produtos
+model Product {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  price       Decimal   @default(0.0)
+  stock       Int       @default(0)
+  sku         String?   @unique
+  image       String?   // URL da imagem principal
+  unit        String?   @default("un") // un, kg, m, etc.
+  
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  
+  orderItems  OrderItem[]
+  
+  active      Boolean   @default(true)
+  featured    Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("products")
+}
+
+// Pedidos
+model Order {
+  id            String      @id @default(uuid())
+  
+  // Informações do Cliente (Simplificado por enquanto)
+  customerName  String
+  customerEmail String
+  customerPhone String?
+  customerDoc   String?     // CPF/CNPJ
+  
+  // Endereço de Entrega
+  addressZip    String?
+  addressStreet String?
+  addressNumber String?
+  addressComp   String?
+  addressCity   String?
+  addressState  String?
+  
+  // Totais
+  subtotal      Decimal     @default(0.0)
+  shippingCost  Decimal     @default(0.0)
+  discount      Decimal     @default(0.0)
+  total         Decimal     @default(0.0)
+  
+  // Status e Pagamento
+  status        String      @default("PENDING") // PENDING, PAID, SHIPPED, DELIVERED, CANCELED
+  paymentMethod String?     // CREDIT_CARD, PIX, BOLETO
+  paymentStatus String      @default("PENDING") // PENDING, PAID, FAILED
+  
+  items         OrderItem[]
+  
+  notes         String?     // Observações do cliente ou admin
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("orders")
+}
+
+// Itens do Pedido
+model OrderItem {
+  id        String  @id @default(uuid())
+  
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  
+  productName  String   // Salva nome histórico caso produto seja deletado
+  quantity     Int
+  unitPrice    Decimal
+  totalPrice   Decimal
+  
+  createdAt DateTime @default(now())
+
+  @@map("order_items")
 }

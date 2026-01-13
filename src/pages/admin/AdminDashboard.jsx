@@ -180,14 +180,20 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {statCards.map((stat, index) => {
             const Icon = stat.icon;
+            const linkTo =
+              stat.title === "Novas"
+                ? "/admin/messages?status=NEW"
+                : "/admin/messages";
+
             return (
-              <div
+              <Link
+                to={linkTo}
                 key={index}
-                className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+                className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div
-                    className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center`}
+                    className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}
                   >
                     <Icon
                       size={24}
@@ -201,7 +207,7 @@ const AdminDashboard = () => {
                 <p className="text-sm text-gray-500 uppercase tracking-wider font-bold mt-1">
                   {stat.title}
                 </p>
-              </div>
+              </Link>
             );
           })}
         </div>

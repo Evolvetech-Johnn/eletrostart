@@ -7,6 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import authRoutes from "./routes/auth.routes.js";
 import messageRoutes from "./routes/message.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import ecommerceRoutes from "./routes/ecommerce.routes.js";
 
 // Load environment variables
 dotenv.config();
@@ -73,6 +74,7 @@ app.get("/api", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/store", ecommerceRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
