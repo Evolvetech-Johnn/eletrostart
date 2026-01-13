@@ -71,12 +71,14 @@ const Home = () => {
         ))}
         <button
           onClick={() => setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length)}
+          aria-label="Slide anterior"
           className="absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <ChevronLeft size={32} />
         </button>
         <button
           onClick={() => setCurrentSlide((prev) => (prev + 1) % banners.length)}
+          aria-label="Próximo slide"
           className="absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <ChevronRight size={32} />

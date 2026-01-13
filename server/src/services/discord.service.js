@@ -1,24 +1,24 @@
 // Serviço de integração com Discord
 import dotenv from 'dotenv';
+import { EmbedBuilder } from 'discord.js';
+import client from '../bot/client.js';
+
 dotenv.config();
 
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
+const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
 
 /**
  * Envia uma mensagem de contato para o Discord
+ * Tenta usar o Bot Client primeiro, depois fallback para Webhook
  * @param {Object} data - Dados da mensagem
  * @returns {Object} - Resultado do envio { success: boolean, messageId?: string }
  */
 export const sendToDiscord = async (data) => {
-  if (!DISCORD_WEBHOOK_URL) {
-    console.error('Discord Webhook URL não configurada');
-    return { success: false, error: 'Webhook não configurado' };
-  }
-
-  const embed = {
-    title: '📩 Nova Mensagem de Contato - Eletrostart',
-    color: 2252955, // Cor #222998 em decimal
-    fields: [
+  const embed = new EmbedBuilder()
+    .setTitle('📩 Nova Mensagem de Contato - Eletrostart')
+    .setColor(0x222998)
+    .addFields(
       { name: '👤 Nome', value: data.name || 'Não informado', inline: true },
       { name: '📞 Telefone', value: data.phone || 'Não informado', inline: true },
       { name: '📧 E-mail', value: data.email || 'Não informado', inline: false },
@@ -26,21 +26,46 @@ export const sendToDiscord = async (data) => {
       { name: '💬 Mensagem', value: data.message || 'Sem mensagem', inline: false },
       { name: '🆔 ID', value: data.id || 'N/A', inline: true },
       { name: '📅 Data', value: new Date().toLocaleString('pt-BR'), inline: true }
-    ],
-    timestamp: new Date().toISOString(),
-    footer: {
-      text: 'Formulário de Contato - eletrostart.com.br'
+    )
+    .setTimestamp()
+    .setFooter({ text: 'Formulário de Contato - eletrostart.com.br' });
+
+  // 1. Tentar enviar via Bot Client
+  if (client.isReady() && DISCORD_CHANNEL_ID) {
+    try {
+      const channel = await client.channels.fetch(DISCORD_CHANNEL_ID);
+      if (channel && channel.isSendable()) {
+        const message = await channel.send({ embeds: [embed] });
+        return { success: true, messageId: message.id };
+      }
+    } catch (error) {
+      console.error('Erro ao enviar via Bot Client (tentando webhook):', error);
     }
-  };
+  }
+
+  // 2. Fallback para Webhook
+  if (!DISCORD_WEBHOOK_URL) {
+    console.error('Discord Webhook URL não configurada e Bot indisponível');
+    return { success: false, error: 'Configuração do Discord ausente' };
+  }
 
   try {
+    // Adapter para formato de webhook raw
+    const webhookEmbed = {
+      title: embed.data.title,
+      color: embed.data.color,
+      fields: embed.data.fields,
+      timestamp: embed.data.timestamp,
+      footer: embed.data.footer
+    };
+
     const response = await fetch(DISCORD_WEBHOOK_URL + '?wait=true', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'Eletrostart Bot',
         avatar_url: 'https://i.imgur.com/5tqvJzY.png',
-        embeds: [embed]
+        embeds: [webhookEmbed]
       })
     });
 

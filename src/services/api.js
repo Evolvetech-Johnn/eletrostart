@@ -92,6 +92,12 @@ export const api = {
     return fetchWithAuth(`/admin/messages/${id}`, {
       method: 'DELETE'
     });
+  },
+
+  syncMessages: () => {
+    return fetchWithAuth('/admin/messages/sync', {
+      method: 'POST'
+    });
   }
 };
 

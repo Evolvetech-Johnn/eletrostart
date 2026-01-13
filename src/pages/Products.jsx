@@ -274,6 +274,7 @@ const Products = () => {
               <div className="relative flex-1">
                 <input
                   type="text"
+                  aria-label="Pesquisar produtos"
                   placeholder="Pesquisar nesta categoria..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -283,6 +284,7 @@ const Products = () => {
               </div>
               <button 
                 onClick={() => setIsMobileFiltersOpen(true)}
+                aria-label="Abrir filtros"
                 className="lg:hidden p-3 bg-primary text-white rounded-xl shadow-lg shadow-primary/20"
               >
                 <SlidersHorizontal size={20} />

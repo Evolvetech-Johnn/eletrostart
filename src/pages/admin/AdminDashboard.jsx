@@ -1,24 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  MessageSquare, 
-  Clock, 
-  TrendingUp, 
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Clock,
+  TrendingUp,
   Mail,
   Eye,
   ArrowUpRight,
   Loader2,
   AlertCircle,
-  RefreshCw
-} from 'lucide-react';
-import { api } from '../../services/api';
-import AdminLayout from './components/AdminLayout';
+  RefreshCw,
+  Gamepad2,
+} from "lucide-react";
+import { api } from "../../services/api";
+import AdminLayout from "./components/AdminLayout";
 
 const AdminDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const fetchDashboard = async () => {
     try {
@@ -38,53 +39,55 @@ const AdminDashboard = () => {
     fetchDashboard();
   }, []);
 
-  const statCards = data ? [
-    {
-      title: 'Total de Mensagens',
-      value: data.stats.total,
-      icon: MessageSquare,
-      color: 'bg-blue-500',
-      bgColor: 'bg-blue-50'
-    },
-    {
-      title: 'Novas',
-      value: data.stats.new,
-      icon: Mail,
-      color: 'bg-red-500',
-      bgColor: 'bg-red-50'
-    },
-    {
-      title: 'Hoje',
-      value: data.stats.today,
-      icon: Clock,
-      color: 'bg-green-500',
-      bgColor: 'bg-green-50'
-    },
-    {
-      title: 'Esta Semana',
-      value: data.stats.thisWeek,
-      icon: TrendingUp,
-      color: 'bg-purple-500',
-      bgColor: 'bg-purple-50'
-    }
-  ] : [];
+  const statCards = data
+    ? [
+        {
+          title: "Total de Mensagens",
+          value: data.stats.total,
+          icon: MessageSquare,
+          color: "bg-blue-500",
+          bgColor: "bg-blue-50",
+        },
+        {
+          title: "Novas",
+          value: data.stats.new,
+          icon: Mail,
+          color: "bg-red-500",
+          bgColor: "bg-red-50",
+        },
+        {
+          title: "Hoje",
+          value: data.stats.today,
+          icon: Clock,
+          color: "bg-green-500",
+          bgColor: "bg-green-50",
+        },
+        {
+          title: "Esta Semana",
+          value: data.stats.thisWeek,
+          icon: TrendingUp,
+          color: "bg-purple-500",
+          bgColor: "bg-purple-50",
+        },
+      ]
+    : [];
 
   const getStatusColor = (status) => {
     const colors = {
-      NEW: 'bg-red-100 text-red-700',
-      READ: 'bg-blue-100 text-blue-700',
-      REPLIED: 'bg-green-100 text-green-700',
-      ARCHIVED: 'bg-gray-100 text-gray-700'
+      NEW: "bg-red-100 text-red-700",
+      READ: "bg-blue-100 text-blue-700",
+      REPLIED: "bg-green-100 text-green-700",
+      ARCHIVED: "bg-gray-100 text-gray-700",
     };
     return colors[status] || colors.NEW;
   };
 
   const getStatusLabel = (status) => {
     const labels = {
-      NEW: 'Nova',
-      READ: 'Lida',
-      REPLIED: 'Respondida',
-      ARCHIVED: 'Arquivada'
+      NEW: "Nova",
+      READ: "Lida",
+      REPLIED: "Respondida",
+      ARCHIVED: "Arquivada",
     };
     return labels[status] || status;
   };
@@ -105,7 +108,7 @@ const AdminDashboard = () => {
         <div className="flex flex-col items-center justify-center h-96 gap-4">
           <AlertCircle size={48} className="text-red-500" />
           <p className="text-gray-600">{error}</p>
-          <button 
+          <button
             onClick={fetchDashboard}
             className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg"
           >
@@ -127,15 +130,31 @@ const AdminDashboard = () => {
               <LayoutDashboard size={28} className="text-primary" />
               Dashboard
             </h1>
-            <p className="text-gray-500 mt-1">Visão geral das mensagens de contato</p>
+            <p className="text-gray-500 mt-1">
+              Visão geral das mensagens de contato
+            </p>
           </div>
-          <button 
-            onClick={fetchDashboard}
-            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
-          >
-            <RefreshCw size={18} />
-            Atualizar
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="flex items-center gap-2 bg-[#5865F2] hover:bg-[#4752C4] text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {syncing ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Gamepad2 size={18} />
+              )}
+              {syncing ? "Sincronizando..." : "Sincronizar Discord"}
+            </button>
+            <button
+              onClick={fetchDashboard}
+              className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+            >
+              <RefreshCw size={18} />
+              Atualizar
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -143,17 +162,26 @@ const AdminDashboard = () => {
           {statCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <div 
+              <div
                 key={index}
                 className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center`}>
-                    <Icon size={24} className={stat.color.replace('bg-', 'text-')} />
+                  <div
+                    className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center`}
+                  >
+                    <Icon
+                      size={24}
+                      className={stat.color.replace("bg-", "text-")}
+                    />
                   </div>
                 </div>
-                <p className="text-3xl font-black text-gray-900">{stat.value}</p>
-                <p className="text-sm text-gray-500 uppercase tracking-wider font-bold mt-1">{stat.title}</p>
+                <p className="text-3xl font-black text-gray-900">
+                  {stat.value}
+                </p>
+                <p className="text-sm text-gray-500 uppercase tracking-wider font-bold mt-1">
+                  {stat.title}
+                </p>
               </div>
             );
           })}
@@ -165,7 +193,7 @@ const AdminDashboard = () => {
             <h2 className="text-lg font-black text-gray-900 uppercase tracking-wider">
               Mensagens Recentes
             </h2>
-            <Link 
+            <Link
               to="/admin/messages"
               className="flex items-center gap-2 text-primary hover:text-blue-800 font-bold text-sm"
             >
@@ -173,27 +201,43 @@ const AdminDashboard = () => {
               <ArrowUpRight size={16} />
             </Link>
           </div>
-          
+
           <div className="divide-y divide-gray-100">
             {data?.recentMessages?.length > 0 ? (
               data.recentMessages.map((msg) => (
-                <Link 
+                <Link
                   key={msg.id}
                   to={`/admin/messages/${msg.id}`}
                   className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
                 >
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 relative">
                     <Mail size={18} className="text-primary" />
+                    {(msg.source === "discord_sync" || msg.discordSent) && (
+                      <div
+                        className="absolute -bottom-1 -right-1 bg-[#5865F2] rounded-full p-0.5 border-2 border-white"
+                        title="Via Discord"
+                      >
+                        <Gamepad2 size={10} className="text-white" />
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 truncate">{msg.name || 'Sem nome'}</p>
-                    <p className="text-sm text-gray-500 truncate">{msg.subject || msg.email || 'Sem assunto'}</p>
+                    <p className="font-bold text-gray-900 truncate">
+                      {msg.name || "Sem nome"}
+                    </p>
+                    <p className="text-sm text-gray-500 truncate">
+                      {msg.subject || msg.email || "Sem assunto"}
+                    </p>
                   </div>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${getStatusColor(msg.status)}`}>
+                  <span
+                    className={`text-xs font-bold px-2 py-1 rounded-full ${getStatusColor(
+                      msg.status
+                    )}`}
+                  >
                     {getStatusLabel(msg.status)}
                   </span>
                   <span className="text-xs text-gray-400">
-                    {new Date(msg.createdAt).toLocaleDateString('pt-BR')}
+                    {new Date(msg.createdAt).toLocaleDateString("pt-BR")}
                   </span>
                   <Eye size={16} className="text-gray-400" />
                 </Link>

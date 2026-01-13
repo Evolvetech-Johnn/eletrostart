@@ -5,7 +5,8 @@ import {
   getMessage, 
   updateMessageStatus, 
   deleteMessage,
-  getDashboard 
+  getDashboard,
+  syncDiscordMessages
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -13,6 +14,9 @@ const router = express.Router();
 // Todas as rotas admin requerem autenticação
 router.use(authenticate);
 router.use(requireAdmin);
+
+// POST /api/admin/messages/sync - Sincronizar mensagens do Discord
+router.post('/messages/sync', syncDiscordMessages);
 
 // GET /api/admin/dashboard - Estatísticas do dashboard
 router.get('/dashboard', getDashboard);

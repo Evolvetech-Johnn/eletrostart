@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { 
-  MessageSquare, 
-  Search, 
+import React, { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  MessageSquare,
+  Search,
   Filter,
   Eye,
   Mail,
@@ -13,27 +13,29 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
-  Inbox
-} from 'lucide-react';
-import { api } from '../../services/api';
-import AdminLayout from './components/AdminLayout';
+  Inbox,
+} from "lucide-react";
+import { api } from "../../services/api";
+import AdminLayout from "./components/AdminLayout";
 
 const AdminMessages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get("search") || ""
+  );
 
-  const currentPage = parseInt(searchParams.get('page') || '1');
-  const currentStatus = searchParams.get('status') || '';
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const currentStatus = searchParams.get("status") || "";
 
-  const fetchMessages = async () => {
+  const fetchMessages = React.useCallback(async () => {
     try {
       setLoading(true);
       const params = {
         page: currentPage,
-        limit: 15
+        limit: 15,
       };
       if (currentStatus) params.status = currentStatus;
       if (searchQuery) params.search = searchQuery;
@@ -47,21 +49,21 @@ const AdminMessages = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, currentStatus, searchQuery]);
 
   useEffect(() => {
     fetchMessages();
-  }, [currentPage, currentStatus]);
+  }, [fetchMessages]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     const params = new URLSearchParams(searchParams);
     if (searchQuery) {
-      params.set('search', searchQuery);
+      params.set("search", searchQuery);
     } else {
-      params.delete('search');
+      params.delete("search");
     }
-    params.set('page', '1');
+    params.set("page", "1");
     setSearchParams(params);
     fetchMessages();
   };
@@ -69,46 +71,46 @@ const AdminMessages = () => {
   const handleStatusFilter = (status) => {
     const params = new URLSearchParams(searchParams);
     if (status) {
-      params.set('status', status);
+      params.set("status", status);
     } else {
-      params.delete('status');
+      params.delete("status");
     }
-    params.set('page', '1');
+    params.set("page", "1");
     setSearchParams(params);
   };
 
   const handlePageChange = (page) => {
     const params = new URLSearchParams(searchParams);
-    params.set('page', page.toString());
+    params.set("page", page.toString());
     setSearchParams(params);
   };
 
   const getStatusColor = (status) => {
     const colors = {
-      NEW: 'bg-red-100 text-red-700 border-red-200',
-      READ: 'bg-blue-100 text-blue-700 border-blue-200',
-      REPLIED: 'bg-green-100 text-green-700 border-green-200',
-      ARCHIVED: 'bg-gray-100 text-gray-700 border-gray-200'
+      NEW: "bg-red-100 text-red-700 border-red-200",
+      READ: "bg-blue-100 text-blue-700 border-blue-200",
+      REPLIED: "bg-green-100 text-green-700 border-green-200",
+      ARCHIVED: "bg-gray-100 text-gray-700 border-gray-200",
     };
     return colors[status] || colors.NEW;
   };
 
   const getStatusLabel = (status) => {
     const labels = {
-      NEW: 'Nova',
-      READ: 'Lida',
-      REPLIED: 'Respondida',
-      ARCHIVED: 'Arquivada'
+      NEW: "Nova",
+      READ: "Lida",
+      REPLIED: "Respondida",
+      ARCHIVED: "Arquivada",
     };
     return labels[status] || status;
   };
 
   const statusFilters = [
-    { value: '', label: 'Todas' },
-    { value: 'NEW', label: 'Novas' },
-    { value: 'READ', label: 'Lidas' },
-    { value: 'REPLIED', label: 'Respondidas' },
-    { value: 'ARCHIVED', label: 'Arquivadas' }
+    { value: "", label: "Todas" },
+    { value: "NEW", label: "Novas" },
+    { value: "READ", label: "Lidas" },
+    { value: "REPLIED", label: "Respondidas" },
+    { value: "ARCHIVED", label: "Arquivadas" },
   ];
 
   return (
@@ -121,9 +123,11 @@ const AdminMessages = () => {
               <MessageSquare size={28} className="text-primary" />
               Mensagens
             </h1>
-            <p className="text-gray-500 mt-1">Gerencie as mensagens de contato</p>
+            <p className="text-gray-500 mt-1">
+              Gerencie as mensagens de contato
+            </p>
           </div>
-          <button 
+          <button
             onClick={fetchMessages}
             className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
           >
@@ -141,16 +145,17 @@ const AdminMessages = () => {
                 onClick={() => handleStatusFilter(filter.value)}
                 className={`px-4 py-2 rounded-full font-bold text-sm transition-colors ${
                   currentStatus === filter.value
-                    ? 'bg-primary text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                    ? "bg-primary text-white"
+                    : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
                 }`}
               >
                 {filter.label}
-                {filter.value && data.stats[filter.value.toLowerCase()] !== undefined && (
-                  <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                    {data.stats[filter.value.toLowerCase()]}
-                  </span>
-                )}
+                {filter.value &&
+                  data.stats[filter.value.toLowerCase()] !== undefined && (
+                    <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                      {data.stats[filter.value.toLowerCase()]}
+                    </span>
+                  )}
               </button>
             ))}
           </div>
@@ -159,7 +164,10 @@ const AdminMessages = () => {
         {/* Search */}
         <form onSubmit={handleSearch} className="flex gap-3">
           <div className="relative flex-1">
-            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            />
             <input
               type="text"
               value={searchQuery}
@@ -197,24 +205,43 @@ const AdminMessages = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="divide-y divide-gray-100">
                 {data?.messages?.map((msg) => (
-                  <Link 
+                  <Link
                     key={msg.id}
                     to={`/admin/messages/${msg.id}`}
                     className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
                   >
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      msg.status === 'NEW' ? 'bg-red-100' : 'bg-primary/10'
-                    }`}>
-                      <Mail size={20} className={msg.status === 'NEW' ? 'text-red-600' : 'text-primary'} />
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 relative ${
+                        msg.status === "NEW" ? "bg-red-100" : "bg-primary/10"
+                      }`}
+                    >
+                      <Mail
+                        size={20}
+                        className={
+                          msg.status === "NEW" ? "text-red-600" : "text-primary"
+                        }
+                      />
+                      {(msg.source === "discord_sync" || msg.discordSent) && (
+                        <div
+                          className="absolute -bottom-1 -right-1 bg-[#5865F2] rounded-full p-1 border-2 border-white"
+                          title="Via Discord"
+                        >
+                          <Gamepad2 size={12} className="text-white" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-bold text-gray-900 truncate">{msg.name || 'Sem nome'}</p>
-                        {msg.status === 'NEW' && (
+                        <p className="font-bold text-gray-900 truncate">
+                          {msg.name || "Sem nome"}
+                        </p>
+                        {msg.status === "NEW" && (
                           <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                         )}
                       </div>
-                      <p className="text-sm text-gray-500 truncate">{msg.subject || 'Sem assunto'}</p>
+                      <p className="text-sm text-gray-500 truncate">
+                        {msg.subject || "Sem assunto"}
+                      </p>
                       <div className="flex items-center gap-4 mt-1 text-xs text-gray-400">
                         {msg.email && (
                           <span className="flex items-center gap-1">
@@ -231,12 +258,16 @@ const AdminMessages = () => {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span className={`text-xs font-bold px-3 py-1 rounded-full border ${getStatusColor(msg.status)}`}>
+                      <span
+                        className={`text-xs font-bold px-3 py-1 rounded-full border ${getStatusColor(
+                          msg.status
+                        )}`}
+                      >
                         {getStatusLabel(msg.status)}
                       </span>
                       <span className="text-xs text-gray-400 flex items-center gap-1">
                         <Clock size={12} />
-                        {new Date(msg.createdAt).toLocaleDateString('pt-BR')}
+                        {new Date(msg.createdAt).toLocaleDateString("pt-BR")}
                       </span>
                     </div>
                     <Eye size={18} className="text-gray-400" />

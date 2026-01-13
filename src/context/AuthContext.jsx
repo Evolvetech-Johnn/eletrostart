@@ -1,12 +1,13 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api, getToken, removeToken } from '../services/api';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { api, getToken, removeToken } from "../services/api";
 
 const AuthContext = createContext(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
 };
@@ -20,7 +21,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       const token = getToken();
-      
+
       if (!token) {
         setLoading(false);
         return;
@@ -33,7 +34,7 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(true);
         }
       } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
+        console.error("Erro ao verificar autenticação:", error);
         removeToken();
       } finally {
         setLoading(false);
@@ -51,7 +52,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         return { success: true };
       }
-      return { success: false, error: 'Erro desconhecido' };
+      return { success: false, error: "Erro desconhecido" };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -68,14 +69,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated,
     login,
-    logout
+    logout,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
-export default AuthContext;

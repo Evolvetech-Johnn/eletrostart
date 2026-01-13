@@ -1,11 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 const CartContext = createContext();
 
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
-    throw new Error('useCart deve ser usado dentro de um CartProvider');
+    throw new Error("useCart deve ser usado dentro de um CartProvider");
   }
   return context;
 };
@@ -13,16 +14,16 @@ export const useCart = () => {
 export const CartProvider = ({ children }) => {
   // Verifica se é uma nova sessão (navegador foi fechado e reaberto)
   const [isNewSession, setIsNewSession] = useState(() => {
-    const sessionActive = sessionStorage.getItem('eletrostart-session-active');
+    const sessionActive = sessionStorage.getItem("eletrostart-session-active");
     return !sessionActive;
   });
 
   const [cart, setCart] = useState(() => {
     // Recupera o carrinho do localStorage ao inicializar
-    const savedCart = localStorage.getItem('eletrostart-cart');
+    const savedCart = localStorage.getItem("eletrostart-cart");
     return savedCart ? JSON.parse(savedCart) : [];
   });
-  
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showClearConfirmation, setShowClearConfirmation] = useState(false);
   const [pendingProduct, setPendingProduct] = useState(null);
@@ -30,7 +31,7 @@ export const CartProvider = ({ children }) => {
 
   // Marca a sessão como ativa
   useEffect(() => {
-    sessionStorage.setItem('eletrostart-session-active', 'true');
+    sessionStorage.setItem("eletrostart-session-active", "true");
   }, []);
 
   // Mostra o prompt de nova sessão se tiver produtos de uma sessão anterior
@@ -44,12 +45,12 @@ export const CartProvider = ({ children }) => {
 
   // Salva o carrinho no localStorage sempre que mudar
   useEffect(() => {
-    localStorage.setItem('eletrostart-cart', JSON.stringify(cart));
+    localStorage.setItem("eletrostart-cart", JSON.stringify(cart));
   }, [cart]);
 
   // Calcula o total do carrinho
   const cartTotal = cart.reduce((total, item) => {
-    return total + (item.price * item.quantity);
+    return total + item.price * item.quantity;
   }, 0);
 
   // Conta o número total de itens
@@ -61,30 +62,32 @@ export const CartProvider = ({ children }) => {
     if (variant && variant.image) {
       return variant.image;
     }
-    
+
     // Tenta a imagem da variante padrão
     if (product.variants && product.variants.length > 0) {
-      const defaultVariant = product.variants.find(v => v.id === product.defaultVariant) || product.variants[0];
+      const defaultVariant =
+        product.variants.find((v) => v.id === product.defaultVariant) ||
+        product.variants[0];
       if (defaultVariant && defaultVariant.image) {
         return defaultVariant.image;
       }
     }
-    
+
     // Tenta o array de imagens do produto
     if (product.images && product.images.length > 0) {
       return product.images[0];
     }
-    
+
     // Tenta a propriedade image simples
     if (product.image) {
       return product.image;
     }
-    
+
     // Tenta construir o caminho baseado na categoria
     if (product.category && product.id) {
       return `/img/${product.category}/${product.id}-main.jpg`;
     }
-    
+
     return null;
   };
 
@@ -92,19 +95,22 @@ export const CartProvider = ({ children }) => {
   const addToCart = (product, quantity = 1, variant = null) => {
     // Pega a imagem correta considerando a variante
     const imageUrl = getProductImageUrl(product, variant);
-    
+
     // Prepara informações da variante para salvar
-    const variantInfo = variant ? {
-      id: variant.id,
-      name: variant.name,
-      value: variant.name, // Para retrocompatibilidade
-      image: variant.image
-    } : null;
-    
-    setCart(prevCart => {
-      const existingItemIndex = prevCart.findIndex(item => 
-        item.id === product.id && 
-        JSON.stringify(item.variant?.id) === JSON.stringify(variantInfo?.id)
+    const variantInfo = variant
+      ? {
+          id: variant.id,
+          name: variant.name,
+          value: variant.name, // Para retrocompatibilidade
+          image: variant.image,
+        }
+      : null;
+
+    setCart((prevCart) => {
+      const existingItemIndex = prevCart.findIndex(
+        (item) =>
+          item.id === product.id &&
+          JSON.stringify(item.variant?.id) === JSON.stringify(variantInfo?.id)
       );
 
       if (existingItemIndex > -1) {
@@ -115,17 +121,20 @@ export const CartProvider = ({ children }) => {
       }
 
       // Adiciona novo item
-      return [...prevCart, {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: imageUrl,
-        unit: product.unit,
-        quantity,
-        variant: variantInfo
-      }];
+      return [
+        ...prevCart,
+        {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          image: imageUrl,
+          unit: product.unit,
+          quantity,
+          variant: variantInfo,
+        },
+      ];
     });
-    
+
     setIsCartOpen(true);
   };
 
@@ -150,9 +159,13 @@ export const CartProvider = ({ children }) => {
 
   // Remove um produto do carrinho
   const removeFromCart = (productId, variant = null) => {
-    setCart(prevCart => 
-      prevCart.filter(item => 
-        !(item.id === productId && JSON.stringify(item.variant) === JSON.stringify(variant))
+    setCart((prevCart) =>
+      prevCart.filter(
+        (item) =>
+          !(
+            item.id === productId &&
+            JSON.stringify(item.variant) === JSON.stringify(variant)
+          )
       )
     );
   };
@@ -164,9 +177,10 @@ export const CartProvider = ({ children }) => {
       return;
     }
 
-    setCart(prevCart =>
-      prevCart.map(item =>
-        item.id === productId && JSON.stringify(item.variant) === JSON.stringify(variant)
+    setCart((prevCart) =>
+      prevCart.map((item) =>
+        item.id === productId &&
+        JSON.stringify(item.variant) === JSON.stringify(variant)
           ? { ...item, quantity }
           : item
       )
@@ -175,9 +189,10 @@ export const CartProvider = ({ children }) => {
 
   // Incrementa a quantidade
   const incrementQuantity = (productId, variant = null) => {
-    setCart(prevCart =>
-      prevCart.map(item =>
-        item.id === productId && JSON.stringify(item.variant) === JSON.stringify(variant)
+    setCart((prevCart) =>
+      prevCart.map((item) =>
+        item.id === productId &&
+        JSON.stringify(item.variant) === JSON.stringify(variant)
           ? { ...item, quantity: item.quantity + 1 }
           : item
       )
@@ -186,19 +201,26 @@ export const CartProvider = ({ children }) => {
 
   // Decrementa a quantidade
   const decrementQuantity = (productId, variant = null) => {
-    setCart(prevCart => {
+    setCart((prevCart) => {
       const item = prevCart.find(
-        i => i.id === productId && JSON.stringify(i.variant) === JSON.stringify(variant)
+        (i) =>
+          i.id === productId &&
+          JSON.stringify(i.variant) === JSON.stringify(variant)
       );
-      
+
       if (item && item.quantity <= 1) {
         return prevCart.filter(
-          i => !(i.id === productId && JSON.stringify(i.variant) === JSON.stringify(variant))
+          (i) =>
+            !(
+              i.id === productId &&
+              JSON.stringify(i.variant) === JSON.stringify(variant)
+            )
         );
       }
-      
-      return prevCart.map(i =>
-        i.id === productId && JSON.stringify(i.variant) === JSON.stringify(variant)
+
+      return prevCart.map((i) =>
+        i.id === productId &&
+        JSON.stringify(i.variant) === JSON.stringify(variant)
           ? { ...i, quantity: i.quantity - 1 }
           : i
       );
@@ -213,7 +235,7 @@ export const CartProvider = ({ children }) => {
 
   // Abre/fecha o carrinho
   const toggleCart = () => {
-    setIsCartOpen(prev => !prev);
+    setIsCartOpen((prev) => !prev);
   };
 
   return (
@@ -235,12 +257,10 @@ export const CartProvider = ({ children }) => {
         setIsCartOpen,
         continueWithExistingCart,
         clearPreviousSession,
-        cancelPendingAdd
+        cancelPendingAdd,
       }}
     >
       {children}
     </CartContext.Provider>
   );
 };
-
-export default CartContext;

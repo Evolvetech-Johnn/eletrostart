@@ -26,21 +26,20 @@ const AdminMessageDetail = () => {
   const [error, setError] = useState('');
   const [updating, setUpdating] = useState(false);
 
-  const fetchMessage = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getMessage(id);
-      if (response.success) {
-        setMessage(response.data);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchMessage = async () => {
+      try {
+        setLoading(true);
+        const response = await api.getMessage(id);
+        if (response.success) {
+          setMessage(response.data);
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchMessage();
   }, [id]);
 

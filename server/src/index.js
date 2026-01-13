@@ -14,9 +14,14 @@ dotenv.config();
 // Initialize Prisma
 export const prisma = new PrismaClient();
 
+import { startBot } from './bot/index.js';
+
 // Initialize Express
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Start Bot
+startBot();
 
 // Middlewares
 app.use(cors({
@@ -28,6 +33,20 @@ app.use(express.json());
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Root API route
+app.get('/api', (req, res) => {
+  res.json({
+    message: 'Eletrostart API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      messages: '/api/messages',
+      admin: '/api/admin'
+    }
+  });
 });
 
 // Routes
