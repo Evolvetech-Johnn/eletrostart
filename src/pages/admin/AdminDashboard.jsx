@@ -19,6 +19,7 @@ import AdminLayout from "./components/AdminLayout";
 const AdminDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
 
   const fetchDashboard = async () => {
