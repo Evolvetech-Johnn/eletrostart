@@ -262,61 +262,74 @@ export const syncDiscordMessages = async (req, res, next) => {
 
     // Buscar últimas 50 mensagens
     const messages = await channel.messages.fetch({ limit: 50 });
+
     let syncedCount = 0;
 
     for (const msg of messages.values()) {
-      // Ignora mensagens do próprio bot (se já foram salvas, ok, mas queremos evitar duplicação de envio)
-      // Na verdade, queremos pegar mensagens que TALVEZ o bot tenha enviado mas o banco perdeu, OU mensagens de users
+      let messageData = null;
+      let existingId = null;
 
-      // Vamos tentar extrair dados de Embeds (formato padrão do nosso bot)
+      // 1. Tentar extrair de Embed (Prioridade)
       if (msg.embeds.length > 0) {
         const embed = msg.embeds[0];
 
-        // Tenta encontrar ID no footer ou fields para evitar duplicação
-        // Se a mensagem tem um ID nosso, usamos ele
-        let existingId = null;
-        const idField = embed.fields.find((f) => f.name.includes("ID"));
-        if (idField) existingId = idField.value;
+        existingId = embed.fields.find((f) => f.name.includes("ID"))?.value;
+        if (existingId === "N/A") existingId = null;
 
-        if (existingId && existingId !== "N/A") {
-          const exists = await prisma.contactMessage.findUnique({
-            where: { id: existingId },
-          });
-          if (exists) continue; // Já existe
+        messageData = {
+          name:
+            embed.fields.find((f) => f.name.includes("Nome"))?.value ||
+            "Discord User",
+          email: embed.fields.find((f) => f.name.includes("E-mail"))?.value,
+          phone: embed.fields.find((f) => f.name.includes("Telefone"))?.value,
+          subject: embed.fields.find((f) => f.name.includes("Assunto"))?.value,
+          message:
+            embed.fields.find((f) => f.name.includes("Mensagem"))?.value ||
+            embed.description ||
+            "Sem conteúdo",
+        };
+      }
+      // 2. Fallback para mensagem de texto comum
+      else if (msg.content) {
+        messageData = {
+          name: msg.author.username,
+          email: null, // Não temos email em msg comum
+          phone: null,
+          subject: "Mensagem do Discord",
+          message: msg.content,
+        };
+      }
+
+      if (messageData) {
+        // Verificar duplicidade:
+        // a) Pelo ID interno (se veio do embed e já existe no banco)
+        // b) Pelo ID do Discord (se já sincronizamos essa msg antes)
+
+        const whereClause = { OR: [] };
+        if (existingId) whereClause.OR.push({ id: existingId });
+        whereClause.OR.push({ discordMessageId: msg.id });
+
+        const exists = await prisma.contactMessage.findFirst({
+          where: whereClause,
+        });
+
+        if (exists) {
+          console.log(
+            `[Sync] Skipping duplicate (ID: ${existingId} / DiscordID: ${msg.id})`
+          );
+          continue;
         }
 
-        // Se não existe, cria
-        // Extrair campos
-        const name =
-          embed.fields.find((f) => f.name.includes("Nome"))?.value ||
-          "Discord User";
-        const email = embed.fields.find((f) =>
-          f.name.includes("E-mail")
-        )?.value;
-        const phone = embed.fields.find((f) =>
-          f.name.includes("Telefone")
-        )?.value;
-        const subject = embed.fields.find((f) =>
-          f.name.includes("Assunto")
-        )?.value;
-        const messageBody =
-          embed.fields.find((f) => f.name.includes("Mensagem"))?.value ||
-          embed.description ||
-          "Sem conteúdo";
-
+        // Criar nova mensagem
         await prisma.contactMessage.create({
           data: {
-            id: existingId !== "N/A" ? existingId : undefined, // Se tiver ID válido, usa
-            name,
-            email,
-            phone,
-            subject,
-            message: messageBody,
+            id: existingId || undefined, // Se undefined, Prisma gera UUID
+            ...messageData,
             source: "discord_sync",
             discordSent: true,
             discordMessageId: msg.id,
             createdAt: msg.createdAt,
-            status: "READ", // Assume lida se veio do Discord antigo
+            status: "READ",
           },
         });
         syncedCount++;
