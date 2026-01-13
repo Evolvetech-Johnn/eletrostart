@@ -57,6 +57,19 @@ const Contact = () => {
     return response.ok;
   };
 
+  // Novo método: enviar para API (que salva no banco e envia ao Discord)
+  const sendToAPI = async (data) => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    
+    const response = await fetch(`${API_URL}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    return response.ok;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -70,7 +83,16 @@ const Contact = () => {
     setStatus({ type: "", message: "" });
 
     try {
-      const success = await sendToDiscord(formData);
+      // Tentar enviar para a API primeiro (salva no banco + Discord)
+      let success = false;
+      
+      try {
+        success = await sendToAPI(formData);
+      } catch (apiError) {
+        console.warn('API não disponível, usando fallback direto para Discord');
+        // Fallback: enviar diretamente para o Discord se a API não estiver disponível
+        success = await sendToDiscord(formData);
+      }
       
       if (success) {
         setStatus({ type: "success", message: "Mensagem enviada com sucesso! Entraremos em contato em breve." });

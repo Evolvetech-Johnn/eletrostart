@@ -1,0 +1,44 @@
+// Prisma Schema para Eletrostart
+// Sistema de Mensagens de Contato
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo de Mensagem de Contato
+model ContactMessage {
+  id               String   @id @default(uuid())
+  source           String   @default("contact_form")
+  name             String?
+  email            String?
+  phone            String?
+  subject          String?
+  message          String
+  discordSent      Boolean  @default(false)
+  discordMessageId String?
+  status           String   @default("NEW")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("contact_messages")
+}
+
+// Modelo de Usuário Administrativo
+model AdminUser {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("admin")
+  active    Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admin_users")
+}

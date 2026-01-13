@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { CartProvider } from "./context/CartContext";
+import { AuthProvider } from "./context/AuthContext";
 import Layout from "./layout/Layout";
 import Home from "./pages/Home";
 import Services from "./pages/Services";
@@ -19,32 +20,64 @@ import Checkout from "./pages/Checkout";
 import ScrollToTop from "./components/ScrollToTop";
 import CartDrawer from "./components/CartDrawer";
 
+// Admin Pages
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminMessages from "./pages/admin/AdminMessages";
+import AdminMessageDetail from "./pages/admin/AdminMessageDetail";
+import ProtectedRoute from "./pages/admin/components/ProtectedRoute";
+
 function App() {
   return (
-    <CartProvider>
-      <Router>
-        <ScrollToTop />
-        <Layout>
+    <AuthProvider>
+      <CartProvider>
+        <Router>
+          <ScrollToTop />
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/account" element={<Account />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/work-with-us" element={<WorkWithUs />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/shipping" element={<Shipping />} />
-            <Route path="/returns" element={<Returns />} />
-            <Route path="/cookies" element={<Cookies />} />
-            <Route path="/checkout" element={<Checkout />} />
+            {/* Admin Routes - Outside Layout (no header/footer) */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/messages" element={
+              <ProtectedRoute>
+                <AdminMessages />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/messages/:id" element={
+              <ProtectedRoute>
+                <AdminMessageDetail />
+              </ProtectedRoute>
+            } />
+
+            {/* Public Routes - Inside Layout (with header/footer) */}
+            <Route path="/*" element={
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/services" element={<Services />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/products" element={<Products />} />
+                  <Route path="/account" element={<Account />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/work-with-us" element={<WorkWithUs />} />
+                  <Route path="/faq" element={<FAQ />} />
+                  <Route path="/shipping" element={<Shipping />} />
+                  <Route path="/returns" element={<Returns />} />
+                  <Route path="/cookies" element={<Cookies />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                </Routes>
+              </Layout>
+            } />
           </Routes>
-        </Layout>
-        <CartDrawer />
-      </Router>
-    </CartProvider>
+          <CartDrawer />
+        </Router>
+      </CartProvider>
+    </AuthProvider>
   );
 }
 
