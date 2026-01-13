@@ -22,6 +22,24 @@ const AdminDashboard = () => {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
 
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      const response = await api.syncMessages();
+      if (response.success) {
+        await fetchDashboard();
+      } else {
+        // Se houver erro, mostramos um alerta mas não crashamos a tela
+        console.error("Erro na sincronização:", response.message);
+        // Opcional: mostrar toast/alerta
+      }
+    } catch (err) {
+      console.error("Erro ao sincronizar:", err);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const fetchDashboard = async () => {
     try {
       setLoading(true);
