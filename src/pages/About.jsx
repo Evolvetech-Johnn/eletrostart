@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { CheckCircle, Award, Users, Clock, Zap, Target, Eye, Heart } from "lucide-react";
 
 const About = () => {
@@ -16,7 +17,7 @@ const About = () => {
             Nossa<br/>História
           </h1>
           <p className="text-lg md:text-xl text-blue-100 max-w-xl font-medium italic">
-            Desde 2007 iluminando caminhos e impulsionando o progresso através de soluções elétricas de excelência.
+            Iluminando caminhos e impulsionando o progresso através de soluções elétricas de excelência.
           </p>
         </div>
       </div>
@@ -35,11 +36,11 @@ const About = () => {
           </div>
           <div className="lg:w-1/2">
             <h2 className="text-sm font-black text-primary uppercase tracking-[0.3em] mb-4">Sobre a Eletrostart</h2>
-            <h3 className="text-3xl md:text-4xl font-black text-gray-900 uppercase mb-8 leading-tight">Mais de 18 anos de compromisso com a qualidade</h3>
+            <h3 className="text-3xl md:text-4xl font-black text-gray-900 uppercase mb-8 leading-tight">Compromisso com a qualidade e excelência</h3>
             
             <div className="space-y-8">
               <p className="text-gray-600 leading-relaxed text-lg">
-                Fundada em 26 de outubro de 2007, a **Eletrostart** nasceu com a missão de ser mais do que apenas um comércio de materiais elétricos. Desde o início, nosso foco tem sido prover segurança e eficiência através de componentes de alta performance.
+                A <strong>Eletrostart</strong> nasceu com a missão de ser mais do que apenas um comércio de materiais elétricos. Nosso foco é prover segurança e eficiência através de componentes de alta performance, atendendo às necessidades de residências, comércios e indústrias.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-start space-x-3">
@@ -105,8 +106,8 @@ const About = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
           {[
             { icon: Users, label: "Clientes Satisfeitos", value: "10k+" },
-            { icon: Award, label: "Anos de Mercado", value: "18+" },
-            { icon: Zap, label: "Projetos Solares", value: "500+" },
+            { icon: Award, label: "Excelência", value: "100%" },
+            { icon: Zap, label: "Projetos Realizados", value: "500+" },
             { icon: Clock, label: "Entregas Realizadas", value: "50k+" },
           ].map((stat, i) => (
             <div key={i} className="text-center group">

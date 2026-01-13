@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Search, Filter, ShoppingCart, ChevronRight, ChevronDown, LayoutGrid, List, SlidersHorizontal } from "lucide-react";
+import { Search, Filter, ShoppingCart, ChevronRight, ChevronDown, LayoutGrid, List, SlidersHorizontal, Plus } from "lucide-react";
 import { categories, products as baseProducts, getProductImage, PLACEHOLDER_IMAGE } from "../data/products";
 import { iluminacaoProducts } from "../data/iluminacaoProducts";
 import ProductCardWithVariants from "../components/ProductCardWithVariants";
+import { useCart } from "../context/CartContext";
 
 // Combinar produtos base com produtos de iluminação
 const allProducts = [...baseProducts, ...iluminacaoProducts];
@@ -12,10 +13,12 @@ const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
+  const [expandedCategory, setExpandedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredProducts, setFilteredProducts] = useState(allProducts);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
+  const { addToCart } = useCart();
 
   // Sync state with URL params
   useEffect(() => {
@@ -25,6 +28,7 @@ const Products = () => {
 
     if (categoryParam) {
       setSelectedCategory(categoryParam);
+      setExpandedCategory(categoryParam); // Expande a categoria quando vem da URL
     } else {
       setSelectedCategory("all");
     }
@@ -73,15 +77,26 @@ const Products = () => {
     setFilteredProducts(result);
   }, [selectedCategory, selectedSubcategory, searchQuery, searchParams]);
 
+  // Toggle para expandir/colapsar subcategorias
+  const handleCategoryToggle = (categoryId) => {
+    if (expandedCategory === categoryId) {
+      setExpandedCategory(null); // Colapsa se já está expandido
+    } else {
+      setExpandedCategory(categoryId); // Expande a categoria
+    }
+  };
+
   const handleCategoryChange = (categoryId) => {
     setSelectedCategory(categoryId);
     setSelectedSubcategory("");
     if (categoryId === "all") {
       searchParams.delete("category");
       searchParams.delete("subcategory");
+      setExpandedCategory(null);
     } else {
       searchParams.set("category", categoryId);
       searchParams.delete("subcategory");
+      setExpandedCategory(categoryId);
     }
     setSearchParams(searchParams);
     setIsMobileFiltersOpen(false);
@@ -160,32 +175,47 @@ const Products = () => {
                     <span>Todos</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded ${selectedCategory === "all" ? "bg-white/20" : "bg-gray-100 group-hover:bg-gray-200"}`}>{allProducts.length}</span>
                   </button>
-                  {categories.map((category) => (
+                  {categories.map((category) => {
+                    const isExpanded = expandedCategory === category.id;
+                    const isSelected = selectedCategory === category.id;
+                    const hasSubcategories = category.subcategories && category.subcategories.length > 0;
+                    
+                    return (
                     <div key={category.id}>
-                      <button
-                        onClick={() => handleCategoryChange(category.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-between group ${
-                          selectedCategory === category.id ? "bg-primary text-white" : "text-gray-600 hover:bg-gray-50"
-                        }`}
-                      >
-                        <span className="truncate">{category.name}</span>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${selectedCategory === category.id ? "bg-white/20" : "bg-gray-100 group-hover:bg-gray-200"}`}>
+                      <div className="flex items-center">
+                        {/* Botão principal da categoria - seleciona e filtra */}
+                        <button
+                          onClick={() => handleCategoryChange(category.id)}
+                          className={`flex-1 text-left px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-between group ${
+                            isSelected ? "bg-primary text-white" : "text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          <span className="truncate">{category.name}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${isSelected ? "bg-white/20" : "bg-gray-100 group-hover:bg-gray-200"}`}>
                             {allProducts.filter(p => p.category === category.id).length}
                           </span>
-                          {category.subcategories && category.subcategories.length > 0 && (
-                            <ChevronDown size={14} className={`transition-transform ${selectedCategory === category.id ? "rotate-180" : ""}`} />
-                          )}
-                        </div>
-                      </button>
+                        </button>
+                        
+                        {/* Botão de toggle para expandir/colapsar subcategorias */}
+                        {hasSubcategories && (
+                          <button
+                            onClick={() => handleCategoryToggle(category.id)}
+                            className={`ml-1 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                              isExpanded ? "bg-primary/10 text-primary" : "text-gray-400 hover:bg-gray-100"
+                            }`}
+                          >
+                            <ChevronDown size={16} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                          </button>
+                        )}
+                      </div>
                       
-                      {/* Subcategories */}
-                      {selectedCategory === category.id && category.subcategories && category.subcategories.length > 0 && (
-                        <div className="ml-4 mt-2 space-y-1 border-l-2 border-primary/20 pl-3">
+                      {/* Subcategories - aparece quando expandido */}
+                      {isExpanded && hasSubcategories && (
+                        <div className="ml-4 mt-2 space-y-1 border-l-2 border-primary/20 pl-3 animate-fade-in">
                           <button
                             onClick={() => handleSubcategoryChange("")}
                             className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                              !selectedSubcategory ? "bg-primary/10 text-primary" : "text-gray-500 hover:bg-gray-50"
+                              isSelected && !selectedSubcategory ? "bg-primary/10 text-primary" : "text-gray-500 hover:bg-gray-50"
                             }`}
                           >
                             Todas
@@ -193,7 +223,12 @@ const Products = () => {
                           {category.subcategories.map((sub) => (
                             <button
                               key={sub.id}
-                              onClick={() => handleSubcategoryChange(sub.id)}
+                              onClick={() => {
+                                if (selectedCategory !== category.id) {
+                                  handleCategoryChange(category.id);
+                                }
+                                handleSubcategoryChange(sub.id);
+                              }}
                               className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                                 selectedSubcategory === sub.id ? "bg-primary/10 text-primary" : "text-gray-500 hover:bg-gray-50"
                               }`}
@@ -204,7 +239,8 @@ const Products = () => {
                         </div>
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               </div>
 
@@ -273,7 +309,7 @@ const Products = () => {
                     <ProductCardWithVariants 
                       key={product.id} 
                       product={product}
-                      onAddToCart={(prod, variant) => console.log('Add to cart:', prod, variant)}
+                      onAddToCart={(prod, variant) => addToCart(prod, 1, variant)}
                     />
                   ) : (
                     // Original card for products without variants
@@ -290,8 +326,12 @@ const Products = () => {
                           onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
                         />
                         <div className="absolute top-4 right-4 flex flex-col gap-2">
-                          <button className="bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm">
-                            <ShoppingCart size={16} />
+                          <button 
+                            onClick={() => addToCart(product)}
+                            className="bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-400 hover:text-primary hover:bg-white transition-colors shadow-sm"
+                            title="Adicionar ao carrinho"
+                          >
+                            <Plus size={16} />
                           </button>
                         </div>
                       </div>
@@ -324,11 +364,12 @@ const Products = () => {
                           </div>
                           
                           <div className="flex gap-2">
-                            <button className="flex-1 bg-[#222998] hover:bg-primary text-white py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-md active:scale-95">
-                              Comprar
-                            </button>
-                            <button className="w-12 h-12 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 rounded-xl transition-colors border border-gray-100">
-                              <Filter size={18} />
+                            <button 
+                              onClick={() => addToCart(product)}
+                              className="flex-1 bg-[#222998] hover:bg-primary text-white py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+                            >
+                              <ShoppingCart size={16} />
+                              Adicionar
                             </button>
                           </div>
                         </div>

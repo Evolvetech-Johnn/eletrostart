@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ShoppingCart, Info } from "lucide-react";
 import { products, categories, getProductImage, PLACEHOLDER_IMAGE } from "../data/products";
+import { useCart } from "../context/CartContext";
 
 const Home = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const { addToCart } = useCart();
 
   const banners = [
     {
@@ -83,19 +85,33 @@ const Home = () => {
 
       {/* Categories Grid */}
       <section className="container mx-auto px-4 -mt-10 md:-mt-16 relative z-30">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {categories.map((cat) => {
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
+          {categories.slice(0, 8).map((cat) => {
             const Icon = cat.icon;
             return (
               <Link
                 key={cat.id}
                 to={`/products?category=${cat.id}`}
-                className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col items-center text-center group hover:border-primary transition-all hover:-translate-y-1"
+                className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden group hover:border-primary transition-all hover:-translate-y-1 hover:shadow-xl"
               >
-                <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors mb-4">
-                  <Icon size={24} />
+                {/* Category Image */}
+                <div className="relative h-28 overflow-hidden">
+                  <img 
+                    src={cat.image}
+                    alt={cat.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <span className="font-black text-white text-sm uppercase tracking-wider drop-shadow-lg line-clamp-2 leading-tight">
+                      {cat.name}
+                    </span>
+                  </div>
+                  {/* Icon badge */}
+                  <div className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-primary shadow-lg">
+                    <Icon size={16} />
+                  </div>
                 </div>
-                <span className="font-bold text-sm text-gray-800 uppercase tracking-wider">{cat.name}</span>
               </Link>
             );
           })}
@@ -138,7 +154,10 @@ const Home = () => {
                   </div>
                   <p className="text-[10px] text-gray-500 font-medium">no PIX ou Boleto</p>
                   
-                  <button className="w-full mt-6 bg-primary hover:bg-blue-800 text-white py-3 rounded-lg font-bold flex items-center justify-center space-x-2 transition-colors uppercase tracking-widest text-sm shadow-md">
+                  <button 
+                    onClick={() => addToCart(product)}
+                    className="w-full mt-6 bg-primary hover:bg-blue-800 text-white py-3 rounded-lg font-bold flex items-center justify-center space-x-2 transition-colors uppercase tracking-widest text-sm shadow-md"
+                  >
                     <ShoppingCart size={18} />
                     <span>Comprar</span>
                   </button>
@@ -204,7 +223,10 @@ const Home = () => {
                   <span className="text-2xl font-black text-primary">R$ {product.price.toFixed(2)}</span>
                   <p className="text-[10px] text-gray-500 font-medium">no PIX ou Boleto</p>
                   
-                  <button className="w-full mt-6 border-2 border-primary text-primary hover:bg-primary hover:text-white py-3 rounded-lg font-bold flex items-center justify-center space-x-2 transition-all uppercase tracking-widest text-sm">
+                  <button 
+                    onClick={() => addToCart(product)}
+                    className="w-full mt-6 border-2 border-primary text-primary hover:bg-primary hover:text-white py-3 rounded-lg font-bold flex items-center justify-center space-x-2 transition-all uppercase tracking-widest text-sm"
+                  >
                     <ShoppingCart size={18} />
                     <span>Adicionar</span>
                   </button>

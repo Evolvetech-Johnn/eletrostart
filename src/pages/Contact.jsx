@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Phone, Mail, MapPin, Clock, MessageSquare, Send, Instagram, Facebook, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { formatPhone } from "../utils/formatters";
 
 // Configure sua URL do Discord Webhook aqui
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1460367782683082948/q-pOO-gG6liuj1yJVkhOghpq2ni8rblefl_X0Vo1iTAaKxYSHMJtRDxjw8leEH-DnD8j";
@@ -19,6 +20,12 @@ const Contact = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  const handlePhoneChange = useCallback((e) => {
+    const { value } = e.target;
+    const formattedValue = formatPhone(value);
+    setFormData(prev => ({ ...prev, telefone: formattedValue }));
+  }, []);
 
   const sendToDiscord = async (data) => {
     const embed = {
@@ -112,7 +119,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">Telefone</h3>
-                  <p className="text-lg font-black text-gray-900">(43) 3333-3333</p>
+                  <p className="text-lg font-black text-gray-900">(43) 3029-5020</p>
                 </div>
               </div>
               <p className="text-sm text-gray-500 font-medium">Atendimento de Segunda a Sexta das 08h às 18h.</p>
@@ -190,7 +197,8 @@ const Contact = () => {
                       type="tel" 
                       name="telefone"
                       value={formData.telefone}
-                      onChange={handleChange}
+                      onChange={handlePhoneChange}
+                      maxLength={16}
                       placeholder="(43) 99999-9999" 
                       className="w-full px-6 py-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-primary focus:bg-white outline-none transition-all font-medium text-gray-900"
                     />

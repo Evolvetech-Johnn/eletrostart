@@ -3,11 +3,20 @@ import { Menu, X, Phone, Mail, ChevronDown, Search, User, ShoppingCart, Mic } fr
 import logo from "../assets/logoeletrostart.png";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { categories } from "../data/products";
+import { useCart } from "../context/CartContext";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
   const navigate = useNavigate();
+  const { cartItemCount, cartTotal, toggleCart } = useCart();
+
+  const formatPrice = (price) => {
+    return price.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+  };
 
   const navLinkClass = ({ isActive }) =>
     `font-semibold text-sm transition-colors px-3 py-2 flex items-center gap-1 ${
@@ -89,14 +98,21 @@ const Header = () => {
               </div>
             </Link>
             
-            <button className="flex items-center space-x-2 text-gray-700 hover:text-primary transition-colors relative">
+            <button 
+              onClick={toggleCart}
+              className="flex items-center space-x-2 text-gray-700 hover:text-primary transition-colors relative"
+            >
               <div className="relative">
                 <ShoppingCart size={24} />
-                <span className="absolute -top-2 -right-2 bg-secondary text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">0</span>
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-secondary text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full animate-pulse">
+                    {cartItemCount > 9 ? '9+' : cartItemCount}
+                  </span>
+                )}
               </div>
               <div className="hidden sm:block text-left leading-none">
                 <span className="text-[10px] block opacity-70 uppercase font-bold">Meu Carrinho</span>
-                <span className="text-xs font-bold block">R$ 0,00</span>
+                <span className="text-xs font-bold block">{formatPrice(cartTotal)}</span>
               </div>
             </button>
 
