@@ -3,11 +3,22 @@ import { useSearchParams, Link } from "react-router-dom";
 import { Search, Filter, ShoppingCart, ChevronRight, ChevronDown, LayoutGrid, List, SlidersHorizontal, Plus } from "lucide-react";
 import { categories, products as baseProducts, getProductImage, PLACEHOLDER_IMAGE } from "../data/products";
 import { iluminacaoProducts } from "../data/iluminacaoProducts";
+import { chuveirosProducts } from "../data/chuveirosProducts";
+import { fiosCabosProducts } from "../data/fiosCabosProducts";
+import { protecaoProducts } from "../data/protecaoProducts";
+import { tomadasInterruptoresProducts } from "../data/tomadasInterruptoresProducts";
 import ProductCardWithVariants from "../components/ProductCardWithVariants";
 import { useCart } from "../context/CartContext";
 
-// Combinar produtos base com produtos de iluminação
-const allProducts = [...baseProducts, ...iluminacaoProducts];
+// Combinar produtos base com produtos de todas as categorias especializadas
+const allProducts = [
+  ...baseProducts, 
+  ...iluminacaoProducts,
+  ...chuveirosProducts,
+  ...fiosCabosProducts,
+  ...protecaoProducts,
+  ...tomadasInterruptoresProducts
+];
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
