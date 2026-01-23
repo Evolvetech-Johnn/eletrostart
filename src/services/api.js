@@ -6,7 +6,9 @@ import { products, categories } from "../data/products";
 const MOCK_MODE = false;
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+  import.meta.env.VITE_BACKEND_URL || 
+  import.meta.env.VITE_API_URL || 
+  "http://localhost:3001/api";
 
 // Token storage
 const TOKEN_KEY = "eletrostart_admin_token";
