@@ -1,4 +1,10 @@
+import { products, categories } from "../data/products";
+
 // Configuração da API
+// MOCK_MODE = false para usar MongoDB Atlas (produção/desenvolvimento)
+// MOCK_MODE = true para usar dados estáticos locais (offline/fallback)
+const MOCK_MODE = false;
+
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
@@ -54,7 +60,7 @@ const fetchWithAuth = async (endpoint, options = {}) => {
   } catch (error) {
     if (error.name === "TypeError" && error.message === "Failed to fetch") {
       throw new Error(
-        "Erro de conexão. Verifique sua internet ou se o servidor está online."
+        "Erro de conexão. Verifique sua internet ou se o servidor está online.",
       );
     }
     throw error;
@@ -150,7 +156,7 @@ export const api = {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -182,36 +188,112 @@ export const api = {
     fetchWithAuth("/admin/integrations/discord/test", { method: "POST" }),
   getDiscordLogs: () => fetchWithAuth("/admin/integrations/discord/logs"),
 
-  // --- Store (Products/Orders) ---
-  
-  // Public
-  getProducts: (params = {}) => {
+  // --- E-Commerce (Products/Orders) ---
+
+  // Public - Products
+  getProducts: async (params = {}) => {
+    if (MOCK_MODE) {
+      console.log("📦 Using Mock Data for getProducts");
+      let filtered = [...products];
+
+      if (params.category) {
+        filtered = filtered.filter((p) => p.category === params.category || p.categoryId === params.category);
+      }
+
+      if (params.subcategory) {
+        filtered = filtered.filter((p) => p.subcategory === params.subcategory);
+      }
+
+      if (params.search) {
+        const lowerSearch = params.search.toLowerCase();
+        filtered = filtered.filter(
+          (p) =>
+            p.name.toLowerCase().includes(lowerSearch) ||
+            (p.description && p.description.toLowerCase().includes(lowerSearch)),
+        );
+      }
+
+      return { success: true, data: filtered };
+    }
+
     const queryString = new URLSearchParams(params).toString();
-    return fetchWithAuth(`/store/products?${queryString}`); // Note: Using fetchWithAuth for convenience, but it handles public too if token missing? 
-    // Wait, fetchWithAuth adds token if present. The backend public routes don't require it, so it's fine.
-    // Actually, `fetchWithAuth` prepends `API_BASE_URL`.
+    return fetchWithAuth(`/ecommerce/products?${queryString}`);
   },
-  
-  getProduct: (id) => fetchWithAuth(`/store/products/${id}`),
-  getCategories: () => fetchWithAuth(`/store/categories`),
-  createOrder: (data) => fetchWithAuth("/store/orders", { method: "POST", body: JSON.stringify(data) }),
-  
+
+  getProduct: async (id) => {
+    if (MOCK_MODE) {
+      console.log("📦 Using Mock Data for getProduct", id);
+      const product = products.find((p) => p.id === id);
+      if (product) return { success: true, data: product };
+      throw new Error("Produto não encontrado");
+    }
+    return fetchWithAuth(`/ecommerce/products/${id}`);
+  },
+
+  getCategories: async () => {
+    if (MOCK_MODE) {
+      console.log("📦 Using Mock Data for getCategories");
+      return { success: true, data: categories };
+    }
+    return fetchWithAuth(`/ecommerce/categories`);
+  },
+
+  createOrder: async (data) => {
+    if (MOCK_MODE) {
+      console.log("📦 Mock Order Created:", data);
+      return {
+        success: true,
+        data: { id: "mock-order-" + Date.now(), ...data },
+      };
+    }
+    return fetchWithAuth("/ecommerce/orders", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
   // Admin Products
-  createProduct: (data) => fetchWithAuth("/store/products", { method: "POST", body: JSON.stringify(data) }),
-  updateProduct: (id, data) => fetchWithAuth(`/store/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-  deleteProduct: (id) => fetchWithAuth(`/store/products/${id}`, { method: "DELETE" }),
-  
+  createProduct: (data) =>
+    fetchWithAuth("/ecommerce/products", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateProduct: (id, data) =>
+    fetchWithAuth(`/ecommerce/products/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteProduct: (id) =>
+    fetchWithAuth(`/ecommerce/products/${id}`, { method: "DELETE" }),
+
   // Admin Categories
-  createCategory: (data) => fetchWithAuth("/store/categories", { method: "POST", body: JSON.stringify(data) }),
-  deleteCategory: (id) => fetchWithAuth(`/store/categories/${id}`, { method: "DELETE" }),
-  
+  createCategory: (data) =>
+    fetchWithAuth("/ecommerce/categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateCategory: (id, data) =>
+    fetchWithAuth(`/ecommerce/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteCategory: (id) =>
+    fetchWithAuth(`/ecommerce/categories/${id}`, { method: "DELETE" }),
+
   // Admin Orders
   getOrders: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    return fetchWithAuth(`/store/orders?${queryString}`);
+    return fetchWithAuth(`/ecommerce/orders?${queryString}`);
   },
-  getOrder: (id) => fetchWithAuth(`/store/orders/${id}`),
-  updateOrderStatus: (id, data) => fetchWithAuth(`/store/orders/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
+  getOrder: (id) => fetchWithAuth(`/ecommerce/orders/${id}`),
+  updateOrderStatus: (id, data) =>
+    fetchWithAuth(`/ecommerce/orders/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+    
+  // Product Stats
+  getProductStats: () => fetchWithAuth("/ecommerce/products/stats/overview"),
 };
 
 export default api;

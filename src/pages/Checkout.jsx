@@ -20,7 +20,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { PLACEHOLDER_IMAGE } from '../data/products';
+import { PLACEHOLDER_IMAGE } from '../utils/productHelpers';
 import { formatCEP, formatPhone, fetchAddressByCEP, isValidCEP, isValidPhone } from '../utils/formatters';
 
 const Checkout = () => {

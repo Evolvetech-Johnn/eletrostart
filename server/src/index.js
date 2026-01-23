@@ -30,9 +30,11 @@ app.use(
     origin: function (origin, callback) {
       const allowedOrigins = [
         "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
         process.env.FRONTEND_URL,
-        // Adicione a URL do Netlify aqui se já tiver (ex: 'https://seu-site.netlify.app')
-      ].filter(Boolean); // Remove valores nulos/undefined
+      ].filter(Boolean);
 
       // Permitir requisições sem origin (ex: Postman, curl, Mobile Apps)
       if (!origin) return callback(null, true);
@@ -43,6 +45,7 @@ app.use(
       ) {
         callback(null, true);
       } else {
+        console.log("Blocked by CORS:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
@@ -75,6 +78,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/store", ecommerceRoutes);
+app.use("/api/ecommerce", ecommerceRoutes); // Alias for ecommerce endpoints
 
 // Error handling middleware
 app.use((err, req, res, next) => {

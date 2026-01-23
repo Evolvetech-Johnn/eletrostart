@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Plus, Minus, Trash2, ShoppingBag, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { PLACEHOLDER_IMAGE } from '../data/products';
+import { PLACEHOLDER_IMAGE } from '../utils/productHelpers';
 
 const CartDrawer = () => {
   const navigate = useNavigate();

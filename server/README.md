@@ -15,7 +15,7 @@ Backend Node.js/Express para gerenciamento de mensagens de contato do site Eletr
 
 ### Pré-requisitos
 - Node.js 18+
-- PostgreSQL 14+
+- MongoDB Atlas (conta gratuita)
 - npm ou yarn
 
 ### 1. Instalar dependências
@@ -24,7 +24,14 @@ cd server
 npm install
 ```
 
-### 2. Configurar variáveis de ambiente
+### 2. Configurar MongoDB Atlas
+Siga o guia em `MONGODB_MIGRATION.md` para:
+- Criar conta no MongoDB Atlas
+- Criar cluster (M0 free tier)
+- Configurar acesso (usuário e IP whitelist)
+- Obter string de conexão
+
+### 3. Configurar variáveis de ambiente
 Copie o arquivo `.env.example` para `.env` e configure:
 ```bash
 cp .env.example .env
@@ -32,22 +39,17 @@ cp .env.example .env
 
 Edite o arquivo `.env` com suas credenciais:
 ```env
-DATABASE_URL="postgresql://usuario:senha@localhost:5432/eletrostart"
+DATABASE_URL="mongodb+srv://usuario:senha@cluster.mongodb.net/eletrostart?retryWrites=true&w=majority"
 JWT_SECRET="sua-chave-secreta-aqui"
 DISCORD_WEBHOOK_URL="sua-url-do-webhook"
 ADMIN_EMAIL="admin@seusite.com"
 ADMIN_PASSWORD="SuaSenhaForte123"
 ```
 
-### 3. Criar banco de dados
+### 4. Gerar Prisma Client e criar collections
 ```bash
-# No PostgreSQL
-createdb eletrostart
-```
-
-### 4. Executar migrações do Prisma
-```bash
-npm run prisma:migrate
+npx prisma generate
+npx prisma db push
 ```
 
 ### 5. Executar seed (criar admin e dados de exemplo)
@@ -137,12 +139,13 @@ curl -X POST http://localhost:3001/api/auth/login \
 ## 🛠️ Scripts Disponíveis
 
 ```bash
-npm run dev          # Inicia servidor em modo desenvolvimento
-npm start            # Inicia servidor em produção
-npm run prisma:generate  # Gera cliente Prisma
-npm run prisma:migrate   # Executa migrações
-npm run prisma:studio    # Abre Prisma Studio (GUI)
-npm run seed             # Popula banco com dados iniciais
+npm run dev               # Inicia servidor em modo desenvolvimento
+npm start                 # Inicia servidor em produção
+npm run prisma:generate   # Gera cliente Prisma
+npm run prisma:studio     # Abre Prisma Studio (GUI)
+npm run seed              # Popula banco com dados iniciais
+npx prisma db push        # Sincroniza schema com MongoDB
+npx prisma validate       # Valida o schema
 ```
 
 ## 📁 Estrutura do Projeto
@@ -165,16 +168,25 @@ server/
 
 ## 🔧 Troubleshooting
 
-### Erro de conexão com PostgreSQL
-Verifique se o PostgreSQL está rodando e as credenciais estão corretas no `.env`
+### Erro de conexão com MongoDB Atlas
+- Verifique se a connection string está correta no `.env`
+- Confirme que seu IP está na whitelist do MongoDB Atlas
+- Teste a conexão com MongoDB Compass
 
-### Erro de migração
+### Erro de schema
 ```bash
-npx prisma migrate reset  # Reset completo (CUIDADO: apaga dados)
-npx prisma migrate dev    # Nova migração
+npx prisma validate       # Valida o schema
+npx prisma generate       # Regenera o cliente
+npx prisma db push        # Sincroniza com MongoDB
 ```
 
 ### Erro de autenticação
 - Verifique se o token está sendo enviado corretamente
 - Confirme que o usuário existe e está ativo
 - Verifique se o JWT_SECRET está configurado
+
+### Discord não está funcionando
+- Verifique se DISCORD_BOT_TOKEN está configurado corretamente
+- O erro de TokenInvalid não afeta as funcionalidades principais do backend
+- Configure as credenciais do Discord apenas se quiser usar a integração
+

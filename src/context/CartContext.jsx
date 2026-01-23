@@ -20,8 +20,27 @@ export const CartProvider = ({ children }) => {
 
   const [cart, setCart] = useState(() => {
     // Recupera o carrinho do localStorage ao inicializar
-    const savedCart = localStorage.getItem("eletrostart-cart");
-    return savedCart ? JSON.parse(savedCart) : [];
+    try {
+      const savedCart = localStorage.getItem("eletrostart-cart");
+      if (!savedCart) return [];
+      
+      const parsedCart = JSON.parse(savedCart);
+      
+      // Validação de segurança: garante que é um array e filtra itens inválidos
+      if (!Array.isArray(parsedCart)) return [];
+      
+      return parsedCart.filter(item => 
+        item && 
+        item.id && 
+        typeof item.price === 'number' && 
+        !isNaN(item.price)
+      );
+    } catch (error) {
+      console.error("Erro ao recuperar carrinho:", error);
+      // Se der erro no parse, limpa o carrinho para evitar crash
+      localStorage.removeItem("eletrostart-cart");
+      return [];
+    }
   });
 
   const [isCartOpen, setIsCartOpen] = useState(false);

@@ -1,0 +1,9 @@
+
+--- Relatório de Auditoria ---
+Imagens na pasta: 125
+Imagens referenciadas no código: 141
+
+⚠️  1 Imagens na pasta NÃO usadas no código:
+  - /img/Categorias/LAMPADA BULBO LED/LAMPADA LED BULBO.jpg
+
+✅ Todas as referências de imagem no código apontam para arquivos existentes.

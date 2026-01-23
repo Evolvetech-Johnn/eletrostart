@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Menu,
   X,
@@ -12,13 +12,34 @@ import {
 } from "lucide-react";
 import logo from "../assets/logoeletrostart.png";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { categories } from "../data/products";
 import { useCart } from "../context/CartContext";
+import { api } from "../services/api";
+import { getCategoryIcon, CATEGORY_METADATA } from "../utils/categoryData";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
   const navigate = useNavigate();
   const { cartItemCount, cartTotal, toggleCart } = useCart();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await api.getCategories();
+        if (response.success) {
+          const mergedCategories = response.data.map((cat) => ({
+            ...cat,
+            icon: getCategoryIcon(cat.id),
+            subcategories: CATEGORY_METADATA[cat.id]?.subcategories || [],
+          }));
+          setCategories(mergedCategories);
+        }
+      } catch (err) {
+        console.error("Error fetching categories for header:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const formatPrice = (price) => {
     return price.toLocaleString("pt-BR", {

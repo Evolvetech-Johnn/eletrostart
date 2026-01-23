@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Eye, X } from 'lucide-react';
-import { PLACEHOLDER_IMAGE } from '../data/products';
+import { PLACEHOLDER_IMAGE } from '../utils/productHelpers';
 
 const ProductCardWithVariants = ({ product, onAddToCart }) => {
   const [selectedVariant, setSelectedVariant] = useState(
@@ -27,15 +27,37 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
     }
   };
 
+  // Handle ESC key to close modal
+  React.useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isModalOpen) {
+        setIsModalOpen(false);
+      }
+    };
+    
+    if (isModalOpen) {
+      document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isModalOpen]);
+
   return (
     <>
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 flex flex-col h-full">
         {/* Image Area */}
-        <div className="relative overflow-hidden bg-gray-50 aspect-square">
+        <div className="relative overflow-hidden bg-white aspect-[4/3] border border-gray-100">
           <img
             src={getCurrentImage()}
             alt={product.name}
-            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 p-4"
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 p-4"
             onError={() => setImageError(true)}
           />
           
@@ -43,7 +65,8 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="bg-white/90 backdrop-blur-sm p-3 rounded-full text-gray-600 hover:text-primary transition-colors shadow-lg transform translate-y-4 group-hover:translate-y-0"
+              aria-label="Ver detalhes do produto"
+              className="bg-white/90 backdrop-blur-sm p-3 rounded-full text-gray-600 hover:text-primary transition-colors shadow-lg transform translate-y-4 group-hover:translate-y-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             >
               <Eye size={20} />
             </button>
@@ -127,23 +150,26 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
           onClick={() => setIsModalOpen(false)}
         >
           <div 
-            className="relative max-w-4xl w-full max-h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl"
+            className="relative max-w-4xl w-full max-h-[90vh] bg-white rounded-3xl overflow-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button 
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500 transition-colors shadow-lg"
+              aria-label="Fechar"
+              className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500 transition-colors shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
             >
               <X size={24} />
             </button>
 
             {/* Image */}
-            <div className="p-8 bg-gray-50">
+            <div className="p-4 bg-gray-50 flex items-center justify-center">
               <img
                 src={getCurrentImage()}
                 alt={product.name}
-                className="w-full h-auto max-h-[60vh] object-contain mx-auto"
+                loading="lazy"
+                decoding="async"
+                className="w-full h-auto max-h-[70vh] object-contain"
                 onError={() => setImageError(true)}
               />
             </div>
@@ -151,7 +177,7 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
             {/* Product Info */}
             <div className="p-6 bg-white border-t border-gray-100">
               <h3 className="text-xl font-black text-gray-900 mb-2">{product.name}</h3>
-              <p className="text-gray-500 text-sm mb-4">{product.description}</p>
+              <p className="text-gray-500 text-sm mb-4 whitespace-normal break-words">{product.description}</p>
               
               {/* Variant Selector in Modal */}
               {hasVariants && (

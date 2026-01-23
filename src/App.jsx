@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider } from "./context/AuthContext";
 import Layout from "./layout/Layout";
@@ -32,6 +32,7 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminOrderDetail from "./pages/admin/AdminOrderDetail";
 import ProtectedRoute from "./pages/admin/components/ProtectedRoute";
 import { Toaster } from "react-hot-toast";
+import NotFound from "./pages/NotFound";
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
           <ScrollToTop />
           <Routes>
             {/* Admin Routes - Outside Layout (no header/footer) */}
+            <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route
               path="/admin/dashboard"
@@ -138,6 +140,7 @@ function App() {
                     <Route path="/returns" element={<Returns />} />
                     <Route path="/cookies" element={<Cookies />} />
                     <Route path="/checkout" element={<Checkout />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Layout>
               }
