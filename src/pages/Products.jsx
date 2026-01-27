@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Search, Filter, ShoppingCart, ChevronRight, ChevronDown, LayoutGrid, List, SlidersHorizontal, Plus, Eye, X } from "lucide-react";
+import { Search, Filter, ShoppingCart, ChevronRight, ChevronDown, LayoutGrid, List, SlidersHorizontal, Plus, Eye, X, Package } from "lucide-react";
 import ProductCardWithVariants from "../components/ProductCardWithVariants";
 import { useCart } from "../context/CartContext";
 import { api } from "../services/api";
@@ -621,5 +621,13 @@ const Products = () => {
 };
 
 
-export default Products;
+import ErrorBoundary from "../components/ErrorBoundary";
+
+const ProductsPage = () => (
+  <ErrorBoundary>
+    <Products />
+  </ErrorBoundary>
+);
+
+export default ProductsPage;
 
