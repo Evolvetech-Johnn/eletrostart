@@ -29,8 +29,8 @@ const Header = () => {
         if (response.success) {
           const mergedCategories = response.data.map((cat) => ({
             ...cat,
-            // icon is already a React element from getCategoryIcon
-            icon: getCategoryIcon(cat.id) || <span>📦</span>,
+            // icon is a Component
+            icon: getCategoryIcon(cat.id),
             subcategories: CATEGORY_METADATA[cat.id]?.subcategories || [],
           }));
           setCategories(mergedCategories);
@@ -209,7 +209,9 @@ const Header = () => {
                         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
                       >
                         <div className="flex items-center space-x-3">
-                          <span className="text-xl">{category.icon}</span>
+                          <span className="text-xl">
+                            {category.icon && <category.icon size={24} />}
+                          </span>
                           <span className="text-sm font-medium text-gray-700 group-hover/item:text-primary">
                             {category.name}
                           </span>
