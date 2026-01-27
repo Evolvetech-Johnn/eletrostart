@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ShoppingCart, Info } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { api } from "../services/api";
-import { getCategoryIcon } from "../utils/categoryData";
+import { getCategoryIcon } from "../utils/categoryData.js";
 import { getProductImage, PLACEHOLDER_IMAGE } from "../utils/productHelpers";
 
 const Home = () => {

@@ -1,10 +1,10 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Search, Filter, ShoppingCart, ChevronRight, ChevronDown, LayoutGrid, List, SlidersHorizontal, Plus, Eye, X, Package } from "lucide-react";
 import ProductCardWithVariants from "../components/ProductCardWithVariants";
 import { useCart } from "../context/CartContext";
 import { api } from "../services/api";
-import { getCategoryIcon, CATEGORY_METADATA } from "../utils/categoryData";
+import { getCategoryIcon, CATEGORY_METADATA } from "../utils/categoryData.js";
 import { getProductImage, PLACEHOLDER_IMAGE } from "../utils/productHelpers";
 
 const Products = () => {

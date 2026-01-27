@@ -14,7 +14,7 @@ import logo from "../assets/logoeletrostart.png";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { api } from "../services/api";
-import { getCategoryIcon, CATEGORY_METADATA } from "../utils/categoryData";
+import { getCategoryIcon, CATEGORY_METADATA } from "../utils/categoryData.js";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
