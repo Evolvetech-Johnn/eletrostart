@@ -6,8 +6,8 @@ import { products, categories } from "../data/products";
 const MOCK_MODE = false;
 
 const API_BASE_URL =
-  import.meta.env.VITE_BACKEND_URL || 
-  import.meta.env.VITE_API_URL || 
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_API_URL ||
   "https://eletrostartbackend-api.onrender.com/api";
 
 // Token storage
@@ -52,6 +52,14 @@ const fetchWithAuth = async (endpoint, options = {}) => {
       throw new Error("Erro interno do servidor. Tente novamente mais tarde.");
     }
 
+    // Check for JSON content type
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error("Received non-JSON response:", text);
+      throw new Error(`Resposta inválida do servidor: ${response.status}`);
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -72,7 +80,15 @@ const fetchWithAuth = async (endpoint, options = {}) => {
 // API Service
 export const api = {
   // System
-  checkHealth: () => fetch(`${API_BASE_URL}/health`).then((r) => r.json()),
+  checkHealth: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`);
+      if (!response.ok) return { status: "error" };
+      return await response.json();
+    } catch (e) {
+      return { status: "error" };
+    }
+  },
 
   // Auth
   login: async (email, password) => {
@@ -199,7 +215,10 @@ export const api = {
       let filtered = [...products];
 
       if (params.category) {
-        filtered = filtered.filter((p) => p.category === params.category || p.categoryId === params.category);
+        filtered = filtered.filter(
+          (p) =>
+            p.category === params.category || p.categoryId === params.category,
+        );
       }
 
       if (params.subcategory) {
@@ -211,7 +230,8 @@ export const api = {
         filtered = filtered.filter(
           (p) =>
             p.name.toLowerCase().includes(lowerSearch) ||
-            (p.description && p.description.toLowerCase().includes(lowerSearch)),
+            (p.description &&
+              p.description.toLowerCase().includes(lowerSearch)),
         );
       }
 
@@ -240,7 +260,10 @@ export const api = {
     try {
       return await fetchWithAuth(`/ecommerce/categories`);
     } catch (error) {
-      console.error("⚠️ Failed to fetch categories, returning empty list:", error);
+      console.error(
+        "⚠️ Failed to fetch categories, returning empty list:",
+        error,
+      );
       return { success: false, data: [] };
     }
   },
@@ -298,7 +321,7 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
-    
+
   // Product Stats
   getProductStats: () => fetchWithAuth("/ecommerce/products/stats/overview"),
 };

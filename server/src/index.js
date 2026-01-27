@@ -19,7 +19,9 @@ export const prisma = new PrismaClient();
 if (!process.env.DATABASE_URL) {
   console.error("❌ Erro Crítico: DATABASE_URL não definida!");
 } else if (!process.env.DATABASE_URL.includes("mongodb.net/")) {
-  console.error("❌ Erro Crítico: DATABASE_URL parece inválida (falta o nome do banco?)");
+  console.error(
+    "❌ Erro Crítico: DATABASE_URL parece inválida (falta o nome do banco?)",
+  );
 } else {
   // Mask credentials for safe logging
   const maskedUrl = process.env.DATABASE_URL.replace(/:([^@]+)@/, ":****@");
@@ -65,7 +67,7 @@ app.use(
       }
     },
     credentials: true,
-  })
+  }),
 );
 app.use(express.json());
 
@@ -79,18 +81,18 @@ app.get("/api/health-db", async (req, res) => {
   try {
     const userCount = await prisma.user.count();
     const categoryCount = await prisma.category.count();
-    res.json({ 
-      status: "ok", 
-      message: "Database connection successful", 
+    res.json({
+      status: "ok",
+      message: "Database connection successful",
       counts: { users: userCount, categories: categoryCount },
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error("Database health check failed:", error);
-    res.status(500).json({ 
-      status: "error", 
-      message: "Database connection failed", 
-      error: error.message 
+    res.status(500).json({
+      status: "error",
+      message: "Database connection failed",
+      error: error.message,
     });
   }
 });
@@ -116,6 +118,14 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/store", ecommerceRoutes);
 app.use("/api/ecommerce", ecommerceRoutes); // Alias for ecommerce endpoints
 
+// 404 Handler for API routes
+app.use("/api/*", (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Rota não encontrada: ${req.method} ${req.originalUrl}`,
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Error:", err);
@@ -130,7 +140,7 @@ const startServer = async () => {
   try {
     await prisma.$connect();
     console.log("✅ Conectado ao MongoDB com sucesso!");
-    
+
     app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
       console.log(`📡 API disponível em http://localhost:${PORT}/api`);
