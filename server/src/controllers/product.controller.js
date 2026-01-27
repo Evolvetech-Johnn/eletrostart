@@ -29,7 +29,12 @@ export const getCategories = async (req, res) => {
     console.error("Error fetching categories:", error);
     res
       .status(500)
-      .json({ success: false, message: "Erro ao buscar categorias" });
+      .json({ 
+        success: false, 
+        message: "Erro ao buscar categorias",
+        error: error.message, // Expose error for debugging
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
   }
 };
 

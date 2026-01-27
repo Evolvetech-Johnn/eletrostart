@@ -63,6 +63,27 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Database Health Check
+app.get("/api/health-db", async (req, res) => {
+  try {
+    const userCount = await prisma.user.count();
+    const categoryCount = await prisma.category.count();
+    res.json({ 
+      status: "ok", 
+      message: "Database connection successful", 
+      counts: { users: userCount, categories: categoryCount },
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    console.error("Database health check failed:", error);
+    res.status(500).json({ 
+      status: "error", 
+      message: "Database connection failed", 
+      error: error.message 
+    });
+  }
+});
+
 // Root API route
 app.get("/api", (req, res) => {
   res.json({
