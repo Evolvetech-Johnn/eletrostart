@@ -15,6 +15,17 @@ dotenv.config();
 // Initialize Prisma
 export const prisma = new PrismaClient();
 
+// Validate Database URL on Startup
+if (!process.env.DATABASE_URL) {
+  console.error("❌ Erro Crítico: DATABASE_URL não definida!");
+} else if (!process.env.DATABASE_URL.includes("mongodb.net/")) {
+  console.error("❌ Erro Crítico: DATABASE_URL parece inválida (falta o nome do banco?)");
+} else {
+  // Mask credentials for safe logging
+  const maskedUrl = process.env.DATABASE_URL.replace(/:([^@]+)@/, ":****@");
+  console.log(`🔌 Configuração de Banco: ${maskedUrl}`);
+}
+
 import { startBot } from "./bot/index.js";
 
 // Initialize Express
