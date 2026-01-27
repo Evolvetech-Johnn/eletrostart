@@ -52,11 +52,11 @@ const Home = () => {
           api.getCategories()
         ]);
 
-        if (productsRes.success) {
+        if (productsRes.success && Array.isArray(productsRes.data)) {
           setProducts(productsRes.data);
         }
-        
-        if (categoriesRes.success) {
+
+        if (categoriesRes.success && Array.isArray(categoriesRes.data)) {
           const mergedCategories = categoriesRes.data.map(cat => ({
             ...cat,
             icon: getCategoryIcon(cat.id)

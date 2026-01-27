@@ -47,9 +47,14 @@ const Products = () => {
           setCategories(mergedCategories);
         }
 
-        if (productsRes.success) {
+        if (productsRes.success && Array.isArray(productsRes.data)) {
           setProducts(productsRes.data);
           setFilteredProducts(productsRes.data);
+        } else {
+             // Fallback/log if success but data is not array
+             console.warn("Products data is not an array:", productsRes);
+             setProducts([]);
+             setFilteredProducts([]);
         }
 
       } catch (err) {
@@ -90,7 +95,7 @@ const Products = () => {
   useEffect(() => {
     if (loading) return;
 
-    let result = products.filter(p => p != null);
+    let result = (Array.isArray(products) ? products : []).filter(p => p != null);
     const filterParam = searchParams.get("filter");
 
     if (selectedCategory !== "all") {
