@@ -237,7 +237,12 @@ export const api = {
       console.log("📦 Using Mock Data for getCategories");
       return { success: true, data: categories };
     }
-    return fetchWithAuth(`/ecommerce/categories`);
+    try {
+      return await fetchWithAuth(`/ecommerce/categories`);
+    } catch (error) {
+      console.error("⚠️ Failed to fetch categories, returning empty list:", error);
+      return { success: false, data: [] };
+    }
   },
 
   createOrder: async (data) => {

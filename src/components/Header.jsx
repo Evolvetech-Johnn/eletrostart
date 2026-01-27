@@ -197,39 +197,36 @@ const Header = () => {
 
               {/* Dropdown Menu */}
               <div className="absolute top-full left-0 w-64 bg-white shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform origin-top-left border-t-2 border-primary z-[60]">
-                {categories.map((category) => (
-                  <div key={category.id} className="relative group/sub">
-                    <Link
-                      to={`/products?category=${category.id}`}
-                      className="flex items-center justify-between px-5 py-3.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary border-b border-gray-100 transition-colors"
+                {categories.length > 0 ? (
+                  categories.map((category) => (
+                    <div
+                      key={category.id}
+                      className="group/item relative border-b border-gray-100 last:border-none"
                     >
-                      <span>{category.name}</span>
-                      {category.subcategories &&
-                        category.subcategories.length > 0 && (
+                      <button
+                        onClick={() => handleCategoryClick(category.id)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <span className="text-xl">{category.icon}</span>
+                          <span className="text-sm font-medium text-gray-700 group-hover/item:text-primary">
+                            {category.name}
+                          </span>
+                        </div>
+                        {category.subcategories?.length > 0 && (
                           <ChevronDown
-                            size={14}
-                            className="-rotate-90 opacity-40"
+                            size={16}
+                            className="text-gray-400 -rotate-90"
                           />
                         )}
-                    </Link>
-
-                    {/* Submenu for subcategories */}
-                    {category.subcategories &&
-                      category.subcategories.length > 0 && (
-                        <div className="absolute left-full top-0 w-56 bg-white shadow-xl opacity-0 invisible group-hover/sub:opacity-100 group-hover/sub:visible transition-all duration-200 border-l-2 border-primary z-[70]">
-                          {category.subcategories.map((sub) => (
-                            <Link
-                              key={sub.id}
-                              to={`/products?category=${category.id}&subcategory=${sub.id}`}
-                              className="block px-5 py-3 text-sm text-gray-700 hover:bg-primary hover:text-white border-b border-gray-100 transition-colors"
-                            >
-                              {sub.name}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-4 text-center text-gray-500 text-sm">
+                    Categorias indisponíveis no momento.
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
