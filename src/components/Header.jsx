@@ -29,7 +29,8 @@ const Header = () => {
         if (response.success) {
           const mergedCategories = response.data.map((cat) => ({
             ...cat,
-            icon: getCategoryIcon(cat.id),
+            // icon is already a React element from getCategoryIcon
+            icon: getCategoryIcon(cat.id) || <span>📦</span>,
             subcategories: CATEGORY_METADATA[cat.id]?.subcategories || [],
           }));
           setCategories(mergedCategories);

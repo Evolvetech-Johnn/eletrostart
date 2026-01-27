@@ -1,15 +1,16 @@
+import React from 'react';
 import { Cable, Lightbulb, ShieldCheck, Zap, Battery, Package, Droplets, Factory, Plug } from 'lucide-react';
 
 export const categoryIcons = {
-  'iluminacao': Lightbulb,
-  'protecao': ShieldCheck,
-  'tomadas': Zap,
-  'solar': Battery,
-  'ferramentas': Package,
-  'chuveiros-torneiras': Droplets,
-  'fios-cabos': Plug,
-  'industrial': Factory,
-  'default': Package
+  'iluminacao': <Lightbulb size={24} />,
+  'protecao': <ShieldCheck size={24} />,
+  'tomadas': <Zap size={24} />,
+  'solar': <Battery size={24} />,
+  'ferramentas': <Package size={24} />,
+  'chuveiros-torneiras': <Droplets size={24} />,
+  'fios-cabos': <Plug size={24} />,
+  'industrial': <Factory size={24} />,
+  'default': <Package size={24} />
 };
 
 export const getCategoryIcon = (categoryId) => {
