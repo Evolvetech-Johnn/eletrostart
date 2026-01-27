@@ -33,6 +33,10 @@ app.use(
         "http://localhost:5174",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
+        "https://eletrostart.com.br",
+        "https://www.eletrostart.com.br",
+        "https://eletrostart-site.onrender.com",
+        "https://eletrostartbackend-api.onrender.com",
         process.env.FRONTEND_URL,
       ].filter(Boolean);
 

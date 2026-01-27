@@ -8,7 +8,7 @@ const MOCK_MODE = false;
 const API_BASE_URL =
   import.meta.env.VITE_BACKEND_URL || 
   import.meta.env.VITE_API_URL || 
-  "http://localhost:3001/api";
+  "https://eletrostartbackend-api.onrender.com/api";
 
 // Token storage
 const TOKEN_KEY = "eletrostart_admin_token";
