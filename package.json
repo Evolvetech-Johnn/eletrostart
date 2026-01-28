@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "server:install": "cd server && npm install",
     "server:dev": "cd server && npm run dev",
-    "server:setup": "cd server && npm install && npx prisma migrate dev && npm run seed",
+    "server:setup": "cd server && npm install && npx prisma db push && npm run seed",
     "audit:images": "node scripts/audit-images.mjs",
     "audit:products": "node scripts/audit-products-db.mjs",
     "audit:diff": "node scripts/audit-diff.mjs",

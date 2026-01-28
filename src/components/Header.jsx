@@ -30,8 +30,8 @@ const Header = () => {
           const mergedCategories = response.data.map((cat) => ({
             ...cat,
             // icon is a Component
-            icon: getCategoryIcon(cat.id),
-            subcategories: CATEGORY_METADATA[cat.id]?.subcategories || [],
+            icon: getCategoryIcon(cat.slug || cat.id),
+            subcategories: CATEGORY_METADATA[cat.slug || cat.id]?.subcategories || [],
           }));
           setCategories(mergedCategories);
         }
