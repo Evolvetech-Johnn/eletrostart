@@ -454,3 +454,4 @@ export const products = [
     image: "/img/Categorias/BROCAS AÇO RAPIDO/BROCA AÇO RAPIDO.png",
   },
 ];
+export const categories = [];
