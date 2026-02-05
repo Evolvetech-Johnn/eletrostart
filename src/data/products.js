@@ -1,3 +1,5 @@
+import { CATEGORY_METADATA } from "../utils/categoryData";
+
 export const products = [
   // --- ILUMINAÇÃO ---
   {
@@ -454,4 +456,7 @@ export const products = [
     image: "/img/Categorias/BROCAS AÇO RAPIDO/BROCA AÇO RAPIDO.png",
   },
 ];
-export const categories = [];
+export const categories = Object.entries(CATEGORY_METADATA).map(([id, data]) => ({
+  id,
+  ...data,
+}));
