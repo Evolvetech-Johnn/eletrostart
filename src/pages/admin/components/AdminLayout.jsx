@@ -4,13 +4,14 @@ import {
   LayoutDashboard, 
   MessageSquare, 
   LogOut, 
-  Zap,
-  Menu,
-  X,
-  User,
-  Settings,
-  Package,
-  ShoppingBag
+  Zap, 
+  Menu, 
+  X, 
+  User, 
+  Settings, 
+  Package, 
+  ShoppingBag,
+  Folder
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -24,6 +25,7 @@ const AdminLayout = ({ children }) => {
     { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/admin/messages', label: 'Mensagens', icon: MessageSquare },
     { path: '/admin/products', label: 'Produtos', icon: Package },
+    { path: '/admin/categories', label: 'Categorias', icon: Folder },
     { path: '/admin/orders', label: 'Pedidos', icon: ShoppingBag },
     { path: '/admin/integrations', label: 'Integrações', icon: Settings }
   ];

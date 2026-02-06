@@ -310,6 +310,9 @@ export const api = {
   deleteCategory: (id) =>
     fetchWithAuth(`/ecommerce/categories/${id}`, { method: "DELETE" }),
 
+  syncCategories: () =>
+    fetchWithAuth("/admin/categories/sync", { method: "POST" }),
+
   // Admin Orders
   getOrders: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();

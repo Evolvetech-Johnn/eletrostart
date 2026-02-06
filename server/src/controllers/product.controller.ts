@@ -179,12 +179,14 @@ export const getProducts = async (req: Request, res: Response) => {
 
     // Filter by category (can be slug or ID)
     if (category) {
-      // Try to find category by slug first
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(category as string);
+
       const cat = await prisma.category.findFirst({
-        where: {
-          OR: [{ slug: category as string }, { id: category as string }],
-        },
+        where: isObjectId
+          ? { OR: [{ slug: category as string }, { id: category as string }] }
+          : { slug: category as string },
       });
+
       if (cat) {
         where.categoryId = cat.id;
       }
@@ -237,12 +239,13 @@ export const getProducts = async (req: Request, res: Response) => {
 export const getProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id as string);
 
     // Try to find by ID or SKU
     const product = await prisma.product.findFirst({
-      where: {
-        OR: [{ id: id as string }, { sku: id as string }],
-      },
+      where: isObjectId
+        ? { OR: [{ id: id as string }, { sku: id as string }] }
+        : { sku: id as string },
       include: { category: true },
     });
 

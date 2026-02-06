@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { ShoppingCart, Eye, X } from 'lucide-react';
-import { PLACEHOLDER_IMAGE } from '../utils/productHelpers';
+import React, { useState } from "react";
+import { ShoppingCart, Eye, X } from "lucide-react";
+import { PLACEHOLDER_IMAGE } from "../utils/productHelpers";
 
 const ProductCardWithVariants = ({ product, onAddToCart }) => {
   const [selectedVariant, setSelectedVariant] = useState(
-    product.variants?.find(v => v.id === product.defaultVariant) || product.variants?.[0] || null
+    product.variants?.find((v) => v.id === product.defaultVariant) ||
+      product.variants?.[0] ||
+      null,
   );
   const [imageError, setImageError] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,7 +22,7 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
   };
 
   const handleVariantChange = (variantId) => {
-    const variant = product.variants.find(v => v.id === variantId);
+    const variant = product.variants.find((v) => v.id === variantId);
     if (variant) {
       setSelectedVariant(variant);
       setImageError(false);
@@ -30,20 +32,20 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
   // Handle ESC key to close modal
   React.useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && isModalOpen) {
+      if (e.key === "Escape" && isModalOpen) {
         setIsModalOpen(false);
       }
     };
-    
+
     if (isModalOpen) {
-      document.addEventListener('keydown', handleEscape);
+      document.addEventListener("keydown", handleEscape);
       // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     }
-    
+
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
     };
   }, [isModalOpen]);
 
@@ -60,10 +62,10 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
             className="absolute inset-0 w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 p-4"
             onError={() => setImageError(true)}
           />
-          
+
           {/* Quick View Button */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <button 
+            <button
               onClick={() => setIsModalOpen(true)}
               aria-label="Ver detalhes do produto"
               className="bg-white/90 backdrop-blur-sm p-3 rounded-full text-gray-600 hover:text-primary transition-colors shadow-lg transform translate-y-4 group-hover:translate-y-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -92,6 +94,15 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
             {product.name}
           </h3>
 
+          {/* SKU Display */}
+          {product.sku && (
+            <div className="mb-2">
+              <span className="inline-block bg-gray-100 text-gray-600 text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-gray-200">
+                SKU: {product.sku}
+              </span>
+            </div>
+          )}
+
           {/* Description */}
           <p className="text-gray-500 text-xs mb-4 line-clamp-2 leading-relaxed">
             {product.description}
@@ -110,11 +121,11 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
                     onClick={() => handleVariantChange(variant.id)}
                     className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
                       selectedVariant?.id === variant.id
-                        ? 'bg-primary text-white shadow-md'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? "bg-primary text-white shadow-md"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
-                    {variant.name.split(' ')[0]}
+                    {variant.name.split(" ")[0]}
                   </button>
                 ))}
               </div>
@@ -125,15 +136,20 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
           <div className="mt-auto">
             <div className="flex items-baseline space-x-2 mb-4">
               <span className="text-2xl font-black text-gray-900">
-                {product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                {product.price.toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })}
               </span>
               <span className="text-[10px] text-gray-400 font-bold uppercase">
                 /{product.unit}
               </span>
             </div>
 
-            <button 
-              onClick={() => onAddToCart && onAddToCart(product, selectedVariant)}
+            <button
+              onClick={() =>
+                onAddToCart && onAddToCart(product, selectedVariant)
+              }
               className="w-full bg-primary hover:bg-blue-800 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all uppercase tracking-widest text-xs shadow-md active:scale-95"
             >
               <ShoppingCart size={16} />
@@ -145,16 +161,16 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
 
       {/* Image Modal */}
       {isModalOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm"
           onClick={() => setIsModalOpen(false)}
         >
-          <div 
+          <div
             className="relative max-w-4xl w-full max-h-[90vh] bg-white rounded-3xl overflow-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
-            <button 
+            <button
               onClick={() => setIsModalOpen(false)}
               aria-label="Fechar"
               className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500 transition-colors shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
@@ -176,9 +192,23 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
 
             {/* Product Info */}
             <div className="p-6 bg-white border-t border-gray-100">
-              <h3 className="text-xl font-black text-gray-900 mb-2">{product.name}</h3>
-              <p className="text-gray-500 text-sm mb-4 whitespace-normal break-words">{product.description}</p>
-              
+              <div className="flex flex-col gap-1 mb-2">
+                <h3 className="text-xl font-black text-gray-900 leading-tight">
+                  {product.name}
+                </h3>
+                {product.sku && (
+                  <span className="self-start inline-flex items-center gap-1.5 bg-gray-50 text-gray-500 text-xs font-mono px-2 py-1 rounded border border-gray-100">
+                    <span className="font-bold text-gray-400 text-[10px] uppercase tracking-wider">
+                      SKU
+                    </span>
+                    <span className="font-medium">{product.sku}</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-500 text-sm mb-4 whitespace-normal break-words">
+                {product.description}
+              </p>
+
               {/* Variant Selector in Modal */}
               {hasVariants && (
                 <div className="mb-4">
@@ -192,8 +222,8 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
                         onClick={() => handleVariantChange(variant.id)}
                         className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${
                           selectedVariant?.id === variant.id
-                            ? 'bg-primary text-white shadow-lg'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? "bg-primary text-white shadow-lg"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                         }`}
                       >
                         {variant.name}
@@ -206,11 +236,16 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black text-gray-900">
-                    {product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    {product.price.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
                   </span>
-                  <span className="text-sm text-gray-400 font-bold">/{product.unit}</span>
+                  <span className="text-sm text-gray-400 font-bold">
+                    /{product.unit}
+                  </span>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     onAddToCart && onAddToCart(product, selectedVariant);
                     setIsModalOpen(false);

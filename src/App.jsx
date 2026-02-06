@@ -1,5 +1,10 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider } from "./context/AuthContext";
 import Layout from "./layout/Layout";
@@ -28,6 +33,7 @@ import AdminMessageDetail from "./pages/admin/AdminMessageDetail";
 import AdminIntegrations from "./pages/admin/AdminIntegrations";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminProductForm from "./pages/admin/AdminProductForm";
+import AdminCategories from "./pages/admin/AdminCategories";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminOrderDetail from "./pages/admin/AdminOrderDetail";
 import ProtectedRoute from "./pages/admin/components/ProtectedRoute";
@@ -43,7 +49,10 @@ function App() {
           <ScrollToTop />
           <Routes>
             {/* Admin Routes - Outside Layout (no header/footer) */}
-            <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+            <Route
+              path="/admin"
+              element={<Navigate to="/admin/login" replace />}
+            />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route
               path="/admin/dashboard"
@@ -100,6 +109,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AdminProductForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/categories"
+              element={
+                <ProtectedRoute>
+                  <AdminCategories />
                 </ProtectedRoute>
               }
             />

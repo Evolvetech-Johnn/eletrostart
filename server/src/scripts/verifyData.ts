@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🔍 Validando Dados do Banco...");
 
-  const targetName = "LUVA";
+  const targetName = "TUBULAR"; // Altere para testar outros nomes
   console.log(`\n🔎 Buscando por produtos contendo "${targetName}"...`);
 
   const products = await prisma.product.findMany({

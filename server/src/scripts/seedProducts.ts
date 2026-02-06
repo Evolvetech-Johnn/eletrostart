@@ -1,4 +1,3 @@
-
 import { PrismaClient } from "@prisma/client";
 import dotenv from "dotenv";
 import path from "path";
@@ -23,27 +22,48 @@ const PUBLIC_IMG_DIR = path.join(__dirname, "../../../public/img");
 // Helper: Normalize string for matching
 function normalize(str: string): string {
   if (!str) return "";
-  return str
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove accents
-    // .replace(/[^a-z0-9]/g, "") // Do NOT remove spaces yet for tokenization
-    .trim();
+  return (
+    str
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Remove accents
+      // .replace(/[^a-z0-9]/g, "") // Do NOT remove spaces yet for tokenization
+      .trim()
+  );
 }
 
 // Helper: Tokenize
 function tokenize(str: string): Set<string> {
-    const normalized = normalize(str);
-    // Replace special chars with space
-    const cleaned = normalized.replace(/[^a-z0-9\s]/g, " ");
-    const tokens = cleaned.split(/\s+/).filter(t => t.length > 0);
-    
-    // Stop words to ignore in image names
-    const stopWords = new Set([
-        "usar", "para", "todos", "todas", "as", "os", "bitolas", "fotos", "com", "sem", "caixa", "embalagem", "jpg", "png", "jpeg"
-    ]);
+  // Split by whitespace, hyphen, underscore, slash
+  const arr = normalize(str).split(/[\s\-_\/]+/);
 
-    return new Set(tokens.filter(t => !stopWords.has(t)));
+  // Stop words to ignore (generic terms in filenames)
+  const stopWords = new Set([
+    "USAR",
+    "PARA",
+    "TODOS",
+    "TODAS",
+    "AS",
+    "OS",
+    "BITOLAS",
+    "FOTOS",
+    "COM",
+    "SEM",
+    "CAIXA",
+    "EMBALAGEM",
+    "JPG",
+    "PNG",
+    "JPEG",
+    "WEBP",
+    "IMAGEM",
+    "FOTO",
+    "DE",
+    "DA",
+    "DO",
+    "E", // Common prepositions
+  ]);
+
+  return new Set(arr.filter((t) => t.length > 0 && !stopWords.has(t)));
 }
 
 // Helper: Parse currency string to float
@@ -67,7 +87,7 @@ function parsePrice(priceStr: string): number {
     // BR: 1234,56 -> Replace comma with dot
     clean = clean.replace(",", ".");
   }
-  
+
   clean = clean.replace(/[^\d.-]/g, "");
   const num = parseFloat(clean);
   return isNaN(num) ? 0 : num;
@@ -93,17 +113,17 @@ function getAllImages(
       // Check for image extensions
       if (/\.(png|jpg|jpeg|webp|svg|gif)$/i.test(file)) {
         const nameWithoutExt = path.parse(file).name;
-        
+
         // Calculate relative path
         const relativePath = filePath.split("public")[1].replace(/\\/g, "/");
-        
+
         // Determine Category Name from parent folder
         const parentFolder = path.basename(path.dirname(filePath));
-        
+
         fileList.push({
           name: nameWithoutExt,
           path: relativePath,
-          folder: parentFolder
+          folder: parentFolder,
         });
       }
     }
@@ -123,9 +143,9 @@ async function main() {
   console.log("🖼️ Mapeando imagens...");
   const allImages = getAllImages(PUBLIC_IMG_DIR);
   // Store image info along with tokens
-  const imageList = allImages.map(img => ({
-      ...img,
-      tokens: tokenize(img.name)
+  const imageList = allImages.map((img) => ({
+    ...img,
+    tokens: tokenize(img.name),
   }));
 
   console.log(`✅ ${allImages.length} imagens encontradas.`);
@@ -145,7 +165,10 @@ async function main() {
     let cellMatch;
     while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
       let text = cellMatch[1].replace(tagRegex, "").trim();
-      text = text.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").trim();
+      text = text
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .trim();
       cells.push(text);
     }
     if (cells.length > 0) rows.push(cells);
@@ -154,7 +177,7 @@ async function main() {
   // Colunas fixas
   const nameColIndex = 1; // Coluna 2
   const priceColIndex = 4; // Coluna 5
-  
+
   // Identificar header
   let headerIndex = -1;
   for (let i = 0; i < Math.min(rows.length, 20); i++) {
@@ -164,7 +187,7 @@ async function main() {
       break;
     }
   }
-  
+
   const validProductIds: string[] = [];
   let processed = 0;
   let created = 0;
@@ -184,48 +207,66 @@ async function main() {
     if (!rawName) continue;
     if (/produto/i.test(rawName) && /preço/i.test(rawPrice)) continue;
 
-    // Tokenize Product Name
-    const productTokens = tokenize(rawName);
-    
-    // Find Matching Image
-    // Criteria: All tokens in Image must be present in Product
+    // 3. Match Logic
     let matchedImage = null;
+    let bestScore = 0;
 
-    // Prioritize exact match first (normalized)
-    const productNorm = normalize(rawName).replace(/\s/g, "");
-    
-    // 1. Exact/Partial String Match (Fast)
+    // Normalize product name
+    const productNorm = normalize(rawName);
+    const productTokens = tokenize(rawName);
+
     for (const img of imageList) {
-        const imgNorm = normalize(img.name).replace(/\s/g, "");
-        if (productNorm === imgNorm || productNorm.includes(imgNorm)) {
-            matchedImage = img;
-            break;
-        }
-    }
+      // Calculate Match Score
+      // 1. Exact/Partial String Match (Strongest)
+      const imgNorm = normalize(img.name);
 
-    // 2. Token Match (Slower but handles "FIO SIL AZUL" vs "FIO SIL 1.5mm AZUL")
-    if (!matchedImage) {
-        for (const img of imageList) {
-            // Check if all image tokens are in product tokens
-            let allFound = true;
-            for (const t of img.tokens) {
-                // Check if productTokens has this token (or a token that contains it?)
-                // Strict token match
-                if (!productTokens.has(t)) {
-                    // Try partial token match? e.g. "1500va" vs "1500va"
-                    // Or "paralelo" vs "paralelo"
-                    // If image token is "2x1,5mm" -> "2x1" "5mm"? 
-                    // Regex split might split "1,5" -> "1", "5".
-                    // Let's stick to strict set check first.
-                    allFound = false;
-                    break;
-                }
-            }
-            if (allFound && img.tokens.size > 0) {
-                matchedImage = img;
-                break;
-            }
-        }
+      if (productNorm === imgNorm) {
+        matchedImage = img;
+        bestScore = 2.0; // Perfect
+        break;
+      }
+
+      // 2. Token Overlap
+      // We want to find if Product is in Image OR Image is in Product
+      // But also handle cases like "FIO SIL AZUL" matching "FIO SIL 1,5MM AZUL"
+
+      // Calculate intersection of Sets
+      let matchCount = 0;
+      for (const t of productTokens) {
+        if (img.tokens.has(t)) matchCount++;
+      }
+
+      if (matchCount === 0) continue;
+
+      // Score based on coverage of the SMALLER string (subset logic)
+      // If Product is "LUVA PVC", and Image is "LUVA PVC 3/4", coverage is 100% of Product.
+      // If Product is "FIO SIL 1.5 AZUL", Image is "FIO SIL AZUL", coverage is 100% of Image.
+
+      const minTokens = Math.min(productTokens.size, img.tokens.size);
+      const coverage = matchCount / minTokens;
+
+      // Jaccard for tie-breaking (how similar are they overall)
+      const jaccard =
+        matchCount / (productTokens.size + img.tokens.size - matchCount);
+
+      // Boost score if coverage is high (subset match)
+      let score = coverage > 0.99 ? 1.5 : (coverage + jaccard) / 2;
+
+      // Boost if the FIRST token of the image matches (Key Subject Match)
+      // e.g. Image "PAINEL..." matches Product "PAINEL..."
+      const imgTokensArray = Array.from(img.tokens);
+      if (imgTokensArray.length > 0 && productTokens.has(imgTokensArray[0])) {
+        score *= 1.3;
+      }
+
+      // Penalty for very short matches to avoid "FIO" matching "FIO ... ... ..."
+      if (matchCount < 2 && score < 1.5) score *= 0.5;
+
+      if (score > bestScore && score > 0.45) {
+        // Threshold 0.45
+        bestScore = score;
+        matchedImage = img;
+      }
     }
 
     if (!matchedImage) {
@@ -233,34 +274,37 @@ async function main() {
       continue;
     }
 
+    // DEBUG: Log matches for tricky categories
+    // if (matchedImage.folder.includes("PAINEL")) {
+    //    console.log(`Matched: ${rawName} -> ${matchedImage.name} (Score: ${bestScore.toFixed(2)})`);
+    // }
+
     const price = parsePrice(rawPrice);
-    
+
     const slug = normalize(rawName).toLowerCase().replace(/\s+/g, "-");
     const sku = rawCode ? `${slug}-${rawCode}` : `${slug}-${Date.now()}`;
-    
-    const categoryName = matchedImage.folder === "Categorias" ? "Geral" : matchedImage.folder;
+
+    // Category management
+    const categoryName = matchedImage.folder;
     const categorySlug = normalize(categoryName).replace(/\s+/g, "-"); // Slugify correctly
 
     try {
       // Find or Create Category
       let category = await prisma.category.findFirst({
         where: {
-            OR: [
-                { slug: categorySlug },
-                { name: categoryName }
-            ]
-        }
+          OR: [{ slug: categorySlug }, { name: categoryName }],
+        },
       });
 
       if (!category) {
-          category = await prisma.category.create({
-              data: {
-                  name: categoryName,
-                  slug: categorySlug,
-                  description: `Categoria ${categoryName}`,
-                  image: matchedImage.path
-              }
-          });
+        category = await prisma.category.create({
+          data: {
+            name: categoryName,
+            slug: categorySlug,
+            description: `Categoria ${categoryName}`,
+            image: matchedImage.path,
+          },
+        });
       }
 
       // Upsert Produto
@@ -272,7 +316,7 @@ async function main() {
           image: matchedImage.path,
           categoryId: category.id,
           code: rawCode,
-          active: true
+          active: true,
         },
         create: {
           name: rawName,
@@ -283,37 +327,36 @@ async function main() {
           categoryId: category.id,
           active: true,
           description: rawName,
-          unit: "un"
+          unit: "un",
         },
       });
 
       validProductIds.push(product.id);
-      
+
       if (product.createdAt.getTime() === product.updatedAt.getTime()) {
-          created++;
+        created++;
       } else {
-          updated++;
+        updated++;
       }
       processed++;
-
     } catch (error) {
       console.error(`❌ Erro ao salvar ${rawName}:`, error);
     }
   }
 
   console.log(`\n🧹 Limpando produtos sem imagem...`);
-  
+
   if (validProductIds.length > 0) {
-      const deleteResult = await prisma.product.deleteMany({
-        where: {
-          id: {
-            notIn: validProductIds
-          }
-        }
-      });
-      console.log(`🗑️  Removidos ${deleteResult.count} produtos obsoletos.`);
+    const deleteResult = await prisma.product.deleteMany({
+      where: {
+        id: {
+          notIn: validProductIds,
+        },
+      },
+    });
+    console.log(`🗑️  Removidos ${deleteResult.count} produtos obsoletos.`);
   } else {
-      console.warn("⚠️  Nenhum produto válido encontrado! Abortando limpeza.");
+    console.warn("⚠️  Nenhum produto válido encontrado! Abortando limpeza.");
   }
 
   console.log(`\n🏁 Resultado Final:`);
