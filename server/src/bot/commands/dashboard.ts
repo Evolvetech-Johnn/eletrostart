@@ -1,11 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { prisma } from '../../index.js';
+import { BotCommand } from '../types.js';
 
-export default {
+const command: BotCommand = {
   data: new SlashCommandBuilder()
     .setName('dashboard')
     .setDescription('Exibe estatísticas do sistema Eletrostart.'),
-  async execute(interaction) {
+  async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply();
 
     try {
@@ -35,3 +36,5 @@ export default {
     }
   },
 };
+
+export default command;

@@ -1,7 +1,9 @@
+import { Request, Response } from 'express';
 import { prisma } from "../index.js";
+import { Prisma } from '@prisma/client';
 
 // Helper to format product (MongoDB uses native JSON, no parsing needed)
-const formatProduct = (product) => {
+const formatProduct = (product: any) => {
   if (!product) return null;
   return {
     ...product,
@@ -15,7 +17,7 @@ const formatProduct = (product) => {
 
 // --- Categories ---
 
-export const getCategories = async (req, res) => {
+export const getCategories = async (req: Request, res: Response) => {
   try {
     const categories = await prisma.category.findMany({
       orderBy: { name: "asc" },
@@ -25,7 +27,7 @@ export const getCategories = async (req, res) => {
     });
 
     res.json({ success: true, data: categories });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching categories:", error);
     res
       .status(500)
@@ -38,7 +40,7 @@ export const getCategories = async (req, res) => {
   }
 };
 
-export const getCategoryBySlug = async (req, res) => {
+export const getCategoryBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
     const category = await prisma.category.findFirst({
@@ -60,7 +62,7 @@ export const getCategoryBySlug = async (req, res) => {
   }
 };
 
-export const createCategory = async (req, res) => {
+export const createCategory = async (req: Request, res: Response) => {
   try {
     const { name, description, image } = req.body;
 
@@ -81,7 +83,7 @@ export const createCategory = async (req, res) => {
     });
 
     res.status(201).json({ success: true, data: category });
-  } catch (error) {
+  } catch (error: any) {
     if (error.code === "P2002") {
       return res
         .status(400)
@@ -94,12 +96,12 @@ export const createCategory = async (req, res) => {
   }
 };
 
-export const updateCategory = async (req, res) => {
+export const updateCategory = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, description, image } = req.body;
 
-    const data = {};
+    const data: Prisma.CategoryUpdateInput = {};
     if (name) {
       data.name = name;
       data.slug = name
@@ -123,7 +125,7 @@ export const updateCategory = async (req, res) => {
   }
 };
 
-export const deleteCategory = async (req, res) => {
+export const deleteCategory = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -150,11 +152,11 @@ export const deleteCategory = async (req, res) => {
 
 // --- Products ---
 
-export const getProducts = async (req, res) => {
+export const getProducts = async (req: Request, res: Response) => {
   try {
-    const { category, subcategory, search, featured, active, page = 1, limit = 20 } = req.query;
+    const { category, subcategory, search, featured, active, page = '1', limit = '20' } = req.query;
 
-    const where = {};
+    const where: Prisma.ProductWhereInput = {};
 
     // Filter by active status (default: only active for public)
     if (active === "false") {
@@ -171,8 +173,8 @@ export const getProducts = async (req, res) => {
       const cat = await prisma.category.findFirst({
         where: { 
           OR: [
-            { slug: category },
-            { id: category }
+            { slug: category as string },
+            { id: category as string }
           ]
         }
       });
@@ -182,25 +184,28 @@ export const getProducts = async (req, res) => {
     }
     
     if (subcategory) {
-      where.subcategory = subcategory;
+      where.subcategory = subcategory as string;
     }
     
     if (featured === "true") where.featured = true;
     
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { sku: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search as string, mode: 'insensitive' } },
+        { description: { contains: search as string, mode: 'insensitive' } },
+        { sku: { contains: search as string, mode: 'insensitive' } },
       ];
     }
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
 
     const total = await prisma.product.count({ where });
     const products = await prisma.product.findMany({
       where,
       include: { category: true },
-      skip: (parseInt(page) - 1) * parseInt(limit),
-      take: parseInt(limit),
+      skip: (pageNum - 1) * limitNum,
+      take: limitNum,
       orderBy: { createdAt: "desc" },
     });
 
@@ -209,9 +214,9 @@ export const getProducts = async (req, res) => {
       data: products.map(formatProduct),
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
       },
     });
   } catch (error) {
@@ -222,7 +227,7 @@ export const getProducts = async (req, res) => {
   }
 };
 
-export const getProduct = async (req, res) => {
+export const getProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -249,7 +254,7 @@ export const getProduct = async (req, res) => {
   }
 };
 
-export const createProduct = async (req, res) => {
+export const createProduct = async (req: Request, res: Response) => {
   try {
     const {
       name,
@@ -296,15 +301,15 @@ export const createProduct = async (req, res) => {
         active: active !== undefined ? active : true,
         featured: featured !== undefined ? featured : false,
         // MongoDB native JSON - no stringify needed
-        variants: variants || null,
-        features: features || null,
-        specifications: specifications || null,
-        images: images || null,
+        variants: variants || Prisma.JsonNull,
+        features: features || Prisma.JsonNull,
+        specifications: specifications || Prisma.JsonNull,
+        images: images || Prisma.JsonNull,
       },
     });
 
     res.status(201).json({ success: true, data: formatProduct(product) });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating product:", error);
     if (error.code === "P2002") {
       return res.status(400).json({ success: false, message: "SKU já existe" });
@@ -313,7 +318,7 @@ export const createProduct = async (req, res) => {
   }
 };
 
-export const updateProduct = async (req, res) => {
+export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const {
@@ -334,7 +339,7 @@ export const updateProduct = async (req, res) => {
       images,
     } = req.body;
 
-    const data = {};
+    const data: Prisma.ProductUpdateInput = {};
     if (name) data.name = name;
     if (description !== undefined) data.description = description;
     if (price !== undefined) data.price = parseFloat(price);
@@ -359,7 +364,7 @@ export const updateProduct = async (req, res) => {
     });
 
     res.json({ success: true, data: formatProduct(product) });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating product:", error);
     if (error.code === "P2025") {
       return res.status(404).json({ success: false, message: "Produto não encontrado" });
@@ -370,7 +375,7 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-export const deleteProduct = async (req, res) => {
+export const deleteProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -393,7 +398,7 @@ export const deleteProduct = async (req, res) => {
 
     await prisma.product.delete({ where: { id } });
     res.json({ success: true, message: "Produto excluído permanentemente" });
-  } catch (error) {
+  } catch (error: any) {
     if (error.code === "P2025") {
       return res.status(404).json({ success: false, message: "Produto não encontrado" });
     }
@@ -405,7 +410,7 @@ export const deleteProduct = async (req, res) => {
 
 // --- Bulk Operations ---
 
-export const bulkUpdateProducts = async (req, res) => {
+export const bulkUpdateProducts = async (req: Request, res: Response) => {
   try {
     const { ids, data } = req.body;
 
@@ -413,7 +418,7 @@ export const bulkUpdateProducts = async (req, res) => {
       return res.status(400).json({ success: false, message: "IDs são obrigatórios" });
     }
 
-    const updateData = {};
+    const updateData: Prisma.ProductUpdateManyMutationInput = {};
     if (data.active !== undefined) updateData.active = data.active;
     if (data.featured !== undefined) updateData.featured = data.featured;
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
@@ -435,7 +440,7 @@ export const bulkUpdateProducts = async (req, res) => {
   }
 };
 
-export const bulkDeleteProducts = async (req, res) => {
+export const bulkDeleteProducts = async (req: Request, res: Response) => {
   try {
     const { ids } = req.body;
 
@@ -482,7 +487,7 @@ export const bulkDeleteProducts = async (req, res) => {
 
 // --- Stats ---
 
-export const getProductStats = async (req, res) => {
+export const getProductStats = async (req: Request, res: Response) => {
   try {
     const [total, active, featured, outOfStock, categories] = await Promise.all([
       prisma.product.count(),

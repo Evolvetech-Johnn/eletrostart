@@ -1,10 +1,13 @@
-import { Events } from 'discord.js';
+import { Events, Client } from 'discord.js';
 import { deployCommands } from '../deploy.js';
+import { BotEvent } from '../types.js';
 
-export default {
+const event: BotEvent = {
   name: Events.ClientReady,
   once: true,
-  async execute(client) {
+  async execute(client: Client) {
+    if (!client.user) return;
+    
     console.log(`🤖 Bot do Discord logado como ${client.user.tag}`);
     
     // Define status
@@ -26,3 +29,5 @@ export default {
     }
   },
 };
+
+export default event;

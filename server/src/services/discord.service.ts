@@ -1,6 +1,6 @@
 // Serviço de integração com Discord
 import dotenv from 'dotenv';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, TextChannel } from 'discord.js';
 import client from '../bot/client.js';
 
 dotenv.config();
@@ -8,13 +8,28 @@ dotenv.config();
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
 
+export interface DiscordMessageData {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  subject?: string | null;
+  message: string;
+}
+
+export interface DiscordSendResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}
+
 /**
  * Envia uma mensagem de contato para o Discord
  * Tenta usar o Bot Client primeiro, depois fallback para Webhook
- * @param {Object} data - Dados da mensagem
- * @returns {Object} - Resultado do envio { success: boolean, messageId?: string }
+ * @param {DiscordMessageData} data - Dados da mensagem
+ * @returns {Promise<DiscordSendResult>} - Resultado do envio
  */
-export const sendToDiscord = async (data) => {
+export const sendToDiscord = async (data: DiscordMessageData): Promise<DiscordSendResult> => {
   const embed = new EmbedBuilder()
     .setTitle('📩 Nova Mensagem de Contato - Eletrostart')
     .setColor(0x222998)
@@ -34,8 +49,9 @@ export const sendToDiscord = async (data) => {
   if (client.isReady() && DISCORD_CHANNEL_ID) {
     try {
       const channel = await client.channels.fetch(DISCORD_CHANNEL_ID);
-      if (channel && channel.isSendable()) {
-        const message = await channel.send({ embeds: [embed] });
+      if (channel && channel.isSendable() && channel.isTextBased()) {
+        const textChannel = channel as TextChannel;
+        const message = await textChannel.send({ embeds: [embed] });
         return { success: true, messageId: message.id };
       }
     } catch (error) {
@@ -83,7 +99,7 @@ export const sendToDiscord = async (data) => {
         error: `Discord respondeu com status ${response.status}` 
       };
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao enviar para Discord:', error);
     return { 
       success: false, 

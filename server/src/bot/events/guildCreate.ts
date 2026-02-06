@@ -1,9 +1,10 @@
-import { Events } from "discord.js";
+import { Events, Guild } from "discord.js";
 import { deployCommands } from "../deploy.js";
+import { BotEvent } from "../types.js";
 
-export default {
+const event: BotEvent = {
   name: Events.GuildCreate,
-  async execute(guild) {
+  async execute(guild: Guild) {
     console.log(
       `🎉 Bot entrou em um novo servidor: ${guild.name} (${guild.id})`
     );
@@ -12,3 +13,5 @@ export default {
     await deployCommands(guild.id);
   },
 };
+
+export default event;

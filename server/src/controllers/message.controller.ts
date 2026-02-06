@@ -1,5 +1,6 @@
-import { prisma } from '../index.js';
-import { sendToDiscord } from '../services/discord.service.js';
+import { Request, Response, NextFunction } from "express";
+import { prisma } from "../index.js";
+import { sendToDiscord } from "../services/discord.service.js";
 
 /**
  * Cria uma nova mensagem de contato
@@ -7,7 +8,11 @@ import { sendToDiscord } from '../services/discord.service.js';
  * 2. Envia para o Discord
  * 3. Atualiza registro com status do envio
  */
-export const createMessage = async (req, res, next) => {
+export const createMessage = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const { nome, email, telefone, assunto, mensagem } = req.body;
 
@@ -15,7 +20,7 @@ export const createMessage = async (req, res, next) => {
     if (!mensagem) {
       return res.status(400).json({
         error: true,
-        message: 'A mensagem é obrigatória'
+        message: "A mensagem é obrigatória",
       });
     }
 
@@ -27,10 +32,10 @@ export const createMessage = async (req, res, next) => {
         phone: telefone || null,
         subject: assunto || null,
         message: mensagem,
-        source: 'contact_form',
+        source: "contact_form",
         discordSent: false,
-        status: 'NEW'
-      }
+        status: "NEW",
+      },
     });
 
     // 2. Enviar para o Discord
@@ -40,7 +45,7 @@ export const createMessage = async (req, res, next) => {
       email: message.email,
       phone: message.phone,
       subject: message.subject,
-      message: message.message
+      message: message.message,
     });
 
     // 3. Atualizar registro com status do envio
@@ -48,22 +53,21 @@ export const createMessage = async (req, res, next) => {
       where: { id: message.id },
       data: {
         discordSent: discordResult.success,
-        discordMessageId: discordResult.messageId || null
-      }
+        discordMessageId: discordResult.messageId || null,
+      },
     });
 
     // Resposta de sucesso
     res.status(201).json({
       success: true,
-      message: 'Mensagem enviada com sucesso!',
+      message: "Mensagem enviada com sucesso!",
       data: {
         id: updatedMessage.id,
-        discordSent: updatedMessage.discordSent
-      }
+        discordSent: updatedMessage.discordSent,
+      },
     });
-
   } catch (error) {
-    console.error('Erro ao criar mensagem:', error);
+    console.error("Erro ao criar mensagem:", error);
     next(error);
   }
 };
@@ -71,15 +75,19 @@ export const createMessage = async (req, res, next) => {
 /**
  * Lista todas as mensagens (pública - limitada)
  */
-export const getMessagesPublic = async (req, res, next) => {
+export const getMessagesPublic = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const count = await prisma.contactMessage.count();
-    
+
     res.json({
       success: true,
       data: {
-        totalMessages: count
-      }
+        totalMessages: count,
+      },
     });
   } catch (error) {
     next(error);

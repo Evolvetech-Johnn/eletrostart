@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { prisma } from '../../index.js';
+import { BotCommand } from '../types.js';
 
-export default {
+const command: BotCommand = {
   data: new SlashCommandBuilder()
     .setName('mensagens')
     .setDescription('Lista as mensagens de contato mais recentes.')
@@ -15,7 +16,7 @@ export default {
           { name: 'Arquivadas', value: 'ARCHIVED' }
         )
     ),
-  async execute(interaction) {
+  async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ ephemeral: true });
 
     const status = interaction.options.getString('status');
@@ -52,3 +53,5 @@ export default {
     }
   },
 };
+
+export default command;

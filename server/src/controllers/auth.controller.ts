@@ -1,30 +1,35 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { prisma } from '../index.js';
+import { Request, Response, NextFunction } from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { prisma } from "../index.js";
 
 /**
  * Login de administrador
  */
-export const login = async (req, res, next) => {
+export const login = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
         error: true,
-        message: 'E-mail e senha são obrigatórios'
+        message: "E-mail e senha são obrigatórios",
       });
     }
 
     // Buscar usuário
     const user = await prisma.adminUser.findUnique({
-      where: { email: email.toLowerCase() }
+      where: { email: email.toLowerCase() },
     });
 
     if (!user) {
       return res.status(401).json({
         error: true,
-        message: 'Credenciais inválidas'
+        message: "Credenciais inválidas",
       });
     }
 
@@ -34,7 +39,7 @@ export const login = async (req, res, next) => {
     if (!isValidPassword) {
       return res.status(401).json({
         error: true,
-        message: 'Credenciais inválidas'
+        message: "Credenciais inválidas",
       });
     }
 
@@ -42,25 +47,28 @@ export const login = async (req, res, next) => {
     if (!user.active) {
       return res.status(403).json({
         error: true,
-        message: 'Usuário inativo'
+        message: "Usuário inativo",
       });
     }
 
     // Atualizar último login
     await prisma.adminUser.update({
       where: { id: user.id },
-      data: { lastLogin: new Date() }
+      data: { lastLogin: new Date() },
     });
 
     // Gerar token JWT
     const token = jwt.sign(
-      { 
-        userId: user.id, 
+      {
+        userId: user.id,
         email: user.email,
-        role: user.role 
+        role: user.role,
       },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: (process.env.JWT_EXPIRES_IN ||
+          "7d") as jwt.SignOptions["expiresIn"],
+      },
     );
 
     res.json({
@@ -71,11 +79,10 @@ export const login = async (req, res, next) => {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role
-        }
-      }
+          role: user.role,
+        },
+      },
     });
-
   } catch (error) {
     next(error);
   }
@@ -84,38 +91,42 @@ export const login = async (req, res, next) => {
 /**
  * Verificar token e retornar dados do usuário
  */
-export const me = async (req, res) => {
+export const me = async (req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
-      user: req.user
-    }
+      user: req.user,
+    },
   });
 };
 
 /**
  * Criar usuário admin (apenas para setup inicial ou por outro admin)
  */
-export const createAdmin = async (req, res, next) => {
+export const createAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const { email, password, name } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
         error: true,
-        message: 'E-mail e senha são obrigatórios'
+        message: "E-mail e senha são obrigatórios",
       });
     }
 
     // Verificar se já existe
     const existing = await prisma.adminUser.findUnique({
-      where: { email: email.toLowerCase() }
+      where: { email: email.toLowerCase() },
     });
 
     if (existing) {
       return res.status(409).json({
         error: true,
-        message: 'E-mail já cadastrado'
+        message: "E-mail já cadastrado",
       });
     }
 
@@ -128,20 +139,19 @@ export const createAdmin = async (req, res, next) => {
         email: email.toLowerCase(),
         password: hashedPassword,
         name: name || null,
-        role: 'admin'
-      }
+        role: "admin",
+      },
     });
 
     res.status(201).json({
       success: true,
-      message: 'Administrador criado com sucesso',
+      message: "Administrador criado com sucesso",
       data: {
         id: user.id,
         email: user.email,
-        name: user.name
-      }
+        name: user.name,
+      },
     });
-
   } catch (error) {
     next(error);
   }
