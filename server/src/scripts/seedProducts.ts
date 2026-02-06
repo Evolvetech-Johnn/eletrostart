@@ -33,14 +33,37 @@ function normalize(str: string): string {
 // Helper: Parse currency string to float
 function parsePrice(priceStr: string): number {
   if (!priceStr) return 0;
-  // Remove "R$", spaces, dots (thousand separators)
-  // Replace comma with dot
-  const cleanStr = priceStr
-    .replace(/[^\d,.-]/g, "") // Keep digits, comma, dot, minus
-    .replace(/\./g, "") // Remove thousand separator dots
-    .replace(",", "."); // Replace decimal comma with dot
+  let clean = priceStr.toString().trim();
 
-  const num = parseFloat(cleanStr);
+  // Remove currency symbol and spaces
+  clean = clean.replace(/^R\$\s?/, "").trim();
+
+  // Handle various formats
+  // Case 1: 1.234,56 (BR standard) -> has comma and dot, comma is last
+  // Case 2: 1,234.56 (US standard) -> has comma and dot, dot is last
+  // Case 3: 1234,56 (BR no thousands) -> has comma only
+  // Case 4: 1234.56 (US no thousands) -> has dot only
+  // Case 5: 38.4 (User example) -> dot decimal
+
+  if (clean.includes(",") && clean.includes(".")) {
+    if (clean.lastIndexOf(",") > clean.lastIndexOf(".")) {
+      // BR: 1.234,56 -> Remove dot, replace comma with dot
+      clean = clean.replace(/\./g, "").replace(",", ".");
+    } else {
+      // US: 1,234.56 -> Remove comma
+      clean = clean.replace(/,/g, "");
+    }
+  } else if (clean.includes(",")) {
+    // BR: 1234,56 -> Replace comma with dot
+    clean = clean.replace(",", ".");
+  }
+  // else if only dot, assume it's decimal (like 38.4) or simple integer (100.00)
+  // We leave dot as is for parseFloat
+
+  // Final cleanup: keep only digits, dot, minus
+  clean = clean.replace(/[^\d.-]/g, "");
+
+  const num = parseFloat(clean);
   return isNaN(num) ? 0 : num;
 }
 
@@ -134,127 +157,152 @@ async function main() {
   console.log(`📊 Encontradas ${rows.length} linhas na tabela.`);
 
   // 4. Identify Columns
-  if (rows.length === 0) {
-    console.error("❌ Nenhuma linha encontrada na tabela.");
-    process.exit(1);
-  }
+  // User enforced: Col 2 (index 1) = Name, Col 5 (index 4) = Price
+  const nameColIndex = 1;
+  const priceColIndex = 4;
 
-  // Look for header row
+  // Find header index just to skip it
   let headerIndex = -1;
-  let nameColIndex = -1;
-  let priceColIndex = -1;
-
   for (let i = 0; i < Math.min(rows.length, 20); i++) {
     const row = rows[i];
-    const nameIdx = row.findIndex((cell) => /produto/i.test(cell));
-    const priceIdx = row.findIndex((cell) => /preço|valor/i.test(cell));
-
-    if (nameIdx !== -1 && priceIdx !== -1) {
+    // Check if this looks like the header row provided by user
+    // "Cod", "Produto", "Quantidade", "Custo Compra", "Preço"
+    if (row[1] && /produto/i.test(row[1]) && row[4] && /preço/i.test(row[4])) {
       headerIndex = i;
-      nameColIndex = nameIdx;
-      priceColIndex = priceIdx;
       break;
     }
   }
 
   if (headerIndex === -1) {
-    console.error(
-      '❌ Não foi possível identificar as colunas "Produto" e "Preço".',
+    console.warn(
+      "⚠️ Cabeçalho não encontrado com certeza, assumindo linha 0 como cabeçalho e começando da 1.",
     );
-    console.log("Amostra das primeiras linhas:", rows.slice(0, 5));
-    process.exit(1);
+    headerIndex = 0;
+  } else {
+    console.log(`✅ Cabeçalho identificado na linha ${headerIndex + 1}.`);
   }
 
   console.log(
-    `✅ Cabeçalho encontrado na linha ${headerIndex + 1}. Colunas: Produto[${nameColIndex}], Preço[${priceColIndex}]`,
+    `ℹ️ Usando colunas fixas: Produto[${nameColIndex}], Preço[${priceColIndex}]`,
   );
 
-  // 5. Process Rows
-  let createdCount = 0;
+  let count = 0;
   let updatedCount = 0;
-  let totalProcessed = 0;
+  let createdCount = 0;
+  let skippedCount = 0;
 
   for (let i = headerIndex + 1; i < rows.length; i++) {
     const row = rows[i];
-    if (row.length <= Math.max(nameColIndex, priceColIndex)) continue;
 
-    const rawName = row[nameColIndex];
-    const rawPrice = row[priceColIndex];
+    // Log first row to debug
+    if (i === headerIndex + 1) {
+      console.log("🔍 Primeira linha de dados (bruta):", row);
+    }
 
-    if (!rawName) continue; // Skip empty names
+    if (row.length <= Math.max(nameColIndex, priceColIndex)) {
+      skippedCount++;
+      continue;
+    }
 
-    totalProcessed++;
+    const rawName = row[nameColIndex]?.replace(/&nbsp;/g, " ").trim();
+    const rawPrice = row[priceColIndex]?.replace(/&nbsp;/g, " ").trim();
+    const rawCode = row[0]?.replace(/&nbsp;/g, " ").trim() || "";
 
-    // Normalize and Prepare Data
+    if (!rawName) {
+      skippedCount++;
+      continue;
+    }
+
+    // Skip header repetition if any
+    if (/produto/i.test(rawName) && /preço/i.test(rawPrice)) {
+      skippedCount++;
+      continue;
+    }
+
     const price = parsePrice(rawPrice);
-    const normalizedName = normalize(rawName);
 
-    // Check for Image
-    const imagePath = imageMap.get(normalizedName) || null;
-    const hasImage = !!imagePath;
+    // Debug specific product
+    if (rawName.includes("LUVA 3/4 PVC") && rawName.includes("HIDROSSOL")) {
+      console.log(`\n️ DEBUG PRODUTO ALVO:`);
+      console.log(`   Nome Raw: "${rawName}"`);
+      console.log(`   Preço Raw: "${rawPrice}"`);
+      console.log(`   Preço Parsed: ${price}`);
+    }
 
-    // Determine Visibility
-    // User Rule:
-    // - With Image -> visible: true
-    // - Without Image -> visible: false
-    // Map to 'active' field in DB (assuming 'active' controls visibility based on schema)
-    // Note: Schema has 'active' defaulting to true. We will enforce it.
-    const isVisible = hasImage;
+    // Generate SKU from name (slug) + code to ensure uniqueness
+    const slug = normalize(rawName).toLowerCase().replace(/\s+/g, "-");
+    const sku = rawCode ? `${slug}-${rawCode}` : `${slug}-${Date.now()}`;
 
-    const slug =
-      normalizedName.replace(/\s+/g, "-") || `prod-${Date.now()}-${i}`;
+    // Find image
+    // Tenta encontrar imagem exata ou parcial
+    // A lógica de imagem é complexa, vamos simplificar:
+    // Se existir uma imagem que contenha o nome do produto (slug), usa.
+    // O mapa imagesMap tem chaves normalizadas.
+    const normalizedNameForImage = normalize(rawName);
+    const imagePath = imageMap.get(normalizedNameForImage);
 
     try {
-      // Upsert Product
-      // We match by 'name' (if unique) or 'slug'.
-      // Schema says 'sku' is unique, 'slug' in Category is unique.
-      // Product model has 'sku' unique. 'name' is NOT unique in schema but usually is.
-      // Let's use 'sku' as the unique identifier generated from name/slug to be safe.
-      // Or if the product exists by Name? Schema doesn't enforce unique Name.
-      // But we should try to update if it exists.
-      // Strategy: Find first by Name (or generated SKU), if found update, else create.
-      // Since 'sku' is unique, let's use normalized name as SKU.
-
-      const sku = slug;
-
-      await prisma.product.upsert({
-        where: { sku: sku },
-        update: {
-          price: price,
-          image: imagePath, // Update image if found (or null if not? User said "Devem aparecer automaticamente quando uma imagem for adicionada futuramente" - this implies we should update it if we find one, but if we don't find one, should we clear it? "Caso não exista imagem... imageUrl = null". Yes.)
-          active: isVisible,
-          // We don't change name to preserve original casing if it exists, or maybe we update it?
-          // Let's update name to match HTML if we want to sync.
-          // But maybe better to keep existing name if just updating price/vis?
-          // User said "Banco populado com todos os produtos". implies full sync.
-          name: rawName,
-        },
-        create: {
-          name: rawName,
-          description: rawName, // Default description
-          price: price,
-          stock: 100, // Default stock
-          sku: sku,
-          image: imagePath,
-          unit: "un",
-          active: isVisible,
-          // categoryId: null // We don't have category info in this list
-        },
+      // Try to find by Name first to avoid duplicates with different SKUs
+      const existingProduct = await prisma.product.findFirst({
+        where: { name: rawName },
       });
 
-      // We can't easily distinguish created vs updated with upsert in one go without result checking,
-      // but for logs we can assume success.
-      // Actually upsert returns the record.
+      if (existingProduct) {
+        await prisma.product.update({
+          where: { id: existingProduct.id },
+          data: {
+            price: price,
+            sku: sku, // Update SKU to match new format if needed
+            image: imagePath || existingProduct.image,
+            // Don't update description/category to preserve manual edits?
+            // Or update them? User said "Systemic Error", implies we should fix everything.
+            // But description is not in the HTML table (only Name).
+            // So we keep existing description.
+          },
+        });
+        updatedCount++;
+      } else {
+        // Upsert by SKU just in case
+        await prisma.product.upsert({
+          where: { sku: sku },
+          update: {
+            name: rawName,
+            price: price,
+            image: imagePath,
+          },
+          create: {
+            name: rawName,
+            price: price,
+            sku: sku,
+            image: imagePath,
+            description: rawName, // Default description
+            category: {
+              connectOrCreate: {
+                where: { slug: "geral" },
+                create: { name: "Geral", slug: "geral" },
+              },
+            },
+          },
+        });
+        createdCount++;
+      }
 
-      // console.log(`Processed: ${rawName} | Price: ${price} | Img: ${hasImage ? 'YES' : 'NO'}`);
+      count++;
+      if (count % 100 === 0) {
+        process.stdout.write(
+          `\r✅ Processados: ${count}/${rows.length - headerIndex - 1}`,
+        );
+      }
     } catch (error) {
-      console.error(`❌ Erro ao processar "${rawName}":`, error);
+      console.error(`❌ Erro ao processar "${rawName}":`, error.message);
     }
   }
 
-  console.log(`\n🏁 Processamento Finalizado!`);
-  console.log(`Total Processado: ${totalProcessed}`);
-  console.log(`Verifique o banco de dados para os resultados.`);
+  console.log(`\n\n🏁 Seed concluído!`);
+  console.log(`   Processados: ${count}`);
+  console.log(`   Criados: ${createdCount}`);
+  console.log(`   Atualizados: ${updatedCount}`);
+  console.log(`   Pulados: ${skippedCount}`);
 }
 
 main()
