@@ -1,12 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
-import client from "./client.js";
-import { deployCommands } from "./deploy.js";
-import { BotCommand, BotEvent } from "./types.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import client from "./client";
+import { deployCommands } from "./deploy";
+import { BotCommand, BotEvent } from "./types";
 
 export const startBot = async () => {
   if (!process.env.DISCORD_BOT_TOKEN) {

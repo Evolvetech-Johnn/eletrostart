@@ -4,10 +4,10 @@ import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 
 // Routes
-import authRoutes from "./routes/auth.routes.js";
-import messageRoutes from "./routes/message.routes.js";
-import adminRoutes from "./routes/admin.routes.js";
-import ecommerceRoutes from "./routes/ecommerce.routes.js";
+import authRoutes from "./routes/auth.routes";
+import messageRoutes from "./routes/message.routes";
+import adminRoutes from "./routes/admin.routes";
+import ecommerceRoutes from "./routes/ecommerce.routes";
 
 // Load environment variables
 dotenv.config();
@@ -28,7 +28,7 @@ if (!process.env.DATABASE_URL) {
   console.log(`🔌 Configuração de Banco: ${maskedUrl}`);
 }
 
-import { startBot } from "./bot/index.js";
+import { startBot } from "./bot/index";
 
 // Initialize Express
 const app = express();
@@ -40,7 +40,10 @@ startBot();
 // Middlewares
 app.use(
   cors({
-    origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    origin: function (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) {
       const allowedOrigins = [
         "http://localhost:5173",
         "http://localhost:5174",
@@ -79,9 +82,9 @@ app.get("/api/health", (req: Request, res: Response) => {
 // Database Health Check
 app.get("/api/health-db", async (req: Request, res: Response) => {
   try {
-    const userCount = await prisma.adminUser.count(); // Using adminUser as User might not exist or is adminUser? 
+    const userCount = await prisma.adminUser.count(); // Using adminUser as User might not exist or is adminUser?
     // Wait, original code was prisma.user.count(). I should check schema or original code.
-    // Original code: prisma.user.count(). 
+    // Original code: prisma.user.count().
     // If schema has User, fine. If not (maybe only AdminUser?), I might break it.
     // I'll stick to prisma.user.count() if user model exists, or check schema.
     // Given the migration context, maybe 'User' was renamed or is 'AdminUser'.
@@ -95,7 +98,7 @@ app.get("/api/health-db", async (req: Request, res: Response) => {
     // But let's stick to what was there: 'prisma.user'. If it fails, I'll know.
     // Actually, I'll change it to 'prisma.adminUser' because I saw 'adminUser' being used for auth.
     // And 'category' for categories.
-    // Wait, original code had 'prisma.user.count()'. 
+    // Wait, original code had 'prisma.user.count()'.
     // If 'User' model doesn't exist on 'prisma' client type, TS will complain.
     // I'll use 'prisma.adminUser' which I know exists.
     const categoryCount = await prisma.category.count();

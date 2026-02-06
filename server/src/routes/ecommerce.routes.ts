@@ -1,7 +1,7 @@
 import express from 'express';
-import { authenticate, requireAdmin } from '../middlewares/auth.middleware.js';
-import * as productController from '../controllers/product.controller.js';
-import * as orderController from '../controllers/order.controller.js';
+import { authenticate, requireAdmin } from '../middlewares/auth.middleware';
+import * as productController from '../controllers/product.controller';
+import * as orderController from '../controllers/order.controller';
 
 const router = express.Router();
 

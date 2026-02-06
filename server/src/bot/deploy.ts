@@ -1,14 +1,14 @@
-import { REST, Routes, RESTPostAPIChatInputApplicationCommandsJSONBody } from "discord.js";
+import {
+  REST,
+  Routes,
+  RESTPostAPIChatInputApplicationCommandsJSONBody,
+} from "discord.js";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-import { BotCommand } from "./types.js";
+import { BotCommand } from "./types";
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export const deployCommands = async (guildId: string | null = null) => {
   const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [];
@@ -33,42 +33,44 @@ export const deployCommands = async (guildId: string | null = null) => {
       commands.push(command.data.toJSON());
     } else {
       console.log(
-        `[AVISO] O comando em ${filePath} está faltando a propriedade "data" ou "execute".`
+        `[AVISO] O comando em ${filePath} está faltando a propriedade "data" ou "execute".`,
       );
     }
   }
 
   if (!process.env.DISCORD_BOT_TOKEN) {
-      console.error("❌ Token do Discord não encontrado!");
-      return;
+    console.error("❌ Token do Discord não encontrado!");
+    return;
   }
 
   const rest = new REST().setToken(process.env.DISCORD_BOT_TOKEN);
 
   try {
     console.log(
-      `Iniciando refresh de ${commands.length} application (/) commands.`
+      `Iniciando refresh de ${commands.length} application (/) commands.`,
     );
 
     const targetGuildId = guildId || process.env.DISCORD_GUILD_ID;
-      
+
     if (process.env.DISCORD_CLIENT_ID && targetGuildId) {
-        await rest.put(
-          Routes.applicationGuildCommands(
-            process.env.DISCORD_CLIENT_ID,
-            targetGuildId
-          ),
-          { body: commands }
-        );
-        console.log(`✅ Comandos (Guild: ${targetGuildId}) registrados com sucesso!`);
+      await rest.put(
+        Routes.applicationGuildCommands(
+          process.env.DISCORD_CLIENT_ID,
+          targetGuildId,
+        ),
+        { body: commands },
+      );
+      console.log(
+        `✅ Comandos (Guild: ${targetGuildId}) registrados com sucesso!`,
+      );
     } else {
-        if (process.env.DISCORD_CLIENT_ID) {
-            await rest.put(
-                Routes.applicationCommands(process.env.DISCORD_CLIENT_ID),
-                { body: commands }
-            );
-            console.log("✅ Comandos (Global) registrados com sucesso!");
-        }
+      if (process.env.DISCORD_CLIENT_ID) {
+        await rest.put(
+          Routes.applicationCommands(process.env.DISCORD_CLIENT_ID),
+          { body: commands },
+        );
+        console.log("✅ Comandos (Global) registrados com sucesso!");
+      }
     }
   } catch (error) {
     console.error(error);

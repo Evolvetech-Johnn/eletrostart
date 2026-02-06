@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits, Collection } from "discord.js";
 import dotenv from "dotenv";
-import { BotCommand } from "./types.js";
+import { BotCommand } from "./types";
 
 dotenv.config();
 

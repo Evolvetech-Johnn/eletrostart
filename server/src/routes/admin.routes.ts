@@ -1,5 +1,5 @@
 import express from "express";
-import { authenticate, requireAdmin } from "../middlewares/auth.middleware.js";
+import { authenticate, requireAdmin } from "../middlewares/auth.middleware";
 import {
   getMessages,
   getMessage,
@@ -16,7 +16,7 @@ import {
   testDiscordIntegration,
   getDiscordLogs,
   getUsers,
-} from "../controllers/admin.controller.js";
+} from "../controllers/admin.controller";
 
 const router = express.Router();
 
