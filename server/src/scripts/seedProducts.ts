@@ -1,3 +1,4 @@
+
 import { PrismaClient } from "@prisma/client";
 import dotenv from "dotenv";
 import path from "path";
@@ -17,7 +18,7 @@ const HTML_FILE_PATH = path.join(
   __dirname,
   "../../../lista-produtos-preco.html",
 );
-const PUBLIC_IMG_DIR = path.join(__dirname, "../../../public/img"); // Project root public/img
+const PUBLIC_IMG_DIR = path.join(__dirname, "../../../public/img");
 
 // Helper: Normalize string for matching
 function normalize(str: string): string {
@@ -26,8 +27,23 @@ function normalize(str: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Remove accents
-    .replace(/[^a-z0-9]/g, "") // Keep only alphanumeric
+    // .replace(/[^a-z0-9]/g, "") // Do NOT remove spaces yet for tokenization
     .trim();
+}
+
+// Helper: Tokenize
+function tokenize(str: string): Set<string> {
+    const normalized = normalize(str);
+    // Replace special chars with space
+    const cleaned = normalized.replace(/[^a-z0-9\s]/g, " ");
+    const tokens = cleaned.split(/\s+/).filter(t => t.length > 0);
+    
+    // Stop words to ignore in image names
+    const stopWords = new Set([
+        "usar", "para", "todos", "todas", "as", "os", "bitolas", "fotos", "com", "sem", "caixa", "embalagem", "jpg", "png", "jpeg"
+    ]);
+
+    return new Set(tokens.filter(t => !stopWords.has(t)));
 }
 
 // Helper: Parse currency string to float
@@ -39,12 +55,6 @@ function parsePrice(priceStr: string): number {
   clean = clean.replace(/^R\$\s?/, "").trim();
 
   // Handle various formats
-  // Case 1: 1.234,56 (BR standard) -> has comma and dot, comma is last
-  // Case 2: 1,234.56 (US standard) -> has comma and dot, dot is last
-  // Case 3: 1234,56 (BR no thousands) -> has comma only
-  // Case 4: 1234.56 (US no thousands) -> has dot only
-  // Case 5: 38.4 (User example) -> dot decimal
-
   if (clean.includes(",") && clean.includes(".")) {
     if (clean.lastIndexOf(",") > clean.lastIndexOf(".")) {
       // BR: 1.234,56 -> Remove dot, replace comma with dot
@@ -57,20 +67,17 @@ function parsePrice(priceStr: string): number {
     // BR: 1234,56 -> Replace comma with dot
     clean = clean.replace(",", ".");
   }
-  // else if only dot, assume it's decimal (like 38.4) or simple integer (100.00)
-  // We leave dot as is for parseFloat
-
-  // Final cleanup: keep only digits, dot, minus
+  
   clean = clean.replace(/[^\d.-]/g, "");
-
   const num = parseFloat(clean);
   return isNaN(num) ? 0 : num;
 }
 
-// Helper: Recursively find all images in a directory
+// Helper: Recursively find all images and their categories
 function getAllImages(
   dir: string,
-  fileList: { name: string; path: string }[] = [],
+  rootPath: string = dir,
+  fileList: { name: string; path: string; folder: string }[] = [],
 ) {
   if (!fs.existsSync(dir)) return fileList;
 
@@ -81,23 +88,22 @@ function getAllImages(
     const stat = fs.statSync(filePath);
 
     if (stat.isDirectory()) {
-      getAllImages(filePath, fileList);
+      getAllImages(filePath, rootPath, fileList);
     } else {
       // Check for image extensions
       if (/\.(png|jpg|jpeg|webp|svg|gif)$/i.test(file)) {
-        // We store the relative path from 'public' (e.g., /img/Categorias/...)
-        // But for matching, we use the filename without extension
         const nameWithoutExt = path.parse(file).name;
-
-        // Calculate relative path for DB (assuming frontend serves from public root)
-        // If dir is .../server/public/img/..., and we want /img/...
-        // We need to find where 'public' ends.
-        // Let's assume we want the path starting with /img
+        
+        // Calculate relative path
         const relativePath = filePath.split("public")[1].replace(/\\/g, "/");
-
+        
+        // Determine Category Name from parent folder
+        const parentFolder = path.basename(path.dirname(filePath));
+        
         fileList.push({
           name: nameWithoutExt,
           path: relativePath,
+          folder: parentFolder
         });
       }
     }
@@ -106,33 +112,29 @@ function getAllImages(
 }
 
 async function main() {
-  console.log("🚀 Iniciando Seed de Produtos a partir do HTML...");
+  console.log("🚀 Iniciando Seed Inteligente (Token Match)...");
 
-  // 1. Read HTML File
   if (!fs.existsSync(HTML_FILE_PATH)) {
     console.error(`❌ Arquivo HTML não encontrado: ${HTML_FILE_PATH}`);
     process.exit(1);
   }
-  console.log(`📄 Lendo arquivo: ${HTML_FILE_PATH}`);
-  const htmlContent = fs.readFileSync(HTML_FILE_PATH, "utf-8");
 
-  // 2. Build Image Map
-  console.log("🖼️ Mapeando imagens do sistema...");
+  // 1. Mapear Imagens
+  console.log("🖼️ Mapeando imagens...");
   const allImages = getAllImages(PUBLIC_IMG_DIR);
-  const imageMap = new Map<string, string>();
+  // Store image info along with tokens
+  const imageList = allImages.map(img => ({
+      ...img,
+      tokens: tokenize(img.name)
+  }));
 
-  allImages.forEach((img) => {
-    const key = normalize(img.name);
-    // If duplicate names, the last one wins (or we could handle duplicates)
-    imageMap.set(key, img.path);
-  });
   console.log(`✅ ${allImages.length} imagens encontradas.`);
 
-  // 3. Parse HTML (Simple Regex Approach)
-  // Find rows <tr>...</tr>
+  // 2. Parse HTML
+  const htmlContent = fs.readFileSync(HTML_FILE_PATH, "utf-8");
   const rowRegex = /<tr[^>]*>(.*?)<\/tr>/gs;
   const cellRegex = /<td[^>]*>(.*?)<\/td>/gs;
-  const tagRegex = /<[^>]+>/g; // To strip tags from cell content
+  const tagRegex = /<[^>]+>/g;
 
   let match;
   const rows: string[][] = [];
@@ -142,167 +144,183 @@ async function main() {
     const cells: string[] = [];
     let cellMatch;
     while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
-      // Clean cell content: decode entities if needed (basic ones), strip tags
       let text = cellMatch[1].replace(tagRegex, "").trim();
-      // Decode basic entities
-      text = text
-        .replace(/&nbsp;/g, " ")
-        .replace(/&amp;/g, "&")
-        .trim();
+      text = text.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").trim();
       cells.push(text);
     }
     if (cells.length > 0) rows.push(cells);
   }
 
-  console.log(`📊 Encontradas ${rows.length} linhas na tabela.`);
-
-  // 4. Identify Columns
-  // User enforced: Col 2 (index 1) = Name, Col 5 (index 4) = Price
-  const nameColIndex = 1;
-  const priceColIndex = 4;
-
-  // Find header index just to skip it
+  // Colunas fixas
+  const nameColIndex = 1; // Coluna 2
+  const priceColIndex = 4; // Coluna 5
+  
+  // Identificar header
   let headerIndex = -1;
   for (let i = 0; i < Math.min(rows.length, 20); i++) {
     const row = rows[i];
-    // Check if this looks like the header row provided by user
-    // "Cod", "Produto", "Quantidade", "Custo Compra", "Preço"
     if (row[1] && /produto/i.test(row[1]) && row[4] && /preço/i.test(row[4])) {
       headerIndex = i;
       break;
     }
   }
+  
+  const validProductIds: string[] = [];
+  let processed = 0;
+  let created = 0;
+  let updated = 0;
+  let skippedNoImage = 0;
 
-  if (headerIndex === -1) {
-    console.warn(
-      "⚠️ Cabeçalho não encontrado com certeza, assumindo linha 0 como cabeçalho e começando da 1.",
-    );
-    headerIndex = 0;
-  } else {
-    console.log(`✅ Cabeçalho identificado na linha ${headerIndex + 1}.`);
-  }
-
-  console.log(
-    `ℹ️ Usando colunas fixas: Produto[${nameColIndex}], Preço[${priceColIndex}]`,
-  );
-
-  let count = 0;
-  let updatedCount = 0;
-  let createdCount = 0;
-  let skippedCount = 0;
+  console.log(`📊 Processando ${rows.length - headerIndex - 1} produtos...`);
 
   for (let i = headerIndex + 1; i < rows.length; i++) {
     const row = rows[i];
+    if (row.length <= Math.max(nameColIndex, priceColIndex)) continue;
 
-    // Log first row to debug
-    if (i === headerIndex + 1) {
-      console.log("🔍 Primeira linha de dados (bruta):", row);
+    const rawCode = row[0]?.trim() || "";
+    const rawName = row[nameColIndex]?.trim();
+    const rawPrice = row[priceColIndex]?.trim();
+
+    if (!rawName) continue;
+    if (/produto/i.test(rawName) && /preço/i.test(rawPrice)) continue;
+
+    // Tokenize Product Name
+    const productTokens = tokenize(rawName);
+    
+    // Find Matching Image
+    // Criteria: All tokens in Image must be present in Product
+    let matchedImage = null;
+
+    // Prioritize exact match first (normalized)
+    const productNorm = normalize(rawName).replace(/\s/g, "");
+    
+    // 1. Exact/Partial String Match (Fast)
+    for (const img of imageList) {
+        const imgNorm = normalize(img.name).replace(/\s/g, "");
+        if (productNorm === imgNorm || productNorm.includes(imgNorm)) {
+            matchedImage = img;
+            break;
+        }
     }
 
-    if (row.length <= Math.max(nameColIndex, priceColIndex)) {
-      skippedCount++;
-      continue;
+    // 2. Token Match (Slower but handles "FIO SIL AZUL" vs "FIO SIL 1.5mm AZUL")
+    if (!matchedImage) {
+        for (const img of imageList) {
+            // Check if all image tokens are in product tokens
+            let allFound = true;
+            for (const t of img.tokens) {
+                // Check if productTokens has this token (or a token that contains it?)
+                // Strict token match
+                if (!productTokens.has(t)) {
+                    // Try partial token match? e.g. "1500va" vs "1500va"
+                    // Or "paralelo" vs "paralelo"
+                    // If image token is "2x1,5mm" -> "2x1" "5mm"? 
+                    // Regex split might split "1,5" -> "1", "5".
+                    // Let's stick to strict set check first.
+                    allFound = false;
+                    break;
+                }
+            }
+            if (allFound && img.tokens.size > 0) {
+                matchedImage = img;
+                break;
+            }
+        }
     }
 
-    const rawName = row[nameColIndex]?.replace(/&nbsp;/g, " ").trim();
-    const rawPrice = row[priceColIndex]?.replace(/&nbsp;/g, " ").trim();
-    const rawCode = row[0]?.replace(/&nbsp;/g, " ").trim() || "";
-
-    if (!rawName) {
-      skippedCount++;
-      continue;
-    }
-
-    // Skip header repetition if any
-    if (/produto/i.test(rawName) && /preço/i.test(rawPrice)) {
-      skippedCount++;
+    if (!matchedImage) {
+      skippedNoImage++;
       continue;
     }
 
     const price = parsePrice(rawPrice);
-
-    // Debug specific product
-    if (rawName.includes("LUVA 3/4 PVC") && rawName.includes("HIDROSSOL")) {
-      console.log(`\n️ DEBUG PRODUTO ALVO:`);
-      console.log(`   Nome Raw: "${rawName}"`);
-      console.log(`   Preço Raw: "${rawPrice}"`);
-      console.log(`   Preço Parsed: ${price}`);
-    }
-
-    // Generate SKU from name (slug) + code to ensure uniqueness
+    
     const slug = normalize(rawName).toLowerCase().replace(/\s+/g, "-");
     const sku = rawCode ? `${slug}-${rawCode}` : `${slug}-${Date.now()}`;
-
-    // Find image
-    // Tenta encontrar imagem exata ou parcial
-    // A lógica de imagem é complexa, vamos simplificar:
-    // Se existir uma imagem que contenha o nome do produto (slug), usa.
-    // O mapa imagesMap tem chaves normalizadas.
-    const normalizedNameForImage = normalize(rawName);
-    const imagePath = imageMap.get(normalizedNameForImage);
+    
+    const categoryName = matchedImage.folder === "Categorias" ? "Geral" : matchedImage.folder;
+    const categorySlug = normalize(categoryName).replace(/\s+/g, "-"); // Slugify correctly
 
     try {
-      // Try to find by Name first to avoid duplicates with different SKUs
-      const existingProduct = await prisma.product.findFirst({
-        where: { name: rawName },
+      // Find or Create Category
+      let category = await prisma.category.findFirst({
+        where: {
+            OR: [
+                { slug: categorySlug },
+                { name: categoryName }
+            ]
+        }
       });
 
-      if (existingProduct) {
-        await prisma.product.update({
-          where: { id: existingProduct.id },
-          data: {
-            price: price,
-            sku: sku, // Update SKU to match new format if needed
-            image: imagePath || existingProduct.image,
-            // Don't update description/category to preserve manual edits?
-            // Or update them? User said "Systemic Error", implies we should fix everything.
-            // But description is not in the HTML table (only Name).
-            // So we keep existing description.
-          },
-        });
-        updatedCount++;
-      } else {
-        // Upsert by SKU just in case
-        await prisma.product.upsert({
-          where: { sku: sku },
-          update: {
-            name: rawName,
-            price: price,
-            image: imagePath,
-          },
-          create: {
-            name: rawName,
-            price: price,
-            sku: sku,
-            image: imagePath,
-            description: rawName, // Default description
-            category: {
-              connectOrCreate: {
-                where: { slug: "geral" },
-                create: { name: "Geral", slug: "geral" },
-              },
-            },
-          },
-        });
-        createdCount++;
+      if (!category) {
+          category = await prisma.category.create({
+              data: {
+                  name: categoryName,
+                  slug: categorySlug,
+                  description: `Categoria ${categoryName}`,
+                  image: matchedImage.path
+              }
+          });
       }
 
-      count++;
-      if (count % 100 === 0) {
-        process.stdout.write(
-          `\r✅ Processados: ${count}/${rows.length - headerIndex - 1}`,
-        );
+      // Upsert Produto
+      const product = await prisma.product.upsert({
+        where: { sku: sku },
+        update: {
+          name: rawName,
+          price: price,
+          image: matchedImage.path,
+          categoryId: category.id,
+          code: rawCode,
+          active: true
+        },
+        create: {
+          name: rawName,
+          price: price,
+          sku: sku,
+          code: rawCode,
+          image: matchedImage.path,
+          categoryId: category.id,
+          active: true,
+          description: rawName,
+          unit: "un"
+        },
+      });
+
+      validProductIds.push(product.id);
+      
+      if (product.createdAt.getTime() === product.updatedAt.getTime()) {
+          created++;
+      } else {
+          updated++;
       }
+      processed++;
+
     } catch (error) {
-      console.error(`❌ Erro ao processar "${rawName}":`, error.message);
+      console.error(`❌ Erro ao salvar ${rawName}:`, error);
     }
   }
 
-  console.log(`\n\n🏁 Seed concluído!`);
-  console.log(`   Processados: ${count}`);
-  console.log(`   Criados: ${createdCount}`);
-  console.log(`   Atualizados: ${updatedCount}`);
-  console.log(`   Pulados: ${skippedCount}`);
+  console.log(`\n🧹 Limpando produtos sem imagem...`);
+  
+  if (validProductIds.length > 0) {
+      const deleteResult = await prisma.product.deleteMany({
+        where: {
+          id: {
+            notIn: validProductIds
+          }
+        }
+      });
+      console.log(`🗑️  Removidos ${deleteResult.count} produtos obsoletos.`);
+  } else {
+      console.warn("⚠️  Nenhum produto válido encontrado! Abortando limpeza.");
+  }
+
+  console.log(`\n🏁 Resultado Final:`);
+  console.log(`   ✅ Válidos (com imagem): ${processed}`);
+  console.log(`   🆕 Criados: ${created}`);
+  console.log(`   🔄 Atualizados: ${updated}`);
+  console.log(`   ⏭️  Pulados (sem imagem): ${skippedNoImage}`);
 }
 
 main()

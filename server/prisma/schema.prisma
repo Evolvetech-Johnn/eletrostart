@@ -133,6 +133,7 @@ model Product {
   price       Float     @default(0.0)
   stock       Int       @default(0)
   sku         String?   @unique
+  code        String?   // Código original da tabela
   image       String?   // URL da imagem principal
   unit        String?   @default("un") // un, kg, m, etc.
   

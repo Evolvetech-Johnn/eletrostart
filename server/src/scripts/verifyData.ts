@@ -3,49 +3,41 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🔍 Verifying Data...");
-
-  const categoriesCount = await prisma.category.count();
-  const productsCount = await prisma.product.count();
-  const ordersCount = await prisma.order.count();
-
-  console.log(`Categories: ${categoriesCount}`);
-  console.log(`Products: ${productsCount}`);
-  console.log(`Orders: ${ordersCount}`);
+  console.log("🔍 Validando Dados do Banco...");
 
   const targetName = "LUVA";
-  console.log(`\n🔍 Searching for "${targetName}"...`);
-
-  const targetProducts = await prisma.product.findMany({
-    where: { name: { contains: targetName, mode: "insensitive" } },
-    take: 50,
-  });
-
-  if (targetProducts.length > 0) {
-    console.log(`✅ FOUND ${targetProducts.length} matches:`);
-    targetProducts.forEach((p) => {
-      // Filter mainly relevant ones
-      if (p.name.includes("3/4") || p.name.includes("PVC")) {
-        console.log(
-          `   ID: ${p.id} | Name: "${p.name}" | Price: R$ ${p.price} | SKU: ${p.sku}`,
-        );
-      }
-    });
-  } else {
-    console.log(`❌ NOT FOUND: "${targetName}"`);
-  }
+  console.log(`\n🔎 Buscando por produtos contendo "${targetName}"...`);
 
   const products = await prisma.product.findMany({
-    take: 5,
-    include: { category: true },
+    where: {
+      name: {
+        contains: targetName,
+        mode: "insensitive",
+      },
+    },
+    take: 10,
   });
 
-  console.log("\nSample Products:");
-  products.forEach((p) => {
+  if (products.length === 0) {
+    console.log("❌ Nenhum produto encontrado.");
+  } else {
     console.log(
-      `- ${p.name} (${p.category?.name || "No Category"}) - R$ ${p.price}`,
+      `✅ Encontrados ${products.length} produtos (mostrando max 10):`,
     );
-  });
+    products.forEach((p) => {
+      console.log(`\n📦 Produto: ${p.name}`);
+      console.log(`   💰 Preço: R$ ${p.price.toFixed(2)}`);
+      console.log(`   🏷️  Código: ${p.code || "N/A"}`);
+      console.log(`   🖼️  Imagem: ${p.image}`);
+      console.log(`   🆔 ID: ${p.id}`);
+    });
+  }
+
+  const count = await prisma.product.count();
+  console.log(`\n📊 Total de produtos no banco: ${count}`);
+
+  const categories = await prisma.category.count();
+  console.log(`📁 Total de categorias: ${categories}`);
 }
 
 main()
