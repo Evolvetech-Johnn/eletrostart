@@ -7,15 +7,18 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env from server root
-dotenv.config({ path: path.join(__dirname, '../.env') });
+// Load .env from server root (relative to src/scripts/syncImages.ts -> ../../.env)
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const prisma = new PrismaClient();
 
-// Directory containing images (relative to this script)
+// Directory containing images (relative to src/scripts/syncImages.ts -> ../../public/img/Categorias)
+// Adjust path: src/scripts/.. = src, src/.. = server, server/.. = project root? 
+// No, standard structure: server/src/scripts. So ../../ points to server root.
+// If public is in server/public, then ../../public is correct.
 const IMAGES_DIR = path.join(__dirname, '../../public/img/Categorias');
 
-function slugify(text) {
+function slugify(text: string): string {
   return text
     .toString()
     .toLowerCase()
@@ -43,10 +46,6 @@ async function main() {
 
   console.log(`📊 Encontradas ${categories.length} categorias de imagens.`);
 
-  let totalProductsProcessed = 0;
-  let totalProductsCreated = 0;
-  let totalProductsUpdated = 0;
-
   for (const categoryName of categories) {
     const categorySlug = slugify(categoryName);
     const categoryPath = path.join(IMAGES_DIR, categoryName);
@@ -61,7 +60,7 @@ async function main() {
         name: categoryName,
         slug: categorySlug,
         description: `Produtos da categoria ${categoryName}`,
-        image: `/img/Categorias/${categoryName}/cover.png` // Placeholder, will fix if needed
+        image: `/img/Categorias/${categoryName}/cover.png` // Placeholder
       }
     });
 
@@ -78,7 +77,7 @@ async function main() {
       const randomPrice = Math.floor(Math.random() * 500) + 50;
       
       // Upsert Product
-      const product = await prisma.product.upsert({
+      await prisma.product.upsert({
         where: { sku: productSlug }, // Using slug as SKU for uniqueness mapping
         update: {
           image: publicImagePath, // Update image path to ensure it matches file
@@ -97,36 +96,14 @@ async function main() {
           featured: false
         }
       });
-
-      process.stdout.write('.');
-      totalProductsProcessed++;
     }
   }
 
-  console.log('\n\n✅ Sincronização concluída!');
-  console.log(`📦 Total de imagens processadas: ${totalProductsProcessed}`);
-  
-  // Update Category Images with the first product image found
-  console.log('\n🖼️  Atualizando imagens de capa das categorias...');
-  for (const categoryName of categories) {
-    const categorySlug = slugify(categoryName);
-    const category = await prisma.category.findUnique({
-        where: { slug: categorySlug },
-        include: { products: { take: 1 } }
-    });
-    
-    if (category && category.products.length > 0) {
-        await prisma.category.update({
-            where: { id: category.id },
-            data: { image: category.products[0].image }
-        });
-    }
-  }
-  console.log('✅ Capas de categorias atualizadas.');
+  console.log('\n✅ Sincronização concluída com sucesso!');
 }
 
 main()
-  .catch(e => {
+  .catch((e) => {
     console.error(e);
     process.exit(1);
   })

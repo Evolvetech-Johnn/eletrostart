@@ -1,5 +1,5 @@
 // Seed script para criar o usuário admin inicial
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 
@@ -70,7 +70,7 @@ async function main() {
   const existingMessages = await prisma.contactMessage.count();
 
   if (existingMessages === 0) {
-    const sampleMessages = [
+    const sampleMessages: Prisma.ContactMessageCreateInput[] = [
       {
         name: "João Silva",
         email: "joao@exemplo.com",
@@ -105,16 +105,17 @@ async function main() {
     for (const msg of sampleMessages) {
       await prisma.contactMessage.create({ data: msg });
     }
-
-    console.log("✅ Mensagens de exemplo criadas");
+    console.log(`✅ ${sampleMessages.length} mensagens de exemplo criadas.`);
+  } else {
+    console.log("ℹ️  Mensagens já existem, pulando criação.");
   }
 
-  console.log("🎉 Seed concluído!");
+  console.log("✅ Seed finalizado com sucesso!");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Erro no seed:", e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {

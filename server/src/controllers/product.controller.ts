@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
+import { Request, Response } from "express";
 import { prisma } from "../index.js";
-import { Prisma } from '@prisma/client';
+import { Prisma } from "@prisma/client";
 
 // Helper to format product (MongoDB uses native JSON, no parsing needed)
 const formatProduct = (product: any) => {
@@ -29,14 +29,12 @@ export const getCategories = async (req: Request, res: Response) => {
     res.json({ success: true, data: categories });
   } catch (error: any) {
     console.error("Error fetching categories:", error);
-    res
-      .status(500)
-      .json({ 
-        success: false, 
-        message: "Erro ao buscar categorias",
-        error: error.message, // Expose error for debugging
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
+    res.status(500).json({
+      success: false,
+      message: "Erro ao buscar categorias",
+      error: error.message, // Expose error for debugging
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
   }
 };
 
@@ -44,7 +42,7 @@ export const getCategoryBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
     const category = await prisma.category.findFirst({
-      where: { slug },
+      where: { slug: slug as string },
       include: {
         _count: { select: { products: true } },
       },
@@ -58,7 +56,9 @@ export const getCategoryBySlug = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: category });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Erro ao buscar categoria" });
+    res
+      .status(500)
+      .json({ success: false, message: "Erro ao buscar categoria" });
   }
 };
 
@@ -68,8 +68,8 @@ export const createCategory = async (req: Request, res: Response) => {
 
     const slug = name
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .replace(/ /g, "-")
       .replace(/[^\w-]+/g, "");
 
@@ -106,8 +106,8 @@ export const updateCategory = async (req: Request, res: Response) => {
       data.name = name;
       data.slug = name
         .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
         .replace(/ /g, "-")
         .replace(/[^\w-]+/g, "");
     }
@@ -115,33 +115,35 @@ export const updateCategory = async (req: Request, res: Response) => {
     if (image !== undefined) data.image = image;
 
     const category = await prisma.category.update({
-      where: { id },
+      where: { id: id as string },
       data,
     });
 
     res.json({ success: true, data: category });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Erro ao atualizar categoria" });
+    res
+      .status(500)
+      .json({ success: false, message: "Erro ao atualizar categoria" });
   }
 };
 
 export const deleteCategory = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     // Check if category has products
     const productsCount = await prisma.product.count({
-      where: { categoryId: id }
+      where: { categoryId: id as string },
     });
-    
+
     if (productsCount > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Categoria possui ${productsCount} produtos vinculados. Remova ou reclassifique os produtos primeiro.` 
+      return res.status(400).json({
+        success: false,
+        message: `Categoria possui ${productsCount} produtos vinculados. Remova ou reclassifique os produtos primeiro.`,
       });
     }
-    
-    await prisma.category.delete({ where: { id } });
+
+    await prisma.category.delete({ where: { id: id as string } });
     res.json({ success: true, message: "Categoria excluída" });
   } catch (error) {
     res
@@ -154,7 +156,15 @@ export const deleteCategory = async (req: Request, res: Response) => {
 
 export const getProducts = async (req: Request, res: Response) => {
   try {
-    const { category, subcategory, search, featured, active, page = '1', limit = '20' } = req.query;
+    const {
+      category,
+      subcategory,
+      search,
+      featured,
+      active,
+      page = "1",
+      limit = "20",
+    } = req.query;
 
     const where: Prisma.ProductWhereInput = {};
 
@@ -171,29 +181,26 @@ export const getProducts = async (req: Request, res: Response) => {
     if (category) {
       // Try to find category by slug first
       const cat = await prisma.category.findFirst({
-        where: { 
-          OR: [
-            { slug: category as string },
-            { id: category as string }
-          ]
-        }
+        where: {
+          OR: [{ slug: category as string }, { id: category as string }],
+        },
       });
       if (cat) {
         where.categoryId = cat.id;
       }
     }
-    
+
     if (subcategory) {
       where.subcategory = subcategory as string;
     }
-    
+
     if (featured === "true") where.featured = true;
-    
+
     if (search) {
       where.OR = [
-        { name: { contains: search as string, mode: 'insensitive' } },
-        { description: { contains: search as string, mode: 'insensitive' } },
-        { sku: { contains: search as string, mode: 'insensitive' } },
+        { name: { contains: search as string, mode: "insensitive" } },
+        { description: { contains: search as string, mode: "insensitive" } },
+        { sku: { contains: search as string, mode: "insensitive" } },
       ];
     }
 
@@ -230,14 +237,11 @@ export const getProducts = async (req: Request, res: Response) => {
 export const getProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     // Try to find by ID or SKU
     const product = await prisma.product.findFirst({
       where: {
-        OR: [
-          { id },
-          { sku: id }
-        ]
+        OR: [{ id: id as string }, { sku: id as string }],
       },
       include: { category: true },
     });
@@ -276,16 +280,20 @@ export const createProduct = async (req: Request, res: Response) => {
 
     // Validate required fields
     if (!name) {
-      return res.status(400).json({ success: false, message: "Nome é obrigatório" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Nome é obrigatório" });
     }
 
     // Generate SKU if not provided
-    const finalSku = sku || name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
+    const finalSku =
+      sku ||
+      name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
 
     const product = await prisma.product.create({
       data: {
@@ -295,7 +303,7 @@ export const createProduct = async (req: Request, res: Response) => {
         stock: parseInt(stock) || 0,
         sku: finalSku,
         image,
-        unit: unit || 'un',
+        unit: unit || "un",
         categoryId: categoryId || null,
         subcategory: subcategory || null,
         active: active !== undefined ? active : true,
@@ -347,7 +355,13 @@ export const updateProduct = async (req: Request, res: Response) => {
     if (sku) data.sku = sku;
     if (image !== undefined) data.image = image;
     if (unit) data.unit = unit;
-    if (categoryId !== undefined) data.categoryId = categoryId || null;
+    if (categoryId !== undefined) {
+      if (categoryId) {
+        data.category = { connect: { id: categoryId } };
+      } else {
+        data.category = { disconnect: true };
+      }
+    }
     if (subcategory !== undefined) data.subcategory = subcategory;
     if (active !== undefined) data.active = active;
     if (featured !== undefined) data.featured = featured;
@@ -358,7 +372,7 @@ export const updateProduct = async (req: Request, res: Response) => {
     if (images !== undefined) data.images = images;
 
     const product = await prisma.product.update({
-      where: { id },
+      where: { id: id as string },
       data,
       include: { category: true },
     });
@@ -367,7 +381,9 @@ export const updateProduct = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("Error updating product:", error);
     if (error.code === "P2025") {
-      return res.status(404).json({ success: false, message: "Produto não encontrado" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Produto não encontrado" });
     }
     res
       .status(500)
@@ -378,16 +394,16 @@ export const updateProduct = async (req: Request, res: Response) => {
 export const deleteProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     // Check if product is in any order
     const hasOrders = await prisma.orderItem.findFirst({
-      where: { productId: id },
+      where: { productId: id as string },
     });
 
     if (hasOrders) {
       // Soft delete - keep product but mark as inactive
       await prisma.product.update({
-        where: { id },
+        where: { id: id as string },
         data: { active: false },
       });
       return res.json({
@@ -396,11 +412,13 @@ export const deleteProduct = async (req: Request, res: Response) => {
       });
     }
 
-    await prisma.product.delete({ where: { id } });
+    await prisma.product.delete({ where: { id: id as string } });
     res.json({ success: true, message: "Produto excluído permanentemente" });
   } catch (error: any) {
     if (error.code === "P2025") {
-      return res.status(404).json({ success: false, message: "Produto não encontrado" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Produto não encontrado" });
     }
     res
       .status(500)
@@ -415,13 +433,16 @@ export const bulkUpdateProducts = async (req: Request, res: Response) => {
     const { ids, data } = req.body;
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: "IDs são obrigatórios" });
+      return res
+        .status(400)
+        .json({ success: false, message: "IDs são obrigatórios" });
     }
 
     const updateData: Prisma.ProductUpdateManyMutationInput = {};
     if (data.active !== undefined) updateData.active = data.active;
     if (data.featured !== undefined) updateData.featured = data.featured;
-    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+    // updateMany does not support relation updates like categoryId easily without direct scalar field access
+    // if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
     if (data.price !== undefined) updateData.price = parseFloat(data.price);
 
     const result = await prisma.product.updateMany({
@@ -429,14 +450,16 @@ export const bulkUpdateProducts = async (req: Request, res: Response) => {
       data: updateData,
     });
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `${result.count} produtos atualizados`,
-      count: result.count
+      count: result.count,
     });
   } catch (error) {
     console.error("Error bulk updating products:", error);
-    res.status(500).json({ success: false, message: "Erro ao atualizar produtos" });
+    res
+      .status(500)
+      .json({ success: false, message: "Erro ao atualizar produtos" });
   }
 };
 
@@ -445,43 +468,50 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
     const { ids } = req.body;
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: "IDs são obrigatórios" });
+      return res
+        .status(400)
+        .json({ success: false, message: "IDs são obrigatórios" });
     }
 
     // Check which products have orders
     const productsWithOrders = await prisma.orderItem.findMany({
       where: { productId: { in: ids } },
       select: { productId: true },
-      distinct: ['productId']
+      distinct: ["productId"],
     });
 
-    const idsWithOrders = productsWithOrders.map(p => p.productId);
-    const idsToDelete = ids.filter(id => !idsWithOrders.includes(id));
-    
+    const idsWithOrders = productsWithOrders
+      .map((p) => p.productId)
+      .filter((id): id is string => id !== null);
+
+    const idsToDelete = ids.filter((id) => !idsWithOrders.includes(id));
+
     // Soft delete products with orders
     if (idsWithOrders.length > 0) {
       await prisma.product.updateMany({
         where: { id: { in: idsWithOrders } },
-        data: { active: false }
+        data: { active: false },
       });
     }
 
     // Hard delete products without orders
     if (idsToDelete.length > 0) {
       await prisma.product.deleteMany({
-        where: { id: { in: idsToDelete } }
+        where: { id: { in: idsToDelete } },
       });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `${idsToDelete.length} produtos excluídos, ${idsWithOrders.length} desativados`,
       deleted: idsToDelete.length,
-      deactivated: idsWithOrders.length
+      deactivated: idsWithOrders.length,
     });
   } catch (error) {
     console.error("Error bulk deleting products:", error);
-    res.status(500).json({ success: false, message: "Erro ao excluir produtos" });
+    res
+      .status(500)
+      .json({ success: false, message: "Erro ao excluir produtos" });
   }
 };
 
@@ -489,15 +519,17 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
 
 export const getProductStats = async (req: Request, res: Response) => {
   try {
-    const [total, active, featured, outOfStock, categories] = await Promise.all([
-      prisma.product.count(),
-      prisma.product.count({ where: { active: true } }),
-      prisma.product.count({ where: { featured: true } }),
-      prisma.product.count({ where: { stock: 0 } }),
-      prisma.category.findMany({
-        include: { _count: { select: { products: true } } }
-      })
-    ]);
+    const [total, active, featured, outOfStock, categories] = await Promise.all(
+      [
+        prisma.product.count(),
+        prisma.product.count({ where: { active: true } }),
+        prisma.product.count({ where: { featured: true } }),
+        prisma.product.count({ where: { stock: 0 } }),
+        prisma.category.findMany({
+          include: { _count: { select: { products: true } } },
+        }),
+      ],
+    );
 
     res.json({
       success: true,
@@ -507,16 +539,18 @@ export const getProductStats = async (req: Request, res: Response) => {
         inactive: total - active,
         featured,
         outOfStock,
-        byCategory: categories.map(c => ({
+        byCategory: categories.map((c) => ({
           id: c.id,
           name: c.name,
           slug: c.slug,
-          count: c._count.products
-        }))
-      }
+          count: c._count.products,
+        })),
+      },
     });
   } catch (error) {
     console.error("Error fetching product stats:", error);
-    res.status(500).json({ success: false, message: "Erro ao buscar estatísticas" });
+    res
+      .status(500)
+      .json({ success: false, message: "Erro ao buscar estatísticas" });
   }
 };

@@ -2,7 +2,15 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const customers = [
+interface Customer {
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  state: string;
+}
+
+const customers: Customer[] = [
   {
     name: "João Silva",
     email: "joao@email.com",
@@ -61,14 +69,20 @@ const customers = [
   },
 ];
 
-const statuses = ["PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED"];
-const paymentMethods = ["PIX", "CREDIT_CARD", "BOLETO"];
+const statuses = [
+  "PENDING",
+  "PAID",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+] as const;
+const paymentMethods = ["PIX", "CREDIT_CARD", "BOLETO"] as const;
 
-function getRandomItem(arr) {
+function getRandomItem<T>(arr: T[] | readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function getRandomInt(min, max) {
+function getRandomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
@@ -79,14 +93,14 @@ async function main() {
   const products = await prisma.product.findMany();
 
   if (products.length === 0) {
-    console.error("No products found! Please run seedProducts.js first.");
+    console.error("No products found! Please run seedProducts.ts first.");
     return;
   }
 
   for (let i = 0; i < 12; i++) {
     const customer = getRandomItem(customers);
     const numItems = getRandomInt(1, 5);
-    const orderItemsData = [];
+    const orderItemsData: any[] = [];
     let subtotal = 0;
 
     for (let j = 0; j < numItems; j++) {
@@ -99,64 +113,37 @@ async function main() {
         productId: product.id,
         productName: product.name,
         quantity,
-        unitPrice,
+        price: unitPrice,
         totalPrice,
       });
 
       subtotal += totalPrice;
     }
 
-    const shippingCost = getRandomInt(15, 50);
-    const total = subtotal + shippingCost;
-
-    // Random date in last 30 days
-    const date = new Date();
-    date.setDate(date.getDate() - getRandomInt(0, 30));
-
-    const status = getRandomItem(statuses);
-    let paymentStatus = "PENDING";
-
-    if (status === "PAID" || status === "SHIPPED" || status === "DELIVERED") {
-      paymentStatus = "PAID";
-    } else if (status === "CANCELLED") {
-      paymentStatus = Math.random() > 0.5 ? "FAILED" : "REFUNDED";
-    }
+    const shipping = 15.0;
+    const total = subtotal + shipping;
 
     await prisma.order.create({
       data: {
+        // orderNumber: `ORD-${Date.now()}-${i}`,
         customerName: customer.name,
         customerEmail: customer.email,
         customerPhone: customer.phone,
         addressCity: customer.city,
         addressState: customer.state,
-        addressStreet: "Rua Exemplo",
-        addressNumber: String(getRandomInt(10, 999)),
-        addressZip: "00000-000",
-
-        subtotal,
-        shippingCost,
-        total,
-
-        status,
+        status: getRandomItem(statuses),
         paymentMethod: getRandomItem(paymentMethods),
-        paymentStatus,
-
-        createdAt: date,
-
+        subtotal,
+        shippingCost: shipping,
+        total,
         items: {
           create: orderItemsData,
         },
       },
     });
-
-    console.log(
-      `Created order for ${customer.name} - R$ ${total.toFixed(
-        2
-      )} - Status: ${status}`
-    );
   }
 
-  console.log("✅ Orders Seed Finished!");
+  console.log("✅ Seed complete!");
 }
 
 main()
