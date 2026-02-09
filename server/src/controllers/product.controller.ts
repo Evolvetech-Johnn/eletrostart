@@ -269,6 +269,7 @@ export const createProduct = async (req: Request, res: Response) => {
       price,
       stock,
       sku,
+      code,
       image,
       unit,
       categoryId,
@@ -288,23 +289,14 @@ export const createProduct = async (req: Request, res: Response) => {
         .json({ success: false, message: "Nome é obrigatório" });
     }
 
-    // Generate SKU if not provided
-    const finalSku =
-      sku ||
-      name
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-
     const product = await prisma.product.create({
       data: {
         name,
         description: description || `${name}. Produto de alta qualidade.`,
         price: parseFloat(price) || 0,
         stock: parseInt(stock) || 0,
-        sku: finalSku,
+        sku: sku || undefined,
+        code: code || undefined,
         image,
         unit: unit || "un",
         categoryId: categoryId || null,
@@ -338,6 +330,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       price,
       stock,
       sku,
+      code,
       image,
       unit,
       categoryId,
@@ -356,6 +349,7 @@ export const updateProduct = async (req: Request, res: Response) => {
     if (price !== undefined) data.price = parseFloat(price);
     if (stock !== undefined) data.stock = parseInt(stock);
     if (sku) data.sku = sku;
+    if (code) data.code = code;
     if (image !== undefined) data.image = image;
     if (unit) data.unit = unit;
     if (categoryId !== undefined) {

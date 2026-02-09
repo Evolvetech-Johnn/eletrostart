@@ -153,8 +153,8 @@ const Checkout = () => {
     const itemsList = cart
       .map((item) => {
         const variantInfo = item.variant ? ` (${item.variant.name})` : "";
-        const codeInfo = item.code || item.sku || "—";
-        return `- ${item.name}${variantInfo} (COD: ${codeInfo})\n  Qtd: ${item.quantity} | Unit: ${formatPrice(item.price)}`;
+        const codeInfo = item.code ? ` (COD: ${item.code})` : "";
+        return `- ${item.name}${variantInfo}${codeInfo}\n  Qtd: ${item.quantity} | Unit: ${formatPrice(item.price)}`;
       })
       .join("\n\n");
 

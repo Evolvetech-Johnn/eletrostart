@@ -2,10 +2,9 @@ import { PrismaClient } from "@prisma/client";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 // Load .env from server root
 dotenv.config({ path: path.join(__dirname, "../../.env") });
@@ -282,7 +281,9 @@ async function main() {
     const price = parsePrice(rawPrice);
 
     const slug = normalize(rawName).toLowerCase().replace(/\s+/g, "-");
-    const sku = rawCode ? `${slug}-${rawCode}` : `${slug}-${Date.now()}`;
+    // User Requirement: Never generate fake SKU. Use official code or null.
+    const code = rawCode || null;
+    const sku = null; // Removed SKU generation entirely to rely on Code
 
     // Category management
     const categoryName = matchedImage.folder;
@@ -307,29 +308,36 @@ async function main() {
         });
       }
 
-      // Upsert Produto
-      const product = await prisma.product.upsert({
-        where: { sku: sku },
-        update: {
+      // Upsert logic modified to avoid dependency on generated SKU
+      // We try to find by Name as the anchor since SKU is no longer unique/guaranteed
+      let product = await prisma.product.findFirst({ where: { name: rawName } });
+
+      const productData = {
           name: rawName,
           price: price,
           image: matchedImage.path,
           categoryId: category.id,
-          code: rawCode,
-          active: true,
-        },
-        create: {
-          name: rawName,
-          price: price,
-          sku: sku,
-          code: rawCode,
-          image: matchedImage.path,
-          categoryId: category.id,
+          code: code,
+          sku: sku, // Will be null
           active: true,
           description: rawName,
           unit: "un",
-        },
-      });
+      };
+
+      if (product) {
+        product = await prisma.product.update({
+            where: { id: product.id },
+            data: {
+                ...productData,
+                // Ensure variants/features/specs are preserved if we don't have new ones
+                // But here we are seeding base data
+            }
+        });
+      } else {
+        product = await prisma.product.create({
+            data: productData
+        });
+      }
 
       validProductIds.push(product.id);
 

@@ -573,11 +573,13 @@ const Products = () => {
                             {product.name}
                           </h3>
 
-                          <div className="mb-2">
-                            <span className="inline-block bg-gray-50 text-gray-500 text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-gray-100">
-                              COD: {product.code || product.sku || "—"}
-                            </span>
-                          </div>
+                          {product.code && (
+                            <div className="mb-2">
+                              <span className="inline-block bg-gray-50 text-gray-500 text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-gray-100">
+                                COD: {product.code}
+                              </span>
+                            </div>
+                          )}
 
                           <p className="text-gray-500 text-sm mb-6 line-clamp-2 leading-relaxed">
                             {product.description}

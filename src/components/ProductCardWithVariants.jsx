@@ -94,12 +94,14 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
             {product.name}
           </h3>
 
-          {/* Code/SKU Display */}
-          <div className="mb-2">
-            <span className="inline-block bg-gray-50 text-gray-500 text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-gray-100">
-              COD: {product.code || product.sku || "—"}
-            </span>
-          </div>
+          {/* Code Display - ONLY if code exists */}
+          {product.code && (
+            <div className="mb-2">
+              <span className="inline-block bg-gray-50 text-gray-500 text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-gray-100">
+                COD: {product.code}
+              </span>
+            </div>
+          )}
 
           {/* Description */}
           <p className="text-gray-500 text-xs mb-4 line-clamp-2 leading-relaxed">

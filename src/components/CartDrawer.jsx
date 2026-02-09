@@ -159,9 +159,11 @@ const CartDrawer = () => {
                     <h4 className="font-bold text-gray-900 text-sm truncate mb-1">
                       {item.name}
                     </h4>
-                    <p className="text-[10px] text-gray-500 font-mono mb-1">
-                      COD: {item.code || item.sku || "—"}
-                    </p>
+                    {item.code && (
+                      <p className="text-[10px] text-gray-500 font-mono mb-1">
+                        COD: {item.code}
+                      </p>
+                    )}
                     {item.variant && (
                       <p className="text-xs text-gray-500 mb-1">
                         {item.variant.name}: {item.variant.value}

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../index.js";
 import { Prisma } from "@prisma/client";
+import { sendOrderToDiscord } from "../services/discord.service.js";
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
@@ -20,6 +21,13 @@ export const createOrder = async (req: Request, res: Response) => {
       quantity: number;
       unitPrice: number;
       totalPrice: number;
+    }[] = [];
+
+    const itemsForDiscord: {
+      productName: string;
+      quantity: number;
+      unitPrice: number;
+      code?: string;
     }[] = [];
 
     // Use transaction to ensure stock is available and updated
@@ -48,12 +56,21 @@ export const createOrder = async (req: Request, res: Response) => {
         const total = price * quantity;
         subtotal += total;
 
-        orderItemsData.push({
+        const itemData = {
           productId: product.id,
           productName: product.name,
           quantity: quantity,
           unitPrice: price,
           totalPrice: total,
+        };
+
+        orderItemsData.push(itemData);
+
+        itemsForDiscord.push({
+          productName: product.name,
+          quantity: quantity,
+          unitPrice: price,
+          code: product.code || undefined,
         });
       }
 
@@ -89,6 +106,16 @@ export const createOrder = async (req: Request, res: Response) => {
         include: { items: true },
       });
     });
+
+    // Send notification to Discord (async, don't block response)
+    sendOrderToDiscord({
+      id: order.id,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone || "",
+      total: Number(order.total),
+      paymentMethod: order.paymentMethod || "Não informado",
+      items: itemsForDiscord,
+    }).catch((err) => console.error("Failed to send order to Discord:", err));
 
     res.status(201).json({ success: true, data: order });
   } catch (error: any) {

@@ -263,11 +263,13 @@ const Home = () => {
                   <h3 className="font-bold text-gray-800 text-lg mb-4 line-clamp-2 h-14">
                     {product.name}
                   </h3>
-                  <div className="mb-2">
-                    <span className="inline-block bg-gray-50 text-gray-500 text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-gray-100">
-                      COD: {product.code || product.sku || "—"}
-                    </span>
-                  </div>
+                  {product.code && (
+                    <div className="mb-2">
+                      <span className="inline-block bg-gray-50 text-gray-500 text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-gray-100">
+                        COD: {product.code}
+                      </span>
+                    </div>
+                  )}
                   <div className="mt-auto">
                     <div className="flex items-baseline space-x-2">
                       <span className="text-gray-400 line-through text-xs font-medium">

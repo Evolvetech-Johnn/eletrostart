@@ -265,9 +265,84 @@ export const syncDiscordMessages = async (
   next: NextFunction,
 ) => {
   try {
-    // Placeholder for lost function during migration
-    res.json({ success: true, message: "Sincronização em manutenção." });
+    // Verificar se o Bot está pronto
+    if (!client.isReady()) {
+      return res.status(503).json({
+        success: false,
+        message: "Bot do Discord não está conectado. Verifique o servidor.",
+      });
+    }
+
+    const channelId = process.env.DISCORD_CHANNEL_ID;
+    if (!channelId) {
+      return res.status(400).json({
+        success: false,
+        message: "ID do canal do Discord não configurado no .env",
+      });
+    }
+
+    const channel = await client.channels.fetch(channelId);
+    if (!channel || !channel.isTextBased()) {
+      return res.status(400).json({
+        success: false,
+        message: "Canal inválido ou não é de texto",
+      });
+    }
+
+    const textChannel = channel as TextChannel;
+
+    // Buscar últimas 50 mensagens
+    const messages = await textChannel.messages.fetch({ limit: 50 });
+
+    let processedCount = 0;
+    let newCount = 0;
+
+    for (const [id, msg] of messages) {
+      // Ignorar mensagens do próprio bot
+      if (msg.author.bot) continue;
+
+      processedCount++;
+
+      // Verificar se já existe no banco (pelo discordId ou conteúdo similar)
+      const existing = await prisma.contactMessage.findFirst({
+        where: {
+          OR: [
+            // Se tivéssemos um campo discordId, usaríamos aqui.
+            // Como não temos, vamos tentar evitar duplicatas por conteúdo + data aproximada
+            {
+              message: msg.content,
+              createdAt: {
+                gte: new Date(msg.createdTimestamp - 60000),
+                lte: new Date(msg.createdTimestamp + 60000),
+              },
+            },
+          ],
+        },
+      });
+
+      if (!existing) {
+        await prisma.contactMessage.create({
+          data: {
+            name: msg.author.username,
+            email: "discord-user@placeholder.com", // Placeholder
+            subject: "Mensagem do Discord",
+            message: msg.content,
+            source: "DISCORD",
+            status: "NEW",
+            createdAt: new Date(msg.createdTimestamp),
+          },
+        });
+        newCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Sincronização concluída. ${processedCount} processadas, ${newCount} importadas.`,
+      stats: { processed: processedCount, imported: newCount },
+    });
   } catch (error) {
+    console.error("Erro na sincronização do Discord:", error);
     next(error);
   }
 };
@@ -336,8 +411,31 @@ export const testDiscordIntegration = async (
   next: NextFunction,
 ) => {
   try {
-    // Basic test
-    res.json({ success: true, message: "Discord test not implemented" });
+    const testData = {
+      name: "Teste de Integração",
+      email: "admin@teste.com",
+      phone: "00 00000-0000",
+      subject: "Teste de Conectividade",
+      message:
+        "Esta é uma mensagem de teste enviada pelo painel administrativo para validar a integração com o Discord.",
+      id: "TEST-" + Date.now().toString().slice(-4),
+    };
+
+    const result = await sendToDiscord(testData);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: "Mensagem de teste enviada com sucesso!",
+        details: result,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "Falha ao enviar mensagem de teste",
+        error: result.error,
+      });
+    }
   } catch (error) {
     next(error);
   }
