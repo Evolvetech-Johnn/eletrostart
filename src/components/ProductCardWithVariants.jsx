@@ -94,14 +94,12 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
             {product.name}
           </h3>
 
-          {/* SKU Display */}
-          {product.sku && (
-            <div className="mb-2">
-              <span className="inline-block bg-gray-100 text-gray-600 text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-gray-200">
-                SKU: {product.sku}
-              </span>
-            </div>
-          )}
+          {/* Code/SKU Display */}
+          <div className="mb-2">
+            <span className="inline-block bg-gray-50 text-gray-500 text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-gray-100">
+              COD: {product.code || product.sku || "—"}
+            </span>
+          </div>
 
           {/* Description */}
           <p className="text-gray-500 text-xs mb-4 line-clamp-2 leading-relaxed">
@@ -196,14 +194,14 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
                 <h3 className="text-xl font-black text-gray-900 leading-tight">
                   {product.name}
                 </h3>
-                {product.sku && (
-                  <span className="self-start inline-flex items-center gap-1.5 bg-gray-50 text-gray-500 text-xs font-mono px-2 py-1 rounded border border-gray-100">
-                    <span className="font-bold text-gray-400 text-[10px] uppercase tracking-wider">
-                      SKU
-                    </span>
-                    <span className="font-medium">{product.sku}</span>
+                <span className="self-start inline-flex items-center gap-1.5 bg-gray-50 text-gray-500 text-xs font-mono px-2 py-1 rounded border border-gray-100">
+                  <span className="font-bold text-gray-400 text-[10px] uppercase tracking-wider">
+                    COD
                   </span>
-                )}
+                  <span className="font-medium">
+                    {product.code || product.sku || "—"}
+                  </span>
+                </span>
               </div>
               <p className="text-gray-500 text-sm mb-4 whitespace-normal break-words">
                 {product.description}

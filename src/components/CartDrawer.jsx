@@ -1,8 +1,16 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { X, Plus, Minus, Trash2, ShoppingBag, AlertTriangle, ArrowRight } from 'lucide-react';
-import { useCart } from '../context/CartContext';
-import { PLACEHOLDER_IMAGE } from '../utils/productHelpers';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  X,
+  Plus,
+  Minus,
+  Trash2,
+  ShoppingBag,
+  AlertTriangle,
+  ArrowRight,
+} from "lucide-react";
+import { useCart } from "../context/CartContext";
+import { PLACEHOLDER_IMAGE } from "../utils/productHelpers";
 
 const CartDrawer = () => {
   const navigate = useNavigate();
@@ -19,26 +27,26 @@ const CartDrawer = () => {
     setIsCartOpen,
     continueWithExistingCart,
     clearPreviousSession,
-    cancelPendingAdd
+    cancelPendingAdd,
   } = useCart();
 
   const formatPrice = (price) => {
-    return price.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+    return price.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     });
   };
 
   const handleCheckout = () => {
     setIsCartOpen(false);
-    navigate('/checkout');
+    navigate("/checkout");
   };
 
   return (
     <>
       {/* Overlay */}
       {(isCartOpen || showClearConfirmation) && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-[998] transition-opacity"
           onClick={() => {
             setIsCartOpen(false);
@@ -55,13 +63,16 @@ const CartDrawer = () => {
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <ShoppingBag size={32} className="text-blue-600" />
               </div>
-              <h3 className="text-xl font-black text-gray-900 mb-2">Carrinho Recuperado</h3>
+              <h3 className="text-xl font-black text-gray-900 mb-2">
+                Carrinho Recuperado
+              </h3>
               <p className="text-gray-500">
-                Você tem {cartItemCount} {cartItemCount === 1 ? 'item' : 'itens'} da sua última visita. 
+                Você tem {cartItemCount}{" "}
+                {cartItemCount === 1 ? "item" : "itens"} da sua última visita.
                 Deseja continuar com esses produtos?
               </p>
             </div>
-            
+
             <div className="space-y-3">
               <button
                 onClick={continueWithExistingCart}
@@ -81,9 +92,9 @@ const CartDrawer = () => {
       )}
 
       {/* Cart Drawer */}
-      <div 
+      <div
         className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[999] transform transition-transform duration-300 ease-in-out ${
-          isCartOpen ? 'translate-x-0' : 'translate-x-full'
+          isCartOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Header */}
@@ -91,13 +102,15 @@ const CartDrawer = () => {
           <div className="flex items-center gap-3">
             <ShoppingBag size={24} />
             <div>
-              <h2 className="font-black text-lg uppercase tracking-wider">Meu Carrinho</h2>
+              <h2 className="font-black text-lg uppercase tracking-wider">
+                Meu Carrinho
+              </h2>
               <p className="text-sm opacity-80">
-                {cartItemCount} {cartItemCount === 1 ? 'item' : 'itens'}
+                {cartItemCount} {cartItemCount === 1 ? "item" : "itens"}
               </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => setIsCartOpen(false)}
             className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
           >
@@ -106,29 +119,38 @@ const CartDrawer = () => {
         </div>
 
         {/* Cart Items */}
-        <div className="flex-1 overflow-y-auto" style={{ height: 'calc(100vh - 280px)' }}>
+        <div
+          className="flex-1 overflow-y-auto"
+          style={{ height: "calc(100vh - 280px)" }}
+        >
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                 <ShoppingBag size={40} className="text-gray-400" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-2">Seu carrinho está vazio</h3>
-              <p className="text-gray-500 text-sm">Adicione produtos para começar suas compras</p>
+              <h3 className="font-bold text-gray-900 mb-2">
+                Seu carrinho está vazio
+              </h3>
+              <p className="text-gray-500 text-sm">
+                Adicione produtos para começar suas compras
+              </p>
             </div>
           ) : (
             <div className="p-4 space-y-4">
               {cart.map((item, index) => (
-                <div 
+                <div
                   key={`${item.id}-${JSON.stringify(item.variant)}-${index}`}
                   className="bg-gray-50 rounded-2xl p-4 flex gap-4"
                 >
                   {/* Product Image */}
                   <div className="w-20 h-20 bg-white rounded-xl overflow-hidden flex-shrink-0">
-                    <img 
+                    <img
                       src={item.image || PLACEHOLDER_IMAGE}
                       alt={item.name}
                       className="w-full h-full object-cover"
-                      onError={(e) => { e.target.src = PLACEHOLDER_IMAGE; }}
+                      onError={(e) => {
+                        e.target.src = PLACEHOLDER_IMAGE;
+                      }}
                     />
                   </div>
 
@@ -137,6 +159,9 @@ const CartDrawer = () => {
                     <h4 className="font-bold text-gray-900 text-sm truncate mb-1">
                       {item.name}
                     </h4>
+                    <p className="text-[10px] text-gray-500 font-mono mb-1">
+                      COD: {item.code || item.sku || "—"}
+                    </p>
                     {item.variant && (
                       <p className="text-xs text-gray-500 mb-1">
                         {item.variant.name}: {item.variant.value}
@@ -156,7 +181,7 @@ const CartDrawer = () => {
                     >
                       <Trash2 size={14} />
                     </button>
-                    
+
                     <div className="flex items-center gap-2 bg-white rounded-full p-1 shadow-sm">
                       <button
                         onClick={() => decrementQuantity(item.id, item.variant)}
@@ -164,7 +189,9 @@ const CartDrawer = () => {
                       >
                         <Minus size={14} />
                       </button>
-                      <span className="font-bold text-sm w-8 text-center">{item.quantity}</span>
+                      <span className="font-bold text-sm w-8 text-center">
+                        {item.quantity}
+                      </span>
                       <button
                         onClick={() => incrementQuantity(item.id, item.variant)}
                         className="w-8 h-8 rounded-full bg-primary text-white hover:bg-blue-800 flex items-center justify-center transition-colors"
@@ -187,11 +214,13 @@ const CartDrawer = () => {
               <span className="text-gray-500">Subtotal</span>
               <span className="font-bold">{formatPrice(cartTotal)}</span>
             </div>
-            
+
             {/* Total */}
             <div className="flex items-center justify-between">
               <span className="font-bold text-gray-900">Total a Pagar</span>
-              <span className="text-2xl font-black text-primary">{formatPrice(cartTotal)}</span>
+              <span className="text-2xl font-black text-primary">
+                {formatPrice(cartTotal)}
+              </span>
             </div>
 
             {/* Action Buttons */}

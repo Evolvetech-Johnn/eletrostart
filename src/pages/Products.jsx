@@ -573,6 +573,12 @@ const Products = () => {
                             {product.name}
                           </h3>
 
+                          <div className="mb-2">
+                            <span className="inline-block bg-gray-50 text-gray-500 text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-gray-100">
+                              COD: {product.code || product.sku || "—"}
+                            </span>
+                          </div>
+
                           <p className="text-gray-500 text-sm mb-6 line-clamp-2 leading-relaxed">
                             {product.description}
                           </p>
@@ -730,6 +736,12 @@ const Products = () => {
               <h3 className="text-xl font-black text-gray-900 mb-2">
                 {quickViewProduct.name}
               </h3>
+              {/* Code/SKU Display */}
+              <div className="mb-4">
+                <span className="inline-block bg-gray-50 text-gray-500 text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-gray-100">
+                  COD: {quickViewProduct.code || quickViewProduct.sku || "—"}
+                </span>
+              </div>
               <p className="text-gray-500 text-sm mb-4 whitespace-normal break-words">
                 {quickViewProduct.description}
               </p>
