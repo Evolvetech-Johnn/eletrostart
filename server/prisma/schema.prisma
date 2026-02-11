@@ -44,6 +44,9 @@ model ContactMessage {
   updatedAt        DateTime @updatedAt
 
   @@map("contact_messages")
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // Modelo de Usuário Administrativo
@@ -95,6 +98,9 @@ model AuditLog {
   createdAt   DateTime       @default(now())
 
   @@map("audit_logs")
+  @@index([createdAt])
+  @@index([userId])
+  @@index([action])
 }
 
 // Log de Integração (Discord, etc)
@@ -155,6 +161,11 @@ model Product {
   updatedAt   DateTime  @updatedAt
 
   @@map("products")
+  @@index([name])
+  @@index([categoryId])
+  @@index([active])
+  @@index([featured])
+  @@index([price])
 }
 
 // Pedidos
@@ -194,6 +205,10 @@ model Order {
   updatedAt     DateTime    @updatedAt
 
   @@map("orders")
+  @@index([customerEmail])
+  @@index([status])
+  @@index([createdAt])
+  @@index([paymentStatus])
 }
 
 // Itens do Pedido

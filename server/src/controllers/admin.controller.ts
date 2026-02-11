@@ -1,108 +1,25 @@
 import { Request, Response, NextFunction } from "express";
-import { prisma } from "../index.js";
+import { prisma } from "../lib/prisma";
 import client from "../bot/client.js";
-import { Prisma } from "@prisma/client";
 import { sendToDiscord } from "../services/discord.service.js";
 import { syncCategoriesService } from "../services/categorySync.service.js";
 import { TextChannel } from "discord.js";
+import * as messageService from "../services/message.service";
+import * as dashboardService from "../services/dashboard.service";
+import { AppError } from "../utils/AppError";
 
-// Helper to safely get string from query params
-const getQueryString = (param: any): string | undefined => {
-  if (typeof param === "string") return param;
-  if (Array.isArray(param) && param.length > 0 && typeof param[0] === "string")
-    return param[0];
-  return undefined;
-};
+// Helper for handling async errors without try-catch blocks everywhere
+// But since we are replacing the body, we can keep try-catch or use a wrapper.
+// I'll keep try-catch for now to match existing style but use AppError.
 
-/**
- * Lista todas as mensagens com paginação e filtros
- */
 export const getMessages = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const {
-      page = "1",
-      limit = "20",
-      status,
-      search,
-      sortBy = "createdAt",
-      sortOrder = "desc",
-      tag, // Filter by tag
-      priority, // Filter by priority
-    } = req.query;
-
-    const pageNum = parseInt((getQueryString(page) || "1") as string);
-    const limitNum = parseInt((getQueryString(limit) || "20") as string);
-    const skip = (pageNum - 1) * limitNum;
-    const take = limitNum;
-
-    // Construir filtros
-    const where: Prisma.ContactMessageWhereInput = {};
-
-    const statusStr = getQueryString(status);
-    if (statusStr) {
-      where.status = statusStr.toUpperCase() as any;
-    }
-
-    const priorityStr = getQueryString(priority);
-    if (priorityStr) {
-      where.priority = priorityStr.toUpperCase();
-    }
-
-    const searchStr = getQueryString(search);
-    if (searchStr) {
-      where.OR = [
-        { name: { contains: searchStr, mode: "insensitive" } },
-        { email: { contains: searchStr, mode: "insensitive" } },
-        { subject: { contains: searchStr, mode: "insensitive" } },
-        { message: { contains: searchStr, mode: "insensitive" } },
-      ];
-    }
-
-    const tagStr = getQueryString(tag);
-    if (tagStr) {
-      // Assuming filtering by tag name or ID
-      // If tag is ID
-      if (/^[0-9a-fA-F]{24}$/.test(tagStr)) {
-        where.tagIds = { has: tagStr };
-      } else {
-        // If tag is name, we might need to find tag ID first or use relation filter if Prisma supports it on array of IDs
-        // Simplest is to find tag by name first
-        const tagObj = await prisma.tag.findUnique({ where: { name: tagStr } });
-        if (tagObj) {
-          where.tagIds = { has: tagObj.id };
-        }
-      }
-    }
-
-    const total = await prisma.contactMessage.count({ where });
-    const messages = await prisma.contactMessage.findMany({
-      where,
-      skip,
-      take,
-      orderBy: {
-        [getQueryString(sortBy) || "createdAt"]:
-          getQueryString(sortOrder) || "desc",
-      },
-      include: {
-        tags: true,
-        assignedTo: { select: { id: true, name: true, email: true } },
-      },
-    });
-
-    res.json({
-      success: true,
-      data: messages,
-      pagination: {
-        total,
-        page: pageNum,
-        limit: limitNum,
-        totalPages: Math.ceil(total / limitNum),
-      },
-    });
+    const result = await messageService.listMessages(req.query);
+    res.json({ success: true, ...result });
   } catch (error) {
     next(error);
   }
@@ -115,22 +32,15 @@ export const getMessage = async (
 ) => {
   try {
     const id = req.params.id as string;
-    const message = await prisma.contactMessage.findUnique({
-      where: { id },
-      include: {
-        tags: true,
-        assignedTo: { select: { id: true, name: true, email: true } },
-        auditLogs: {
-          orderBy: { createdAt: "desc" },
-          include: { user: { select: { name: true } } },
-        },
-      },
-    });
+
+    if (!id) {
+      return res.status(400).json({ error: true, message: "ID inválido" });
+    }
+
+    const message = await messageService.getMessageById(id);
 
     if (!message) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Mensagem não encontrada" });
+      throw new AppError("Mensagem não encontrada", 404);
     }
 
     res.json({ success: true, data: message });
@@ -148,11 +58,11 @@ export const updateMessageStatus = async (
     const id = req.params.id as string;
     const { status } = req.body;
 
-    const message = await prisma.contactMessage.update({
-      where: { id },
-      data: { status },
-    });
+    if (!id) {
+      return res.status(400).json({ error: true, message: "ID inválido" });
+    }
 
+    const message = await messageService.updateMessageStatus(id, status);
     res.json({ success: true, data: message });
   } catch (error) {
     next(error);
@@ -166,23 +76,12 @@ export const updateMessageMeta = async (
 ) => {
   try {
     const id = req.params.id as string;
-    const { notes, priority, assignedToId, tags } = req.body;
 
-    const data: any = {};
-    if (notes !== undefined) data.notes = notes;
-    if (priority !== undefined) data.priority = priority;
-    if (assignedToId !== undefined) data.assignedToId = assignedToId;
-    if (tags !== undefined) {
-      // Assuming tags is array of IDs
-      data.tagIds = tags;
+    if (!id) {
+      return res.status(400).json({ error: true, message: "ID inválido" });
     }
 
-    const message = await prisma.contactMessage.update({
-      where: { id },
-      data,
-      include: { tags: true },
-    });
-
+    const message = await messageService.updateMessageMeta(id, req.body);
     res.json({ success: true, data: message });
   } catch (error) {
     next(error);
@@ -196,7 +95,12 @@ export const deleteMessage = async (
 ) => {
   try {
     const id = req.params.id as string;
-    await prisma.contactMessage.delete({ where: { id } });
+
+    if (!id) {
+      return res.status(400).json({ error: true, message: "ID inválido" });
+    }
+
+    await messageService.deleteMessage(id);
     res.json({ success: true, message: "Mensagem excluída" });
   } catch (error) {
     next(error);
@@ -209,28 +113,13 @@ export const bulkMessagesAction = async (
   next: NextFunction,
 ) => {
   try {
-    const { ids, action, value } = req.body; // action: delete, update_status, etc.
+    const { ids, action, value } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: "IDs inválidos" });
+      throw new AppError("IDs inválidos", 400);
     }
 
-    if (action === "delete") {
-      await prisma.contactMessage.deleteMany({
-        where: { id: { in: ids } },
-      });
-    } else if (action === "update_status") {
-      await prisma.contactMessage.updateMany({
-        where: { id: { in: ids } },
-        data: { status: value },
-      });
-    } else if (action === "archive") {
-      await prisma.contactMessage.updateMany({
-        where: { id: { in: ids } },
-        data: { status: "ARCHIVED" },
-      });
-    }
-
+    await messageService.bulkAction(ids, action, value);
     res.json({ success: true, message: "Ação em massa concluída" });
   } catch (error) {
     next(error);
@@ -243,91 +132,51 @@ export const getDashboard = async (
   next: NextFunction,
 ) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - 7);
-
-    // Estatísticas gerais
-    const stats = {
-      messages: {
-        total: await prisma.contactMessage.count(),
-        new: await prisma.contactMessage.count({
-          where: { status: "NEW" },
-        }),
-        today: await prisma.contactMessage.count({
-          where: { createdAt: { gte: today } },
-        }),
-        thisWeek: await prisma.contactMessage.count({
-          where: { createdAt: { gte: weekStart } },
-        }),
-      },
-      orders: {
-        total: await prisma.order.count(),
-        pending: await prisma.order.count({
-          where: { status: "PENDING" },
-        }),
-      },
-      users: await prisma.adminUser.count(),
-    };
-
-    res.json({ success: true, data: { stats: stats.messages, orders: stats.orders, users: stats.users } });
+    const data = await dashboardService.getDashboardStats();
+    res.json({ success: true, data });
   } catch (error) {
     next(error);
   }
 };
 
+// Discord Sync Logic - Keeping it here for now but using prisma from lib
 export const syncDiscordMessages = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    // Verificar se o Bot está pronto
     if (!client.isReady()) {
-      return res.status(503).json({
-        success: false,
-        message: "Bot do Discord não está conectado. Verifique o servidor.",
-      });
+      throw new AppError(
+        "Bot do Discord não está conectado. Verifique o servidor.",
+        503,
+      );
     }
 
     const channelId = process.env.DISCORD_CHANNEL_ID;
     if (!channelId) {
-      return res.status(400).json({
-        success: false,
-        message: "ID do canal do Discord não configurado no .env",
-      });
+      throw new AppError("ID do canal do Discord não configurado no .env", 400);
     }
 
     const channel = await client.channels.fetch(channelId);
     if (!channel || !channel.isTextBased()) {
-      return res.status(400).json({
-        success: false,
-        message: "Canal inválido ou não é de texto",
-      });
+      throw new AppError("Canal inválido ou não é de texto", 400);
     }
 
     const textChannel = channel as TextChannel;
-
-    // Buscar últimas 50 mensagens
     const messages = await textChannel.messages.fetch({ limit: 50 });
 
     let processedCount = 0;
     let newCount = 0;
 
     for (const [id, msg] of messages) {
-      // Ignorar mensagens do próprio bot
       if (msg.author.bot) continue;
 
       processedCount++;
 
-      // Verificar se já existe no banco (pelo discordId ou conteúdo similar)
       const existing = await prisma.contactMessage.findFirst({
         where: {
           OR: [
-            // Se tivéssemos um campo discordId, usaríamos aqui.
-            // Como não temos, vamos tentar evitar duplicatas por conteúdo + data aproximada
             {
               message: msg.content,
               createdAt: {
@@ -343,7 +192,7 @@ export const syncDiscordMessages = async (
         await prisma.contactMessage.create({
           data: {
             name: msg.author.username,
-            email: "discord-user@placeholder.com", // Placeholder
+            email: "discord-user@placeholder.com",
             subject: "Mensagem do Discord",
             message: msg.content,
             source: "DISCORD",
@@ -372,9 +221,7 @@ export const exportMessages = async (
   next: NextFunction,
 ) => {
   try {
-    const messages = await prisma.contactMessage.findMany({
-      orderBy: { createdAt: "desc" },
-    });
+    const messages = await messageService.getAllMessagesForExport();
     res.json({ success: true, data: messages });
   } catch (error) {
     next(error);
@@ -387,7 +234,7 @@ export const getTags = async (
   next: NextFunction,
 ) => {
   try {
-    const tags = await prisma.tag.findMany({ orderBy: { name: "asc" } });
+    const tags = await messageService.listTags();
     res.json({ success: true, data: tags });
   } catch (error) {
     next(error);
@@ -401,9 +248,7 @@ export const createTag = async (
 ) => {
   try {
     const { name, color } = req.body;
-    const tag = await prisma.tag.create({
-      data: { name, color: color || "#222998" },
-    });
+    const tag = await messageService.createTag(name, color);
     res.json({ success: true, data: tag });
   } catch (error) {
     next(error);
@@ -417,7 +262,12 @@ export const deleteTag = async (
 ) => {
   try {
     const id = req.params.id as string;
-    await prisma.tag.delete({ where: { id } });
+
+    if (!id) {
+      return res.status(400).json({ error: true, message: "ID inválido" });
+    }
+
+    await messageService.deleteTag(id);
     res.json({ success: true, message: "Tag excluída" });
   } catch (error) {
     next(error);
@@ -449,11 +299,10 @@ export const testDiscordIntegration = async (
         details: result,
       });
     } else {
-      res.status(500).json({
-        success: false,
-        message: "Falha ao enviar mensagem de teste",
-        error: result.error,
-      });
+      throw new AppError(
+        result.error || "Falha ao enviar mensagem de teste",
+        500,
+      );
     }
   } catch (error) {
     next(error);

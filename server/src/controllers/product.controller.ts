@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
-import { prisma } from "../index.js";
+import { prisma } from "../lib/prisma";
 import { Prisma } from "@prisma/client";
+import {
+  createProductSchema,
+  updateProductSchema,
+} from "../schemas/product.schema";
 
 // Helper to format product (MongoDB uses native JSON, no parsing needed)
 const formatProduct = (product: any) => {
@@ -263,6 +267,9 @@ export const getProduct = async (req: Request, res: Response) => {
 
 export const createProduct = async (req: Request, res: Response) => {
   try {
+    // Validate request body
+    const validatedData = createProductSchema.parse(req.body);
+
     const {
       name,
       description,
@@ -280,21 +287,26 @@ export const createProduct = async (req: Request, res: Response) => {
       features,
       specifications,
       images,
-    } = req.body;
+    } = validatedData;
 
-    // Validate required fields
-    if (!name) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Nome é obrigatório" });
+    // Check if SKU already exists if provided
+    if (sku) {
+      const existingProduct = await prisma.product.findFirst({
+        where: { sku: sku },
+      });
+      if (existingProduct) {
+        return res
+          .status(400)
+          .json({ success: false, message: "SKU já existe" });
+      }
     }
 
     const product = await prisma.product.create({
       data: {
         name,
         description: description || `${name}. Produto de alta qualidade.`,
-        price: parseFloat(price) || 0,
-        stock: parseInt(stock) || 0,
+        price: price, // Already number from schema
+        stock: stock, // Already number from schema
         sku: sku || undefined,
         code: code || undefined,
         image,
@@ -314,6 +326,16 @@ export const createProduct = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: formatProduct(product) });
   } catch (error: any) {
     console.error("Error creating product:", error);
+
+    // Zod validation error handling
+    if (error.name === "ZodError") {
+      return res.status(400).json({
+        success: false,
+        message: "Erro de validação",
+        errors: error.errors,
+      });
+    }
+
     if (error.code === "P2002") {
       return res.status(400).json({ success: false, message: "SKU já existe" });
     }
@@ -324,6 +346,10 @@ export const createProduct = async (req: Request, res: Response) => {
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Validate request body
+    const validatedData = updateProductSchema.parse(req.body);
+
     const {
       name,
       description,
@@ -341,13 +367,13 @@ export const updateProduct = async (req: Request, res: Response) => {
       features,
       specifications,
       images,
-    } = req.body;
+    } = validatedData;
 
     const data: Prisma.ProductUpdateInput = {};
     if (name) data.name = name;
     if (description !== undefined) data.description = description;
-    if (price !== undefined) data.price = parseFloat(price);
-    if (stock !== undefined) data.stock = parseInt(stock);
+    if (price !== undefined) data.price = price;
+    if (stock !== undefined) data.stock = stock;
     if (sku) data.sku = sku;
     if (code) data.code = code;
     if (image !== undefined) data.image = image;
@@ -377,6 +403,16 @@ export const updateProduct = async (req: Request, res: Response) => {
     res.json({ success: true, data: formatProduct(product) });
   } catch (error: any) {
     console.error("Error updating product:", error);
+
+    // Zod validation error handling
+    if (error.name === "ZodError") {
+      return res.status(400).json({
+        success: false,
+        message: "Erro de validação",
+        errors: error.errors,
+      });
+    }
+
     if (error.code === "P2025") {
       return res
         .status(404)

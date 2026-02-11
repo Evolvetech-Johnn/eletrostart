@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { prisma } from "../index.js";
+import { prisma } from "../lib/prisma";
 
 // Middleware de autenticação JWT
 export const authenticate = async (
@@ -68,7 +68,7 @@ export const requireAdmin = (
   res: Response,
   next: NextFunction,
 ) => {
-  if (!req.user || req.user.role !== "admin") {
+  if (!req.user || req.user.role !== "ADMIN") {
     return res.status(403).json({
       error: true,
       message: "Acesso negado. Permissão de administrador necessária.",

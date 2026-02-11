@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js';
-import { prisma } from '../../index.js';
+import { prisma } from '../../lib/prisma';
 import { BotCommand } from '../types.js';
 
 const command: BotCommand = {

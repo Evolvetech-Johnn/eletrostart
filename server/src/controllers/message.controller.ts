@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { prisma } from "../index.js";
-import { sendToDiscord } from "../services/discord.service.js";
+import { prisma } from "../lib/prisma";
+import {
+  sendToDiscord,
+  DiscordSendResult,
+} from "../services/discord.service.js";
 
 /**
  * Cria uma nova mensagem de contato
@@ -38,34 +41,60 @@ export const createMessage = async (
       },
     });
 
-    // 2. Enviar para o Discord
-    const discordResult = await sendToDiscord({
-      id: message.id,
-      name: message.name,
-      email: message.email,
-      phone: message.phone,
-      subject: message.subject,
-      message: message.message,
-    });
+    // 2. Enviar para o Discord (Tentativa não-bloqueante/segura)
+    let discordResult: DiscordSendResult = { success: false };
+    try {
+      discordResult = await sendToDiscord({
+        id: message.id,
+        name: message.name,
+        email: message.email,
+        phone: message.phone,
+        subject: message.subject,
+        message: message.message,
+      });
+    } catch (discordError) {
+      console.error(
+        "Erro ao enviar para Discord (ignorado para resposta ao cliente):",
+        discordError,
+      );
+      // Não falha a requisição se o Discord falhar
+    }
 
     // 3. Atualizar registro com status do envio
-    const updatedMessage = await prisma.contactMessage.update({
-      where: { id: message.id },
-      data: {
-        discordSent: discordResult.success,
-        discordMessageId: discordResult.messageId || null,
-      },
-    });
+    // Se falhar aqui, apenas logamos, pois a mensagem já foi criada e o cliente já pode receber sucesso
+    try {
+      const updatedMessage = await prisma.contactMessage.update({
+        where: { id: message.id },
+        data: {
+          discordSent: discordResult.success,
+          discordMessageId: discordResult.messageId || null,
+        },
+      });
 
-    // Resposta de sucesso
-    res.status(201).json({
-      success: true,
-      message: "Mensagem enviada com sucesso!",
-      data: {
-        id: updatedMessage.id,
-        discordSent: updatedMessage.discordSent,
-      },
-    });
+      // Resposta de sucesso
+      res.status(201).json({
+        success: true,
+        message: "Mensagem enviada com sucesso!",
+        data: {
+          id: updatedMessage.id,
+          discordSent: updatedMessage.discordSent,
+        },
+      });
+    } catch (updateError) {
+      console.error(
+        "Erro ao atualizar status do Discord no banco:",
+        updateError,
+      );
+      // Mesmo se falhar o update, retornamos sucesso da criação original
+      res.status(201).json({
+        success: true,
+        message: "Mensagem enviada com sucesso!",
+        data: {
+          id: message.id,
+          discordSent: false,
+        },
+      });
+    }
   } catch (error) {
     console.error("Erro ao criar mensagem:", error);
     next(error);

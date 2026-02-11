@@ -1,17 +1,15 @@
 import { Request, Response } from "express";
-import { prisma } from "../index.js";
+import { prisma } from "../lib/prisma";
 import { Prisma } from "@prisma/client";
 import { sendOrderToDiscord } from "../services/discord.service.js";
+import { createOrderSchema } from "../schemas/order.schema";
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
-    const {
-      customer, // { name, email, phone, doc }
-      address, // { zip, street, number, comp, city, state }
-      items, // [{ productId, quantity }]
-      paymentMethod,
-      notes,
-    } = req.body;
+    // Validate request body
+    const validatedData = createOrderSchema.parse(req.body);
+
+    const { customer, address, items, paymentMethod, notes } = validatedData;
 
     // Calculate totals and validate stock
     let subtotal = 0;
@@ -120,6 +118,16 @@ export const createOrder = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: order });
   } catch (error: any) {
     console.error("Error creating order:", error);
+
+    // Zod validation error handling
+    if (error.name === "ZodError") {
+      return res.status(400).json({
+        success: false,
+        message: "Erro de validação",
+        errors: error.errors,
+      });
+    }
+
     res.status(400).json({
       success: false,
       message: error.message || "Erro ao criar pedido",

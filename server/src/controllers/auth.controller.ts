@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { prisma } from "../index.js";
+import { prisma } from "../lib/prisma";
 
 /**
  * Login de administrador
@@ -139,7 +139,7 @@ export const createAdmin = async (
         email: email.toLowerCase(),
         password: hashedPassword,
         name: name || null,
-        role: "admin",
+        role: "ADMIN",
       },
     });
 

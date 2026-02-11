@@ -35,7 +35,7 @@ async function main() {
         email: adminEmail,
         password: hashedPassword,
         name: "Administrador",
-        role: "admin",
+        role: "ADMIN",
       },
     });
 
@@ -59,7 +59,7 @@ async function main() {
         email: henriqueEmail,
         password: hashedPassword,
         name: "Henrique Eletrostart",
-        role: "admin",
+        role: "ADMIN",
       },
     });
 
