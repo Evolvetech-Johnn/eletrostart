@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import {
   LayoutDashboard,
   Search,
@@ -10,7 +11,7 @@ import {
   Filter,
   RefreshCw,
   Folder,
-  Image as ImageIcon
+  Image as ImageIcon,
 } from "lucide-react";
 import { api } from "../../services/api";
 import AdminLayout from "./components/AdminLayout";
@@ -42,25 +43,42 @@ const AdminCategories = () => {
   const handleSync = async () => {
     try {
       setSyncing(true);
+      const loadingToast = toast.loading("Sincronizando categorias...");
+
       const response = await api.syncCategories();
+
       if (response.success) {
-        alert(`Sincronização concluída!\n\nCategorias processadas: ${response.stats.categoriesProcessed}\nProdutos processados: ${response.stats.productsProcessed}\nCriados: ${response.stats.productsCreated}\nAtualizados: ${response.stats.productsUpdated}`);
+        toast.success(
+          `Sincronização concluída!\nCategorias: ${response.stats.categoriesProcessed}\nProdutos: ${response.stats.productsProcessed}`,
+          { id: loadingToast, duration: 5000 },
+        );
         fetchCategories();
       } else {
-        alert("Erro ao sincronizar: " + response.message);
+        toast.error("Erro ao sincronizar: " + response.message, {
+          id: loadingToast,
+        });
       }
     } catch (error) {
       console.error("Erro na sincronização:", error);
-      alert("Erro ao sincronizar. Verifique o console.");
+      toast.error("Erro ao sincronizar. Verifique o console.");
     } finally {
       setSyncing(false);
     }
   };
 
-  const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cat.slug.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Safe fallback for potentially null categories list
+  const safeCategories = Array.isArray(categories) ? categories : [];
+
+  const filteredCategories = safeCategories.filter((cat) => {
+    // Fallback for missing name or slug
+    const name = cat?.name || "";
+    const slug = cat?.slug || "";
+
+    return (
+      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      slug.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
 
   return (
     <AdminLayout>
@@ -136,7 +154,10 @@ const AdminCategories = () => {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                    <td
+                      colSpan="5"
+                      className="px-6 py-12 text-center text-gray-500"
+                    >
                       <div className="flex flex-col items-center justify-center gap-3">
                         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                         <p>Carregando categorias...</p>
@@ -145,7 +166,10 @@ const AdminCategories = () => {
                   </tr>
                 ) : filteredCategories.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                    <td
+                      colSpan="5"
+                      className="px-6 py-12 text-center text-gray-500"
+                    >
                       Nenhuma categoria encontrada.
                     </td>
                   </tr>
@@ -183,7 +207,7 @@ const AdminCategories = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                           {/* Add actions later if needed */}
+                          {/* Add actions later if needed */}
                         </div>
                       </td>
                     </tr>

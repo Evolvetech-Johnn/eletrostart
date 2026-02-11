@@ -36,7 +36,7 @@ const AdminMessages = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState(
-    searchParams.get("search") || ""
+    searchParams.get("search") || "",
   );
   const [selectedIds, setSelectedIds] = useState([]);
   const [tags, setTags] = useState([]);
@@ -116,25 +116,34 @@ const AdminMessages = () => {
 
   const handleSelectOne = (id) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
     );
   };
 
   const handleBulkAction = async (action, value) => {
+    if (selectedIds.length === 0) {
+      toast.error("Selecione pelo menos uma mensagem");
+      return;
+    }
+
     if (
       !window.confirm(
-        `Tem certeza que deseja aplicar esta ação em ${selectedIds.length} itens?`
+        `Tem certeza que deseja aplicar esta ação em ${selectedIds.length} itens?`,
       )
     )
       return;
+
+    const loadingToast = toast.loading("Processando...");
 
     try {
       await api.bulkAction(selectedIds, action, value);
       setSelectedIds([]);
       fetchMessages();
-      toast.success("Ação realizada com sucesso!");
+      toast.success("Ação realizada com sucesso!", { id: loadingToast });
     } catch (err) {
-      toast.error("Erro ao realizar ação: " + err.message);
+      toast.error("Erro ao realizar ação: " + err.message, {
+        id: loadingToast,
+      });
     }
   };
 
@@ -148,11 +157,14 @@ const AdminMessages = () => {
 
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `mensagens-${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute(
+        "download",
+        `mensagens-${new Date().toISOString().split("T")[0]}.csv`,
+      );
       document.body.appendChild(link);
       link.click();
       link.remove();
-      
+
       toast.success("Exportação iniciada!");
     } catch (err) {
       toast.error("Erro na exportação: " + err.message);
@@ -357,7 +369,7 @@ const AdminMessages = () => {
                       <div className="flex flex-col gap-1">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full w-fit border ${getStatusColor(
-                            msg.status
+                            msg.status,
                           )}`}
                         >
                           {getStatusLabel(msg.status)}
@@ -444,7 +456,7 @@ const AdminMessages = () => {
                 <span className="font-medium">
                   {Math.min(
                     data.pagination.page * data.pagination.limit,
-                    data.pagination.total
+                    data.pagination.total,
                   )}
                 </span>{" "}
                 de <span className="font-medium">{data.pagination.total}</span>{" "}

@@ -84,6 +84,7 @@ const Home = () => {
           for (const product of productsRes.data) {
             // Normalize category ID access
             const catId = product.category?.id || product.categoryId;
+            const catSlug = product.category?.slug;
 
             if (catId && !usedCategories.has(catId)) {
               usedCategories.add(catId);

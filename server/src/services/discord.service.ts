@@ -97,46 +97,43 @@ export const sendOrderToDiscord = async (
         return { success: true, messageId: message.id };
       }
     } catch (error) {
-      console.error(
-        "Erro ao enviar pedido via Bot Client (tentando webhook):",
-        error,
-      );
+      console.error("Erro ao enviar pedido via Bot:", error);
+      // Fallback para webhook se o bot falhar
     }
   }
 
-  // 2. Fallback para Webhook
-  if (!DISCORD_WEBHOOK_URL) {
-    console.error("Discord Webhook URL não configurada");
-    return { success: false, error: "Configuração do Discord ausente" };
-  }
+  // 2. Fallback: Enviar via Webhook
+  if (DISCORD_WEBHOOK_URL) {
+    try {
+      const payload = {
+        embeds: [embed.toJSON()],
+      };
 
-  try {
-    const webhookEmbed = {
-      title: embed.data.title,
-      color: embed.data.color,
-      fields: embed.data.fields,
-      timestamp: embed.data.timestamp,
-      footer: embed.data.footer,
-    };
+      const response = await fetch(DISCORD_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    const response = await fetch(DISCORD_WEBHOOK_URL + "?wait=true", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        embeds: [webhookEmbed],
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Discord API responded with ${response.status}`);
+      if (response.ok) {
+        return { success: true };
+      } else {
+        const text = await response.text();
+        return {
+          success: false,
+          error: `Webhook Error: ${response.status} - ${text}`,
+        };
+      }
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
-
-    const result = await response.json();
-    return { success: true, messageId: (result as any).id };
-  } catch (error: any) {
-    console.error("Erro ao enviar pedido para Discord via Webhook:", error);
-    return { success: false, error: error.message };
   }
+
+  return {
+    success: false,
+    error:
+      "Nenhum método de envio disponível (Bot ou Webhook não configurados)",
+  };
 };
 
 /**

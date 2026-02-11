@@ -59,17 +59,23 @@ app.use(
       // Permitir requisições sem origin (ex: Postman, curl, Mobile Apps)
       if (!origin) return callback(null, true);
 
+      // Verificação robusta de origens permitidas
       if (
         allowedOrigins.indexOf(origin) !== -1 ||
-        origin.endsWith(".netlify.app")
+        origin.endsWith(".netlify.app") ||
+        origin.includes("eletrostart.com.br") ||
+        origin.includes("onrender.com") || // Permite todos os subdomínios onrender para evitar problemas
+        origin.includes("vercel.app")
       ) {
         callback(null, true);
       } else {
-        console.log("Blocked by CORS:", origin);
+        console.log("🚫 Bloqueado por CORS:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   }),
 );
 app.use(express.json());

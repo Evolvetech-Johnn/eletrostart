@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { ShoppingCart, Eye, X } from "lucide-react";
 import { PLACEHOLDER_IMAGE } from "../utils/productHelpers";
 
@@ -54,21 +55,23 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 flex flex-col h-full">
         {/* Image Area */}
         <div className="relative overflow-hidden bg-white aspect-[4/3] border border-gray-100">
-          <img
-            src={getCurrentImage()}
-            alt={product.name}
-            loading="lazy"
-            decoding="async"
-            className="absolute inset-0 w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 p-4"
-            onError={() => setImageError(true)}
-          />
+          <Link to={`/product/${product.id}`} className="block w-full h-full">
+            <img
+              src={getCurrentImage()}
+              alt={product.name}
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 p-4"
+              onError={() => setImageError(true)}
+            />
+          </Link>
 
           {/* Quick View Button */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
             <button
               onClick={() => setIsModalOpen(true)}
               aria-label="Ver detalhes do produto"
-              className="bg-white/90 backdrop-blur-sm p-3 rounded-full text-gray-600 hover:text-primary transition-colors shadow-lg transform translate-y-4 group-hover:translate-y-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              className="bg-white/90 backdrop-blur-sm p-3 rounded-full text-gray-600 hover:text-primary transition-colors shadow-lg transform translate-y-4 group-hover:translate-y-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 pointer-events-auto"
             >
               <Eye size={20} />
             </button>
@@ -90,9 +93,11 @@ const ProductCardWithVariants = ({ product, onAddToCart }) => {
           </span>
 
           {/* Name */}
-          <h3 className="font-bold text-gray-800 text-base mb-2 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-            {product.name}
-          </h3>
+          <Link to={`/product/${product.id}`} className="block mb-2 group-hover:text-primary transition-colors">
+            <h3 className="font-bold text-gray-800 text-base line-clamp-2 leading-tight">
+              {product.name}
+            </h3>
+          </Link>
 
           {/* Code Display - ONLY if code exists */}
           {product.code && (

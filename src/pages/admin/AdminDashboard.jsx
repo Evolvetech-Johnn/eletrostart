@@ -12,6 +12,7 @@ import {
   AlertCircle,
   RefreshCw,
   Gamepad2,
+  ShoppingBag,
 } from "lucide-react";
 import { api } from "../../services/api";
 import AdminLayout from "./components/AdminLayout";
