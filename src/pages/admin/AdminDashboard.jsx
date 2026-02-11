@@ -63,28 +63,28 @@ const AdminDashboard = () => {
     ? [
         {
           title: "Total de Mensagens",
-          value: data.stats.total,
+          value: data.stats?.total || 0,
           icon: MessageSquare,
           color: "bg-blue-500",
           bgColor: "bg-blue-50",
         },
         {
           title: "Novas",
-          value: data.stats.new,
+          value: data.stats?.new || 0,
           icon: Mail,
           color: "bg-red-500",
           bgColor: "bg-red-50",
         },
         {
           title: "Hoje",
-          value: data.stats.today,
+          value: data.stats?.today || 0,
           icon: Clock,
           color: "bg-green-500",
           bgColor: "bg-green-50",
         },
         {
           title: "Esta Semana",
-          value: data.stats.thisWeek,
+          value: data.stats?.thisWeek || 0,
           icon: TrendingUp,
           color: "bg-purple-500",
           bgColor: "bg-purple-50",
