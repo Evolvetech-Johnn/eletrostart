@@ -89,6 +89,14 @@ const AdminDashboard = () => {
           color: "bg-purple-500",
           bgColor: "bg-purple-50",
         },
+        {
+          title: "Pedidos",
+          value: data.orders?.total || 0,
+          icon: ShoppingBag,
+          color: "bg-orange-500",
+          bgColor: "bg-orange-50",
+          link: "/admin/orders",
+        },
       ]
     : [];
 
@@ -182,9 +190,10 @@ const AdminDashboard = () => {
           {statCards.map((stat, index) => {
             const Icon = stat.icon;
             const linkTo =
-              stat.title === "Novas"
+              stat.link ||
+              (stat.title === "Novas"
                 ? "/admin/messages?status=NEW"
-                : "/admin/messages";
+                : "/admin/messages");
 
             return (
               <Link
@@ -257,7 +266,7 @@ const AdminDashboard = () => {
                   </div>
                   <span
                     className={`text-xs font-bold px-2 py-1 rounded-full ${getStatusColor(
-                      msg.status
+                      msg.status,
                     )}`}
                   >
                     {getStatusLabel(msg.status)}

@@ -243,17 +243,36 @@ export const getDashboard = async (
   next: NextFunction,
 ) => {
   try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 7);
+
     // Estatísticas gerais
     const stats = {
-      totalMessages: await prisma.contactMessage.count(),
-      newMessages: await prisma.contactMessage.count({
-        where: { status: "NEW" },
-      }),
+      messages: {
+        total: await prisma.contactMessage.count(),
+        new: await prisma.contactMessage.count({
+          where: { status: "NEW" },
+        }),
+        today: await prisma.contactMessage.count({
+          where: { createdAt: { gte: today } },
+        }),
+        thisWeek: await prisma.contactMessage.count({
+          where: { createdAt: { gte: weekStart } },
+        }),
+      },
+      orders: {
+        total: await prisma.order.count(),
+        pending: await prisma.order.count({
+          where: { status: "PENDING" },
+        }),
+      },
       users: await prisma.adminUser.count(),
-      orders: await prisma.order.count(),
     };
 
-    res.json({ success: true, data: stats });
+    res.json({ success: true, data: { stats: stats.messages, orders: stats.orders, users: stats.users } });
   } catch (error) {
     next(error);
   }
