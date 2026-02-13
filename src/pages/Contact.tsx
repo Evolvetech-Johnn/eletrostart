@@ -3,7 +3,6 @@ import {
   Phone,
   Mail,
   MapPin,
-  Clock,
   MessageSquare,
   Send,
   Instagram,
@@ -38,16 +37,23 @@ const Contact = () => {
   const [status, setStatus] = useState<Status>({ type: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    const formattedValue = formatPhone(value);
-    setFormData((prev) => ({ ...prev, telefone: formattedValue }));
-  }, []);
+  const handlePhoneChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { value } = e.target;
+      const formattedValue = formatPhone(value);
+      setFormData((prev) => ({ ...prev, telefone: formattedValue }));
+    },
+    [],
+  );
 
   // Novo método: enviar para API (que salva no banco e envia ao Discord)
   const sendToAPI = async (data: ContactFormData) => {
@@ -192,7 +198,7 @@ const Contact = () => {
               <p className="text-sm text-gray-500 font-medium leading-relaxed">
                 Avenida Celso Garcia Cid, 1027
                 <br />
-                Vila Siam/Centro
+                Vila Siam/Centro - Londrina/PR - CEP 86039-000
               </p>
             </div>
 
@@ -324,7 +330,7 @@ const Contact = () => {
                     Mensagem *
                   </label>
                   <textarea
-                    rows="5"
+                    rows={5}
                     name="mensagem"
                     value={formData.mensagem}
                     onChange={handleChange}

@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
-import client from "../bot/client.js";
+// import client from "../bot/client.js"; // Moved to message service
 import { sendToDiscord } from "../services/discord.service.js";
 import { syncCategoriesService } from "../services/categorySync.service.js";
-import { TextChannel } from "discord.js";
+// import { TextChannel } from "discord.js"; // Moved to message service
 import * as messageService from "../services/message.service";
 import * as dashboardService from "../services/dashboard.service";
 import { AppError } from "../utils/AppError";
@@ -139,75 +139,18 @@ export const getDashboard = async (
   }
 };
 
-// Discord Sync Logic - Keeping it here for now but using prisma from lib
 export const syncDiscordMessages = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    if (!client.isReady()) {
-      throw new AppError(
-        "Bot do Discord não está conectado. Verifique o servidor.",
-        503,
-      );
-    }
-
-    const channelId = process.env.DISCORD_CHANNEL_ID;
-    if (!channelId) {
-      throw new AppError("ID do canal do Discord não configurado no .env", 400);
-    }
-
-    const channel = await client.channels.fetch(channelId);
-    if (!channel || !channel.isTextBased()) {
-      throw new AppError("Canal inválido ou não é de texto", 400);
-    }
-
-    const textChannel = channel as TextChannel;
-    const messages = await textChannel.messages.fetch({ limit: 50 });
-
-    let processedCount = 0;
-    let newCount = 0;
-
-    for (const [id, msg] of messages) {
-      if (msg.author.bot) continue;
-
-      processedCount++;
-
-      const existing = await prisma.contactMessage.findFirst({
-        where: {
-          OR: [
-            {
-              message: msg.content,
-              createdAt: {
-                gte: new Date(msg.createdTimestamp - 60000),
-                lte: new Date(msg.createdTimestamp + 60000),
-              },
-            },
-          ],
-        },
-      });
-
-      if (!existing) {
-        await prisma.contactMessage.create({
-          data: {
-            name: msg.author.username,
-            email: "discord-user@placeholder.com",
-            subject: "Mensagem do Discord",
-            message: msg.content,
-            source: "DISCORD",
-            status: "NEW",
-            createdAt: new Date(msg.createdTimestamp),
-          },
-        });
-        newCount++;
-      }
-    }
+    const stats = await messageService.syncDiscordMessages();
 
     res.json({
       success: true,
-      message: `Sincronização concluída. ${processedCount} processadas, ${newCount} importadas.`,
-      stats: { processed: processedCount, imported: newCount },
+      message: `Sincronização concluída. ${stats.processed} processadas, ${stats.imported} importadas.`,
+      stats,
     });
   } catch (error) {
     console.error("Erro na sincronização do Discord:", error);

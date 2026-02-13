@@ -170,3 +170,65 @@ export const createTag = async (name: string, color: string) => {
 export const deleteTag = async (id: string) => {
   return await prisma.tag.delete({ where: { id } });
 };
+// Discord Integration
+import client from "../bot/client";
+import { TextChannel } from "discord.js";
+
+export const syncDiscordMessages = async () => {
+  if (!client.isReady()) {
+    throw new Error("Bot do Discord não está conectado. Verifique o servidor.");
+  }
+
+  const channelId = process.env.DISCORD_CHANNEL_ID;
+  if (!channelId) {
+    throw new Error("ID do canal do Discord não configurado no .env");
+  }
+
+  const channel = await client.channels.fetch(channelId);
+  if (!channel || !channel.isTextBased()) {
+    throw new Error("Canal inválido ou não é de texto");
+  }
+
+  const textChannel = channel as TextChannel;
+  const messages = await textChannel.messages.fetch({ limit: 50 });
+
+  let processedCount = 0;
+  let newCount = 0;
+
+  for (const [id, msg] of messages) {
+    if (msg.author.bot) continue;
+
+    processedCount++;
+
+    const existing = await prisma.contactMessage.findFirst({
+      where: {
+        OR: [
+          {
+            message: msg.content,
+            createdAt: {
+              gte: new Date(msg.createdTimestamp - 60000),
+              lte: new Date(msg.createdTimestamp + 60000),
+            },
+          },
+        ],
+      },
+    });
+
+    if (!existing) {
+      await prisma.contactMessage.create({
+        data: {
+          name: msg.author.username,
+          email: "discord-user@placeholder.com",
+          subject: "Mensagem do Discord",
+          message: msg.content,
+          source: "DISCORD",
+          status: "NEW",
+          createdAt: new Date(msg.createdTimestamp),
+        },
+      });
+      newCount++;
+    }
+  }
+
+  return { processed: processedCount, imported: newCount };
+};

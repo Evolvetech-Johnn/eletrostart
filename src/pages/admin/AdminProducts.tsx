@@ -15,6 +15,9 @@ import {
   Product,
   Category,
 } from "../../services/productService";
+import { ImportModal } from "./components/ImportModal";
+import { SyncConfigModal } from "./components/SyncConfigModal";
+import { FileDown, Upload, RefreshCw, Save, X, CheckSquare, Square } from "lucide-react";
 import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
 import { Button } from "../../components/ui/Button";
@@ -30,6 +33,10 @@ const AdminProducts: React.FC = () => {
 
   // Local state for search input to avoid debounce issues for now
   const [searchInput, setSearchInput] = useState(search);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isSyncOpen, setIsSyncOpen] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [editingValues, setEditingValues] = useState<{ [id: string]: { price?: number; stock?: number } }>({});
 
   // Queries
   const {
@@ -53,6 +60,18 @@ const AdminProducts: React.FC = () => {
   });
 
   // Mutations
+  const updateProductMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) =>
+      productService.updateProduct(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Produto atualizado");
+    },
+    onError: (err: any) => {
+      toast.error("Erro ao atualizar: " + (err.message || "Erro desconhecido"));
+    },
+  });
+
   const deleteProductMutation = useMutation({
     mutationFn: productService.deleteProduct,
     onSuccess: () => {
@@ -64,10 +83,70 @@ const AdminProducts: React.FC = () => {
     },
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: productService.bulkDeleteProducts,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setSelectedProducts([]);
+      toast.success("Produtos excluídos");
+    },
+  });
+
   // Handlers
   const handleDelete = (id: string) => {
     if (window.confirm("Tem certeza que deseja excluir este produto?")) {
       deleteProductMutation.mutate(id);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (window.confirm(`Excluir ${selectedProducts.length} produtos?`)) {
+      bulkDeleteMutation.mutate(selectedProducts);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProducts.length === products.length) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(products.map((p: Product) => p.id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    if (selectedProducts.includes(id)) {
+      setSelectedProducts(selectedProducts.filter((p) => p !== id));
+    } else {
+      setSelectedProducts([...selectedProducts, id]);
+    }
+  };
+
+  const handleInlineChange = (id: string, field: "price" | "stock", value: string) => {
+    const numValue = parseFloat(value);
+    setEditingValues((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: isNaN(numValue) ? undefined : numValue,
+      },
+    }));
+  };
+
+  const saveInlineEdit = (id: string) => {
+    const updates = editingValues[id];
+    if (updates) {
+      updateProductMutation.mutate({ id, data: updates });
+      // Clear edit state for this item after short delay or keep it?
+      // Keeping it keeps the value in input matching what we typed.
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      await productService.exportProducts();
+      toast.success("Download iniciado");
+    } catch (error) {
+      toast.error("Erro ao exportar");
     }
   };
 
@@ -117,6 +196,16 @@ const AdminProducts: React.FC = () => {
           </form>
 
           <div className="flex gap-2 w-full md:w-auto">
+            <Button variant="outline" onClick={() => setIsImportOpen(true)} title="Importar">
+              <Upload size={18} className="mr-2" /> Importar
+            </Button>
+            <Button variant="outline" onClick={handleExport} title="Exportar">
+              <FileDown size={18} className="mr-2" /> Exportar
+            </Button>
+            <Button variant="outline" onClick={() => setIsSyncOpen(true)} title="Sincronizar">
+              <RefreshCw size={18} className="mr-2" /> Sync
+            </Button>
+
             <select
               className="border rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-primary-500"
               value={category}
@@ -135,10 +224,27 @@ const AdminProducts: React.FC = () => {
               className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-bold"
             >
               <Plus size={18} />
-              Novo Produto
+              Novo
             </Link>
           </div>
         </div>
+
+        {selectedProducts.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg flex items-center justify-between">
+            <span className="font-medium text-blue-800">
+              {selectedProducts.length} produtos selecionados
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="danger"
+                onClick={handleBulkDelete}
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
+                <Trash2 size={16} className="mr-2" /> Excluir Selecionados
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         {isLoadingProducts ? (
@@ -154,6 +260,15 @@ const AdminProducts: React.FC = () => {
             <table className="w-full text-left">
               <thead className="bg-gray-50 border-b">
                 <tr>
+                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                    <button onClick={toggleSelectAll}>
+                      {selectedProducts.length === products.length && products.length > 0 ? (
+                        <CheckSquare size={18} />
+                      ) : (
+                        <Square size={18} />
+                      )}
+                    </button>
+                  </th>
                   <th className="px-6 py-3 font-medium text-gray-500 text-sm">
                     Produto
                   </th>
@@ -179,6 +294,15 @@ const AdminProducts: React.FC = () => {
                   products.map((product: Product) => (
                     <tr key={product.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
+                        <button onClick={() => toggleSelect(product.id)}>
+                          {selectedProducts.includes(product.id) ? (
+                            <CheckSquare size={18} className="text-blue-600" />
+                          ) : (
+                            <Square size={18} className="text-gray-400" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
                             {product.image ? (
@@ -195,7 +319,7 @@ const AdminProducts: React.FC = () => {
                             )}
                           </div>
                           <div>
-                            <p className="font-bold text-gray-900">
+                            <p className="font-bold text-gray-900 line-clamp-1" title={product.name}>
                               {product.name}
                             </p>
                             <p className="text-xs text-gray-500">
@@ -208,23 +332,42 @@ const AdminProducts: React.FC = () => {
                         {product.category?.name || "-"}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {new Intl.NumberFormat("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        }).format(product.price)}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400">R$</span>
+                          <Input
+                            type="number"
+                            className="w-24 h-8 text-right"
+                            value={
+                              editingValues[product.id]?.price !== undefined
+                                ? editingValues[product.id].price
+                                : product.price
+                            }
+                            onChange={(e) =>
+                              handleInlineChange(product.id, "price", e.target.value)
+                            }
+                            onBlur={() => saveInlineEdit(product.id)}
+                            onKeyDown={(e) => e.key === "Enter" && saveInlineEdit(product.id)}
+                          />
+                        </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-bold ${
-                            product.stock > 10
-                              ? "bg-green-100 text-green-700"
-                              : product.stock > 0
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {product.stock} {product.unit}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            className="w-20 h-8 text-right"
+                            value={
+                              editingValues[product.id]?.stock !== undefined
+                                ? editingValues[product.id].stock
+                                : product.stock
+                            }
+                            onChange={(e) =>
+                              handleInlineChange(product.id, "stock", e.target.value)
+                            }
+                            onBlur={() => saveInlineEdit(product.id)}
+                            onKeyDown={(e) => e.key === "Enter" && saveInlineEdit(product.id)}
+                          />
+                          <span className="text-xs text-gray-400">{product.unit || 'un'}</span>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -275,6 +418,21 @@ const AdminProducts: React.FC = () => {
           </div>
         )}
       </div>
+      <ImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["products"] });
+          // Optional: close modal or just let user close
+        }}
+      />
+      <SyncConfigModal
+        isOpen={isSyncOpen}
+        onClose={() => setIsSyncOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["products"] });
+        }}
+      />
     </AdminLayout>
   );
 };

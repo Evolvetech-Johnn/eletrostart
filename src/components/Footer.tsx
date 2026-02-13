@@ -107,17 +107,26 @@ const Footer: React.FC = () => {
             <h4 className="font-bold text-lg mb-6 text-white">Institucional</h4>
             <ul className="space-y-4 text-sm text-gray-400">
               <li>
-                <a href="/about" className="hover:text-primary transition-colors">
+                <a
+                  href="/about"
+                  className="hover:text-primary transition-colors"
+                >
                   Quem Somos
                 </a>
               </li>
               <li>
-                <a href="/contact" className="hover:text-primary transition-colors">
+                <a
+                  href="/contact"
+                  className="hover:text-primary transition-colors"
+                >
                   Fale Conosco
                 </a>
               </li>
               <li>
-                <a href="/work-with-us" className="hover:text-primary transition-colors">
+                <a
+                  href="/work-with-us"
+                  className="hover:text-primary transition-colors"
+                >
                   Trabalhe Conosco
                 </a>
               </li>
@@ -128,12 +137,18 @@ const Footer: React.FC = () => {
             <h4 className="font-bold text-lg mb-6 text-white">Ajuda</h4>
             <ul className="space-y-4 text-sm text-gray-400">
               <li>
-                <a href="/shipping" className="hover:text-primary transition-colors">
+                <a
+                  href="/shipping"
+                  className="hover:text-primary transition-colors"
+                >
                   Fretes e Entregas
                 </a>
               </li>
               <li>
-                <a href="/returns" className="hover:text-primary transition-colors">
+                <a
+                  href="/returns"
+                  className="hover:text-primary transition-colors"
+                >
                   Trocas e Devoluções
                 </a>
               </li>
@@ -149,17 +164,26 @@ const Footer: React.FC = () => {
             <h4 className="font-bold text-lg mb-6 text-white">Legal</h4>
             <ul className="space-y-4 text-sm text-gray-400">
               <li>
-                <a href="/privacy" className="hover:text-primary transition-colors">
+                <a
+                  href="/privacy"
+                  className="hover:text-primary transition-colors"
+                >
                   Política de Privacidade
                 </a>
               </li>
               <li>
-                <a href="/terms" className="hover:text-primary transition-colors">
+                <a
+                  href="/terms"
+                  className="hover:text-primary transition-colors"
+                >
                   Termos de Uso
                 </a>
               </li>
               <li>
-                <a href="/cookies" className="hover:text-primary transition-colors">
+                <a
+                  href="/cookies"
+                  className="hover:text-primary transition-colors"
+                >
                   Política de Cookies
                 </a>
               </li>
@@ -180,9 +204,7 @@ const Footer: React.FC = () => {
               </li>
               <li className="flex items-start space-x-3">
                 <MapPin size={18} className="mt-1 flex-shrink-0" />
-                <span>
-                  Av. Tiradentes, 6166 - Jardim Rosicler, Londrina - PR, 86072-000
-                </span>
+                <span>Av. Celso Garcia Cid 1027, Londrina 86039000</span>
               </li>
             </ul>
           </div>

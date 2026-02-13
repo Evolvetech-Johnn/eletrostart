@@ -167,7 +167,8 @@ export const productService = {
     ids: string[],
     data: Partial<Product>,
   ): Promise<void> => {
-    await apiClient.patch("/ecommerce/products/bulk/update", { ids, data });
+    // Payload must match controller expectation: { ids, updates }
+    await apiClient.patch("/ecommerce/products/bulk/update", { ids, updates: data });
   },
 
   bulkDeleteProducts: async (ids: string[]): Promise<void> => {
@@ -205,5 +206,46 @@ export const productService = {
       "/admin/categories/sync",
     );
     return response;
+  },
+
+  importProducts: async (file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiClient.post<any, any>(
+      "/ecommerce/products/import",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data || response;
+  },
+
+  exportProducts: async (): Promise<void> => {
+    // Direct window location for file download or use fetch with blob
+    // Using fetch allows adding auth headers if apiClient handles them automatically (it does)
+    const response = await apiClient.get<any, any>(
+      "/ecommerce/products/export",
+      { responseType: "blob" }
+    );
+    
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `produtos-export-${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+  },
+
+  syncSheet: async (sheetUrl: string): Promise<any> => {
+    const response = await apiClient.post<any, any>(
+      "/ecommerce/products/sync/sheets",
+      { sheetUrl }
+    );
+    return response.data || response;
   },
 };
