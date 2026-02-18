@@ -132,7 +132,7 @@ curl -X POST http://localhost:3001/api/auth/login \
 | email | String | E-mail (único) |
 | password | String | Senha (hash bcrypt) |
 | name | String? | Nome |
-| role | String | Função (admin) |
+| role | String | Função (ADMIN) |
 | active | Boolean | Ativo |
 | lastLogin | DateTime? | Último acesso |
 

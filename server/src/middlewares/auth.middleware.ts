@@ -41,7 +41,7 @@ export const authenticate = async (
       id: user.id,
       email: user.email,
       name: user.name || "", // Handle potential null name
-      role: user.role,
+      role: (user.role || "").toUpperCase(),
     };
 
     next();
@@ -68,7 +68,7 @@ export const requireAdmin = (
   res: Response,
   next: NextFunction,
 ) => {
-  if (!req.user || req.user.role !== "ADMIN") {
+  if (!req.user || (req.user.role || "").toUpperCase() !== "ADMIN") {
     return res.status(403).json({
       error: true,
       message: "Acesso negado. Permissão de administrador necessária.",

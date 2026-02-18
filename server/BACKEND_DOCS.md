@@ -49,7 +49,7 @@ Armazena os usuários administrativos do sistema.
 - **id**: UUID
 - **email**: E-mail (único)
 - **password**: Hash da senha
-- **role**: Função (default: "admin")
+- **role**: Função (default: "ADMIN")
 - **active**: Status da conta
 - **lastLogin**: Timestamp do último acesso
 
