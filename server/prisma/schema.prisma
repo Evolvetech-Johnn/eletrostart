@@ -61,6 +61,8 @@ model AdminUser {
   
   assignedMessages ContactMessage[]
   auditLogs        AuditLog[]
+  statusChanges    OrderStatusHistory[]
+  stockMovements   StockMovement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -151,8 +153,10 @@ model Product {
   features    Json?     // Native JSON support in MongoDB
   specifications Json?  // Native JSON support in MongoDB
   images      Json?     // Native JSON support in MongoDB
-
+  variantItems ProductVariant[]
+  imageItems   ProductImage[]
   orderItems  OrderItem[]
+  stockMovements StockMovement[]
   
   active      Boolean   @default(true)
   featured    Boolean   @default(false)
@@ -166,6 +170,35 @@ model Product {
   @@index([active])
   @@index([featured])
   @@index([price])
+}
+
+model ProductVariant {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  productId String  @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  name      String
+  price     Float
+  stock     Int
+  sku       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("product_variants")
+  @@index([productId])
+  @@index([sku])
+}
+
+model ProductImage {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  productId String  @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  url       String
+  isPrimary Boolean @default(false)
+  order     Int     @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("product_images")
+  @@index([productId])
 }
 
 // Pedidos
@@ -196,8 +229,11 @@ model Order {
   status        String      @default("PENDING") // PENDING, PAID, SHIPPED, DELIVERED, CANCELED
   paymentMethod String?     // CREDIT_CARD, PIX, BOLETO
   paymentStatus String      @default("PENDING") // PENDING, PAID, FAILED
+  trackingCode  String?
   
-  items         OrderItem[]
+  items          OrderItem[]
+  statusHistory  OrderStatusHistory[]
+  stockMovements StockMovement[]
   
   notes         String?     // Observações do cliente ou admin
   
@@ -209,6 +245,21 @@ model Order {
   @@index([status])
   @@index([createdAt])
   @@index([paymentStatus])
+}
+
+model OrderStatusHistory {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  orderId     String    @db.ObjectId
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status      String
+  changedById String?   @db.ObjectId
+  changedBy   AdminUser? @relation(fields: [changedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  @@map("order_status_history")
+  @@index([orderId])
+  @@index([createdAt])
 }
 
 // Itens do Pedido
@@ -229,4 +280,24 @@ model OrderItem {
   createdAt DateTime @default(now())
 
   @@map("order_items")
+}
+
+model StockMovement {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  productId     String     @db.ObjectId
+  product       Product    @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderId       String?    @db.ObjectId
+  order         Order?     @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  type          String
+  quantity      Int
+  previousStock Int
+  newStock      Int
+  reason        String?
+  createdById   String?    @db.ObjectId
+  createdBy     AdminUser? @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt     DateTime   @default(now())
+
+  @@map("stock_movements")
+  @@index([productId])
+  @@index([createdAt])
 }

@@ -14,7 +14,6 @@ import {
   Inbox,
   Download,
   Tag as TagIcon,
-  Gamepad2,
 } from "lucide-react";
 import {
   adminService,
@@ -271,14 +270,6 @@ const AdminMessages: React.FC = () => {
                 Arquivar
               </Button>
               <Button
-                onClick={() => handleBulkAction("RESEND_DISCORD")}
-                variant="outline"
-                size="sm"
-                className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-              >
-                <Gamepad2 className="h-3 w-3 mr-1" /> Discord
-              </Button>
-              <Button
                 onClick={() => handleBulkAction("DELETE")}
                 variant="outline"
                 size="sm"
@@ -384,14 +375,6 @@ const AdminMessages: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        {msg.source === "discord" && (
-                          <span
-                            className="mt-1 inline-flex items-center text-xs text-indigo-600"
-                            title="Via Discord"
-                          >
-                            <Gamepad2 className="h-3 w-3 mr-1" /> Discord
-                          </span>
-                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">

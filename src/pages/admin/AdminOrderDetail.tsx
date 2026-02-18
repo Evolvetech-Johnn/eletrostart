@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -30,9 +30,26 @@ const AdminOrderDetail: React.FC = () => {
     enabled: !!orderId,
   });
 
+  const [trackingDraft, setTrackingDraft] = useState("");
+
+  useEffect(() => {
+    if (order?.trackingCode !== undefined && order?.trackingCode !== null) {
+      setTrackingDraft(order.trackingCode);
+    } else {
+      setTrackingDraft("");
+    }
+  }, [order?.trackingCode]);
+
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      orderService.updateOrderStatus(id, status),
+    mutationFn: ({
+      id,
+      status,
+      trackingCode,
+    }: {
+      id: string;
+      status: string;
+      trackingCode?: string;
+    }) => orderService.updateOrderStatus(id, status, trackingCode),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order", orderId] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -45,7 +62,11 @@ const AdminOrderDetail: React.FC = () => {
 
   const handleStatusChange = (newStatus: string) => {
     if (!window.confirm(`Mudar status para ${newStatus}?`)) return;
-    updateStatusMutation.mutate({ id: orderId, status: newStatus });
+    updateStatusMutation.mutate({
+      id: orderId,
+      status: newStatus,
+      trackingCode: trackingDraft,
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -307,8 +328,72 @@ const AdminOrderDetail: React.FC = () => {
                     {order.paymentStatus || "Pendente"}
                   </p>
                 </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase mb-1">
+                    Código de rastreio
+                  </p>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      className="flex-1 border rounded px-3 py-1 text-sm font-mono"
+                      placeholder="EX: BR123456789XYZ"
+                      value={trackingDraft}
+                      onChange={(e) => setTrackingDraft(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="px-3 py-1 rounded bg-primary text-white text-xs font-semibold disabled:opacity-60"
+                      disabled={updateStatusMutation.isPending}
+                      onClick={() =>
+                        updateStatusMutation.mutate({
+                          id: orderId,
+                          status: order.status,
+                          trackingCode: trackingDraft.trim() || undefined,
+                        })
+                      }
+                    >
+                      {updateStatusMutation.isPending
+                        ? "Salvando..."
+                        : "Salvar"}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {order.statusHistory && order.statusHistory.length > 0 && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="font-bold mb-4 text-gray-800">
+                  Linha do Tempo do Pedido
+                </h3>
+                <ol className="relative border-l border-gray-200">
+                  {order.statusHistory.map((entry) => (
+                    <li key={entry.id} className="mb-4 ml-4">
+                      <div className="absolute w-2 h-2 bg-primary rounded-full -left-1.5 mt-1" />
+                      <p className="text-xs text-gray-500">
+                        {new Date(entry.createdAt).toLocaleString()}
+                      </p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {entry.status}
+                      </p>
+                      {entry.changedBy && (
+                        <p className="text-xs text-gray-500">
+                          por{" "}
+                          {entry.changedBy.name ||
+                            entry.changedBy.email ||
+                            "Usuário"}
+                        </p>
+                      )}
+                      {entry.notes && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {entry.notes}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         </div>
       </div>

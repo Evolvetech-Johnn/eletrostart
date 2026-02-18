@@ -79,7 +79,6 @@ async function main() {
         message:
           "Gostaria de um orçamento para instalação elétrica residencial.",
         status: "NEW",
-        discordSent: true,
       },
       {
         name: "Maria Santos",

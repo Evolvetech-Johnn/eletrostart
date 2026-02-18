@@ -1,4 +1,3 @@
-import React from "react";
 import { Truck, Clock, Package, MapPin } from "lucide-react";
 
 const Shipping = () => {

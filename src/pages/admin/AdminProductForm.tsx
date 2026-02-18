@@ -1,15 +1,37 @@
-import React, { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Save, AlertCircle } from "lucide-react";
-import { productService, Category } from "../../services/productService";
+import {
+  ArrowLeft,
+  Save,
+  AlertCircle,
+  Image as ImageIcon,
+  Plus,
+  Trash2,
+  Star,
+  Loader2,
+} from "lucide-react";
+import {
+  productService,
+  Category,
+  StockMovement,
+} from "../../services/productService";
 import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+
+import { DndContext, closestCenter } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // Validation Schema
 const productSchema = z.object({
@@ -31,11 +53,23 @@ const productSchema = z.object({
 
 type ProductFormData = z.infer<typeof productSchema>;
 
+const variantSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório"),
+  price: z.number().min(0, "Preço deve ser positivo"),
+  stock: z
+    .number()
+    .int("Estoque deve ser inteiro")
+    .min(0, "Estoque deve ser positivo"),
+  sku: z.string().min(1, "SKU é obrigatório"),
+});
+
 const AdminProductForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEdit = !!id;
+
+  const variantUpdateTimers = useRef<Record<string, number | undefined>>({});
 
   // React Hook Form
   const {
@@ -76,6 +110,43 @@ const AdminProductForm: React.FC = () => {
   } = useQuery({
     queryKey: ["product", id],
     queryFn: () => productService.getProduct(id!),
+    enabled: isEdit,
+  });
+
+  // Product images and variants (only in edit mode)
+  const { data: images = [], refetch: refetchImages } = useQuery({
+    queryKey: ["product-images", id],
+    queryFn: async () => {
+      if (!isEdit) return [];
+      const res = await fetch(`/api/ecommerce/products/${id}/images`, {
+        headers: { "Content-Type": "application/json" },
+      });
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: isEdit,
+  });
+
+  const { data: variants = [], refetch: refetchVariants } = useQuery({
+    queryKey: ["product-variants", id],
+    queryFn: async () => {
+      if (!isEdit) return [];
+      const res = await fetch(`/api/ecommerce/products/${id}/variants`, {
+        headers: { "Content-Type": "application/json" },
+      });
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: isEdit,
+  });
+
+  const {
+    data: stockMovements = { data: [], pagination: { total: 0 } },
+    isLoading: isLoadingMovements,
+    error: movementsError,
+  } = useQuery({
+    queryKey: ["product-stock-movements", id],
+    queryFn: () => productService.getProductStockMovements(id!, { limit: 5 }),
     enabled: isEdit,
   });
 
@@ -142,6 +213,150 @@ const AdminProductForm: React.FC = () => {
       updateProductMutation.mutate(cleanedData);
     } else {
       createProductMutation.mutate(cleanedData);
+    }
+  };
+
+  const handleUploadImages = async (files: FileList | null) => {
+    if (!files || !isEdit) return;
+    const formData = new FormData();
+    Array.from(files).forEach((f) => formData.append("files", f));
+    const res = await fetch(`/api/ecommerce/products/${id}/images/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    const json = await res.json();
+    if (json.success) {
+      toast.success("Imagens enviadas");
+      refetchImages();
+    } else {
+      toast.error(json.message || "Erro ao enviar imagens");
+    }
+  };
+
+  const setPrimaryImage = async (imageId: string) => {
+    if (!isEdit) return;
+    const image = images.find((i: any) => i.id === imageId);
+    if (!image) return;
+    const res = await fetch(`/api/ecommerce/products/${id}/images/${imageId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isPrimary: true }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      toast.success("Imagem principal definida");
+      refetchImages();
+    } else {
+      toast.error(json.message || "Erro ao definir imagem principal");
+    }
+  };
+
+  const reorderImage = async (imageId: string, newOrder: number) => {
+    const res = await fetch(`/api/ecommerce/products/${id}/images/${imageId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order: Math.max(0, newOrder) }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      refetchImages();
+    } else {
+      toast.error(json.message || "Erro ao reordenar imagem");
+    }
+  };
+
+  const deleteImage = async (imageId: string) => {
+    const res = await fetch(`/api/ecommerce/products/${id}/images/${imageId}`, {
+      method: "DELETE",
+    });
+    const json = await res.json();
+    if (json.success) {
+      toast.success("Imagem removida");
+      refetchImages();
+    } else {
+      toast.error(json.message || "Erro ao remover imagem");
+    }
+  };
+
+  const addVariant = async () => {
+    const res = await fetch(`/api/ecommerce/products/${id}/variants`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Variante",
+        price: product?.price || 0,
+        stock: 0,
+        sku: "",
+      }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      refetchVariants();
+    } else {
+      toast.error(json.message || "Erro ao criar variante");
+    }
+  };
+
+  const updateVariant = async (variantId: string, patch: any) => {
+    const res = await fetch(
+      `/api/ecommerce/products/${id}/variants/${variantId}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      },
+    );
+    const json = await res.json();
+    if (json.success) {
+      refetchVariants();
+    } else {
+      toast.error(json.message || "Erro ao atualizar variante");
+    }
+  };
+
+  const queueVariantUpdate = (variantId: string, patch: any) => {
+    const current = (variants as any[]).find((v) => v.id === variantId);
+    if (!current) return;
+
+    const candidate = {
+      name: patch.name ?? current.name,
+      price:
+        typeof patch.price === "number" ? patch.price : Number(current.price),
+      stock:
+        typeof patch.stock === "number" ? patch.stock : Number(current.stock),
+      sku: patch.sku ?? current.sku ?? "",
+    };
+
+    const parsed = variantSchema.safeParse(candidate);
+    if (!parsed.success) {
+      const message = parsed.error.issues[0]?.message ?? "Dados inválidos";
+      toast.error(message);
+      return;
+    }
+
+    const existing = variantUpdateTimers.current[variantId];
+    if (existing) {
+      window.clearTimeout(existing);
+    }
+
+    const timer = window.setTimeout(() => {
+      updateVariant(variantId, patch);
+      variantUpdateTimers.current[variantId] = undefined;
+    }, 500);
+
+    variantUpdateTimers.current[variantId] = timer;
+  };
+
+  const deleteVariant = async (variantId: string) => {
+    const res = await fetch(
+      `/api/ecommerce/products/${id}/variants/${variantId}`,
+      { method: "DELETE" },
+    );
+    const json = await res.json();
+    if (json.success) {
+      refetchVariants();
+    } else {
+      toast.error(json.message || "Erro ao remover variante");
     }
   };
 
@@ -353,6 +568,285 @@ const AdminProductForm: React.FC = () => {
             Salvar Produto
           </Button>
         </div>
+
+        {isEdit && (
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
+                <ImageIcon size={20} /> Imagens do Produto
+              </h3>
+
+              <div
+                className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const files = e.dataTransfer.files;
+                  handleUploadImages(files);
+                }}
+              >
+                <p className="text-sm text-gray-600">
+                  Arraste e solte imagens aqui ou selecione arquivos
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="mt-3"
+                  onChange={(e) => handleUploadImages(e.target.files)}
+                />
+              </div>
+
+              <DndContext
+                collisionDetection={closestCenter}
+                onDragEnd={async (event) => {
+                  const { active, over } = event;
+                  if (!over || active.id === over.id) return;
+                  const currentIndex = images.findIndex(
+                    (img: any) => img.id === active.id,
+                  );
+                  const newIndex = images.findIndex(
+                    (img: any) => img.id === over.id,
+                  );
+                  if (currentIndex === -1 || newIndex === -1) return;
+                  const ordered = arrayMove(images, currentIndex, newIndex);
+                  for (let index = 0; index < ordered.length; index++) {
+                    const img = ordered[index] as any;
+                    await reorderImage(img.id, index);
+                  }
+                  refetchImages();
+                }}
+              >
+                <SortableContext
+                  items={images.map((img: any) => img.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {images.map((img: any) => {
+                      const {
+                        attributes,
+                        listeners,
+                        setNodeRef,
+                        transform,
+                        transition,
+                      } = useSortable({ id: img.id });
+                      const style = {
+                        transform: CSS.Transform.toString(transform),
+                        transition,
+                      };
+
+                      return (
+                        <div
+                          key={img.id}
+                          ref={setNodeRef}
+                          style={style}
+                          {...attributes}
+                          {...listeners}
+                          className="border rounded-lg overflow-hidden bg-white cursor-move"
+                        >
+                          <img
+                            src={img.url}
+                            alt=""
+                            className="w-full h-28 object-cover"
+                          />
+                          <div className="p-2 flex items-center justify-between gap-2">
+                            <button
+                              className={`text-xs px-2 py-1 rounded ${
+                                img.isPrimary
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }`}
+                              onClick={() => setPrimaryImage(img.id)}
+                              title="Definir como principal"
+                            >
+                              <Star size={14} />
+                            </button>
+                            <button
+                              className="text-xs px-2 py-1 rounded bg-red-100 text-red-700"
+                              onClick={() => deleteImage(img.id)}
+                              title="Excluir imagem"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
+                <Plus size={20} /> Variantes
+              </h3>
+              <div className="flex justify-end">
+                <Button onClick={addVariant}>
+                  <Plus size={16} className="mr-2" /> Adicionar variante
+                </Button>
+              </div>
+              <div className="bg-white rounded-lg border">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="text-left px-3 py-2">Nome</th>
+                      <th className="text-left px-3 py-2">Preço</th>
+                      <th className="text-left px-3 py-2">Estoque</th>
+                      <th className="text-left px-3 py-2">SKU</th>
+                      <th className="text-right px-3 py-2">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {variants.map((v: any) => (
+                      <tr key={v.id} className="border-t">
+                        <td className="px-3 py-2">
+                          <Input
+                            value={v.name}
+                            onChange={(e) =>
+                              queueVariantUpdate(v.id, { name: e.target.value })
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={v.price}
+                            onChange={(e) =>
+                              queueVariantUpdate(v.id, {
+                                price: Number(e.target.value || 0),
+                              })
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={v.stock}
+                            onChange={(e) =>
+                              queueVariantUpdate(v.id, {
+                                stock: Number(e.target.value || 0),
+                              })
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <Input
+                            value={v.sku || ""}
+                            onChange={(e) =>
+                              queueVariantUpdate(v.id, { sku: e.target.value })
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <Button
+                            variant="outline"
+                            onClick={() => deleteVariant(v.id)}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                    {variants.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-3 py-4 text-center text-gray-500"
+                        >
+                          Nenhuma variante cadastrada
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
+                Movimentações recentes de estoque
+              </h3>
+              {isLoadingMovements ? (
+                <div className="flex items-center gap-2 text-gray-500 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Carregando movimentações...</span>
+                </div>
+              ) : movementsError ? (
+                <div className="flex items-center gap-2 text-red-600 text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Erro ao carregar movimentações</span>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg border">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="text-left px-3 py-2">Data</th>
+                        <th className="text-left px-3 py-2">Tipo</th>
+                        <th className="text-left px-3 py-2">Delta</th>
+                        <th className="text-left px-3 py-2">Antes → Depois</th>
+                        <th className="text-left px-3 py-2">Por</th>
+                        <th className="text-left px-3 py-2">Motivo</th>
+                        <th className="text-left px-3 py-2">Pedido</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(stockMovements.data as StockMovement[]).map((m) => {
+                        const date = new Date(m.createdAt).toLocaleString();
+                        const user =
+                          m.createdBy?.name ||
+                          m.createdBy?.email ||
+                          (m.createdBy ? m.createdBy.id : "-");
+                        return (
+                          <tr key={m.id} className="border-t">
+                            <td className="px-3 py-2">{date}</td>
+                            <td className="px-3 py-2">{m.type}</td>
+                            <td className="px-3 py-2">
+                              {m.quantity > 0 ? "+" : ""}
+                              {m.quantity}
+                            </td>
+                            <td className="px-3 py-2">
+                              {m.previousStock} → {m.newStock}
+                            </td>
+                            <td className="px-3 py-2">{user || "-"}</td>
+                            <td className="px-3 py-2">{m.reason || "-"}</td>
+                            <td className="px-3 py-2">
+                              {m.order?.id ? (
+                                <Link
+                                  to={`/admin/orders/${m.order.id}`}
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  {m.order.id}
+                                </Link>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {(stockMovements.data as StockMovement[]).length ===
+                        0 && (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="px-3 py-4 text-center text-gray-500"
+                          >
+                            Nenhuma movimentação recente
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </form>
     </AdminLayout>
   );

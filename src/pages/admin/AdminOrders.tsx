@@ -150,6 +150,9 @@ const AdminOrders: React.FC = () => {
                   <th className="px-6 py-3 font-medium text-gray-500 text-sm">
                     Status
                   </th>
+                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                    Rastreio
+                  </th>
                   <th className="px-6 py-3 font-medium text-gray-500 text-sm text-right">
                     Ações
                   </th>
@@ -196,6 +199,11 @@ const AdminOrders: React.FC = () => {
                           <option value="DELIVERED">Entregue</option>
                           <option value="CANCELLED">Cancelado</option>
                         </select>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-gray-600 font-mono">
+                        {order.trackingCode && order.trackingCode.trim().length > 0
+                          ? order.trackingCode
+                          : "-"}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Link

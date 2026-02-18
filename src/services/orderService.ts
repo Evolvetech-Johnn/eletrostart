@@ -10,6 +10,18 @@ export interface OrderItem {
   totalPrice: number;
 }
 
+export interface OrderStatusHistoryEntry {
+  id: string;
+  status: string;
+  notes?: string;
+  createdAt: string;
+  changedBy?: {
+    id: string;
+    name?: string | null;
+    email: string;
+  } | null;
+}
+
 export interface Order {
   id: string;
   customerName: string;
@@ -28,8 +40,10 @@ export interface Order {
   paymentMethod?: string;
   paymentStatus?: string;
   status: "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  trackingCode?: string | null;
   notes?: string;
   items: OrderItem[];
+  statusHistory?: OrderStatusHistoryEntry[];
   createdAt: string;
   updatedAt: string;
 }
@@ -92,10 +106,18 @@ export const orderService = {
     return response.data;
   },
 
-  updateOrderStatus: async (id: string, status: string): Promise<Order> => {
+  updateOrderStatus: async (
+    id: string,
+    status: string,
+    trackingCode?: string,
+  ): Promise<Order> => {
+    const body: any = { status };
+    if (trackingCode !== undefined) {
+      body.trackingCode = trackingCode;
+    }
     const response = await apiClient.patch<any, ApiResponse<Order>>(
       `/ecommerce/orders/${id}/status`,
-      { status },
+      body,
     );
     return response.data;
   },

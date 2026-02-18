@@ -25,7 +25,6 @@ if (!env.databaseUrl) {
   console.log(`🔌 Configuração de Banco: ${maskedUrl}`);
 }
 
-import { startBot } from "./bot/index";
 
 // Initialize Express
 const app = express();
@@ -44,8 +43,6 @@ const limiter = rateLimit({
 });
 app.use("/api/", limiter);
 
-// Start Bot
-startBot();
 
 // Middlewares
 app.use(
@@ -64,7 +61,14 @@ app.use(
         "https://eletrostart-site.onrender.com",
         "https://eletrostartbackend-api.onrender.com",
         env.frontendUrl,
-      ].filter(Boolean) as string[];
+      ]
+        .concat(
+          (env.corsOrigin || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+        )
+        .filter(Boolean) as string[];
 
       // Permitir requisições sem origin (ex: Postman, curl, Mobile Apps)
       if (!origin) return callback(null, true);

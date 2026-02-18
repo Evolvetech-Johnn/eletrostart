@@ -20,14 +20,7 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
-export interface SyncResponse {
-  success: boolean;
-  message: string;
-  stats: {
-    processed: number;
-    imported: number;
-  };
-}
+// Integração Discord removida
 
 export interface Tag {
   id: string;
@@ -69,8 +62,13 @@ export interface AuditLog {
   details: string;
   createdAt: string;
   user?: {
+    id: string;
     name: string;
+    email?: string;
   };
+  targetType?: string;
+  targetId?: string;
+  messageId?: string;
 }
 
 export interface GetMessagesParams {
@@ -101,17 +99,7 @@ export interface UpdateMessageMetaParams {
   tags?: string[];
 }
 
-export interface DiscordLog {
-  id: string;
-  status: "SUCCESS" | "ERROR";
-  details: string;
-  createdAt: string;
-}
-
-export interface SyncMessagesResponse {
-  message: string;
-  imported: number;
-}
+// Integração Discord removida
 
 export const adminService = {
   getDashboard: async (): Promise<DashboardData> => {
@@ -121,12 +109,84 @@ export const adminService = {
     return response.data;
   },
 
-  syncMessages: async (): Promise<SyncMessagesResponse> => {
-    const response = (await apiClient.post(
-      "/admin/messages/sync",
-    )) as ApiResponse<SyncMessagesResponse>;
+  getAuditLogs: async (params: {
+    page?: number;
+    limit?: number;
+    userId?: string;
+    targetType?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{
+    logs: AuditLog[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", String(params.page));
+    if (params.limit) query.set("limit", String(params.limit));
+    if (params.userId) query.set("userId", params.userId);
+    if (params.targetType) query.set("targetType", params.targetType);
+    if (params.startDate) query.set("startDate", params.startDate);
+    if (params.endDate) query.set("endDate", params.endDate);
+
+    const response = await apiClient.get<
+      any,
+      ApiResponse<{
+        data: AuditLog[];
+        pagination: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        };
+      }>
+    >(`/admin/audit/logs?${query.toString()}`);
+
+    const payload = response.data as any;
+
+    return {
+      logs: (payload.data || []) as AuditLog[],
+      pagination: payload.pagination || {
+        total: payload.data?.length || 0,
+        page: params.page || 1,
+        limit: params.limit || payload.data?.length || 0,
+        totalPages: 1,
+      },
+    };
+  },
+
+  getDashboardAnalytics: async (
+    days: number = 30,
+  ): Promise<{
+    salesByDay: { date: string; count: number }[];
+    revenueByDay: { date: string; value: number }[];
+    messagesByStatus: { status: string; count: number }[];
+    lowStockProducts: {
+      id: string;
+      name: string;
+      stock: number;
+      sku?: string;
+    }[];
+    topSellingProducts: {
+      productId: string;
+      name?: string;
+      quantity: number;
+      revenue: number;
+    }[];
+    ticketMedio: number;
+    pendingOrders: number;
+  }> => {
+    const response = await apiClient.get<any, ApiResponse<any>>(
+      `/admin/dashboard/analytics?days=${days}`,
+    );
     return response.data;
   },
+
+  // Integração Discord removida
 
   getMessages: async (
     params: GetMessagesParams,
@@ -164,6 +224,63 @@ export const adminService = {
     const response = await apiClient.get<any, ApiResponse<AdminUser[]>>(
       "/admin/users",
     );
+    return response.data;
+  },
+  createUser: async (data: {
+    name: string;
+    email: string;
+    password: string;
+    role: "ADMIN" | "MANAGER" | "EDITOR";
+    active?: boolean;
+  }): Promise<AdminUser> => {
+    const response = await apiClient.post<any, ApiResponse<AdminUser>>(
+      "/admin/users",
+      data,
+    );
+    return response.data;
+  },
+  updateUser: async (
+    id: string,
+    data: Partial<{
+      name: string;
+      email: string;
+      password: string;
+      role: "ADMIN" | "MANAGER" | "EDITOR";
+      active: boolean;
+    }>,
+  ): Promise<AdminUser> => {
+    const response = await apiClient.put<any, ApiResponse<AdminUser>>(
+      `/admin/users/${id}`,
+      data,
+    );
+    return response.data;
+  },
+  updateUserRole: async (
+    id: string,
+    role: "ADMIN" | "MANAGER" | "EDITOR",
+  ): Promise<AdminUser> => {
+    const response = await apiClient.patch<any, ApiResponse<AdminUser>>(
+      `/admin/users/${id}/role`,
+      { role },
+    );
+    return response.data;
+  },
+  updateUserStatus: async (id: string, active: boolean): Promise<AdminUser> => {
+    const response = await apiClient.patch<any, ApiResponse<AdminUser>>(
+      `/admin/users/${id}/status`,
+      { active },
+    );
+    return response.data;
+  },
+  resetPassword: async (payload: {
+    email: string;
+    newPassword: string;
+    token: string;
+  }): Promise<{ message: string }> => {
+    const response = await apiClient.post<
+      any,
+      ApiResponse<{ message: string }>
+    >("/admin/users/reset-password", payload);
     return response.data;
   },
 
@@ -209,18 +326,5 @@ export const adminService = {
     return window.URL.createObjectURL(new Blob([response as any]));
   },
 
-  getDiscordLogs: async (): Promise<DiscordLog[]> => {
-    const response = await apiClient.get<any, ApiResponse<DiscordLog[]>>(
-      "/admin/discord/logs",
-    );
-    return response.data;
-  },
-
-  testDiscord: async (): Promise<{ message: string }> => {
-    const response = await apiClient.post<
-      any,
-      ApiResponse<{ message: string }>
-    >("/admin/discord/test");
-    return response.data;
-  },
+  // Integração Discord removida
 };

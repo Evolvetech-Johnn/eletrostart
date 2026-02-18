@@ -12,6 +12,8 @@ import {
   Package,
   ShoppingBag,
   Folder,
+  Shield,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -27,11 +29,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { path: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/admin/analytics", label: "Analytics", icon: LayoutDashboard },
     { path: "/admin/messages", label: "Mensagens", icon: MessageSquare },
     { path: "/admin/products", label: "Produtos", icon: Package },
     { path: "/admin/categories", label: "Categorias", icon: Folder },
     { path: "/admin/orders", label: "Pedidos", icon: ShoppingBag },
+    { path: "/admin/users", label: "Usuários", icon: User },
     { path: "/admin/integrations", label: "Integrações", icon: Settings },
+    { path: "/admin/audit", label: "Auditoria", icon: Shield },
+    { path: "/admin/stock-movements", label: "Estoque", icon: Activity },
   ];
 
   const isActive = (path: string) => location.pathname === path;

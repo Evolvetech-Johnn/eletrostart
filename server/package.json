@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "Backend API para Eletrostart - Sistema de Mensagens de Contato",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "nodemon --watch src --ext ts,js,json --exec tsx src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "build": "prisma generate && tsc",
+    "start": "prisma migrate deploy && node dist/index.js",
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -26,7 +29,6 @@
     "@types/multer": "^2.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "discord.js": "^14.25.1",
     "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
     "express": "^4.18.2",
@@ -44,6 +46,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^25.2.3",
     "@types/supertest": "^6.0.3",
+    "@types/uuid": "^10.0.0",
     "jest": "^30.2.0",
     "nodemon": "^3.0.3",
     "prisma": "^5.10.0",

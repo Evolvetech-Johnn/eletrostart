@@ -96,6 +96,36 @@ export interface SyncCategoriesResponse {
   };
 }
 
+export type CategoryMinPriceConfig = Record<string, number>;
+
+export interface LowStockProduct {
+  id: string;
+  name: string;
+  sku?: string | null;
+  stock: number;
+  category: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  price: number;
+}
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  orderId?: string | null;
+  type: string;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  reason?: string | null;
+  createdBy?: { id: string; name: string; email: string } | null;
+  product?: { id: string; name: string; sku?: string | null };
+  order?: { id: string; status: string };
+  createdAt: string;
+}
+
 export const productService = {
   // Public
   getProducts: async (params: GetProductsParams = {}): Promise<Product[]> => {
@@ -138,6 +168,23 @@ export const productService = {
     return response.data;
   },
 
+  getMinPriceConfig: async (): Promise<CategoryMinPriceConfig> => {
+    const response = await apiClient.get<
+      any,
+      ApiResponse<CategoryMinPriceConfig>
+    >("/ecommerce/products/min-price-config");
+    return response.data;
+  },
+
+  getLowStockProducts: async (
+    threshold: number,
+  ): Promise<LowStockProduct[]> => {
+    const response = await apiClient.get<any, ApiResponse<LowStockProduct[]>>(
+      `/ecommerce/products/stock/low?threshold=${threshold}`,
+    );
+    return response.data;
+  },
+
   // Admin
   createProduct: async (data: CreateProductParams): Promise<Product> => {
     const response = await apiClient.post<any, ApiResponse<Product>>(
@@ -162,13 +209,121 @@ export const productService = {
     await apiClient.delete(`/ecommerce/products/${id}`);
   },
 
+  adjustProductStock: async (
+    id: string,
+    payload: { newStock: number; reason?: string },
+  ): Promise<Product> => {
+    const response = await apiClient.post<any, ApiResponse<Product>>(
+      `/ecommerce/products/${id}/stock/adjust`,
+      payload,
+    );
+    return response.data;
+  },
+
+  getStockMovements: async (params: {
+    productId?: string;
+    type?: string;
+    origin?: string;
+    from?: string;
+    to?: string;
+    userId?: string;
+    delta?: string;
+    emptySku?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: StockMovement[]; pagination: any }> => {
+    const queryString = new URLSearchParams(params as any).toString();
+    const response = await apiClient.get<any, ApiResponse<StockMovement[]>>(
+      `/ecommerce/stock-movements?${queryString}`,
+    );
+    return {
+      data: (response as any).data,
+      pagination: (response as any).pagination,
+    };
+  },
+
+  exportStockMovements: async (params: {
+    productId?: string;
+    type?: string;
+    origin?: string;
+    from?: string;
+    to?: string;
+    userId?: string;
+    delta?: string;
+    dateFormat?: string;
+    emptySku?: string;
+    dateTz?: string;
+  }): Promise<string> => {
+    const queryString = new URLSearchParams(params as any).toString();
+    const response = await apiClient.get<any, any>(
+      `/ecommerce/stock-movements/export?${queryString}`,
+      { responseType: "blob" },
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    return url;
+  },
+
+  exportStockMovementsXlsx: async (params: {
+    productId?: string;
+    type?: string;
+    origin?: string;
+    from?: string;
+    to?: string;
+    userId?: string;
+    delta?: string;
+    dateFormat?: string;
+    emptySku?: string;
+    dateTz?: string;
+  }): Promise<string> => {
+    const queryString = new URLSearchParams(params as any).toString();
+    const response = await apiClient.get<any, any>(
+      `/ecommerce/stock-movements/export.xlsx?${queryString}`,
+      { responseType: "blob" },
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    return url;
+  },
+
+  getStockEmptySkuCount: async (params: {
+    productId?: string;
+    type?: string;
+    origin?: string;
+    from?: string;
+    to?: string;
+    userId?: string;
+    delta?: string;
+  }): Promise<number> => {
+    const queryString = new URLSearchParams(params as any).toString();
+    const response = await apiClient.get<any, { success: boolean; count: number }>(
+      `/ecommerce/stock-movements/empty-sku-count?${queryString}`,
+    );
+    return (response as any).count || 0;
+  },
+
+  getProductStockMovements: async (
+    id: string,
+    params: { page?: number; limit?: number } = {},
+  ): Promise<{ data: StockMovement[]; pagination: any }> => {
+    const queryString = new URLSearchParams(params as any).toString();
+    const response = await apiClient.get<any, ApiResponse<StockMovement[]>>(
+      `/ecommerce/products/${id}/stock-movements?${queryString}`,
+    );
+    return {
+      data: (response as any).data,
+      pagination: (response as any).pagination,
+    };
+  },
+
   // Admin Bulk
   bulkUpdateProducts: async (
     ids: string[],
     data: Partial<Product>,
   ): Promise<void> => {
     // Payload must match controller expectation: { ids, updates }
-    await apiClient.patch("/ecommerce/products/bulk/update", { ids, updates: data });
+    await apiClient.patch("/ecommerce/products/bulk/update", {
+      ids,
+      updates: data,
+    });
   },
 
   bulkDeleteProducts: async (ids: string[]): Promise<void> => {
@@ -218,7 +373,7 @@ export const productService = {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      }
+      },
     );
     return response.data || response;
   },
@@ -228,14 +383,17 @@ export const productService = {
     // Using fetch allows adding auth headers if apiClient handles them automatically (it does)
     const response = await apiClient.get<any, any>(
       "/ecommerce/products/export",
-      { responseType: "blob" }
+      { responseType: "blob" },
     );
-    
+
     // Create download link
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `produtos-export-${new Date().toISOString().split('T')[0]}.xlsx`);
+    link.setAttribute(
+      "download",
+      `produtos-export-${new Date().toISOString().split("T")[0]}.xlsx`,
+    );
     document.body.appendChild(link);
     link.click();
     link.parentNode?.removeChild(link);
@@ -244,7 +402,7 @@ export const productService = {
   syncSheet: async (sheetUrl: string): Promise<any> => {
     const response = await apiClient.post<any, any>(
       "/ecommerce/products/sync/sheets",
-      { sheetUrl }
+      { sheetUrl },
     );
     return response.data || response;
   },

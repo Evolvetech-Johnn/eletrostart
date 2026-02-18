@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -18,7 +18,7 @@ import toast from "react-hot-toast";
 import { Button } from "../../components/ui/Button";
 
 const AdminDashboard: React.FC = () => {
-  const queryClient = useQueryClient();
+  // queryClient removido
 
   // Query for dashboard data
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
@@ -27,24 +27,7 @@ const AdminDashboard: React.FC = () => {
     refetchInterval: 60000, // Refresh every minute
   });
 
-  // Mutation for syncing messages
-  const syncMutation = useMutation({
-    mutationFn: adminService.syncMessages,
-    onSuccess: (stats) => {
-      toast.success(
-        `Sincronização concluída! ${stats.imported} novas mensagens.`,
-      );
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
-    },
-    onError: (err: Error) => {
-      console.error("Erro na sincronização:", err);
-      toast.error("Erro ao sincronizar mensagens.");
-    },
-  });
-
-  const handleSync = () => {
-    syncMutation.mutate();
-  };
+  // Sincronização via Discord removida
 
   const statCards = data
     ? [
@@ -114,16 +97,6 @@ const AdminDashboard: React.FC = () => {
                 className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`}
               />
             </button>
-            <Button
-              onClick={handleSync}
-              isLoading={syncMutation.isPending}
-              loadingText="Sincronizando..."
-            >
-              {!syncMutation.isPending && (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              Sincronizar Discord
-            </Button>
           </div>
         </div>
 

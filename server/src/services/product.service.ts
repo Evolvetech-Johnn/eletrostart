@@ -4,6 +4,30 @@ import { logAction } from "./audit.service";
 import { importExportService } from "./importExport.service";
 import { googleSheetsService } from "./googleSheets.service";
 
+export const CATEGORY_MIN_PRICE_BY_SLUG: Record<string, number> = {
+  iluminacao: 9.9,
+  "chuveiros-torneiras": 99,
+  "fios-cabos": 5,
+  protecao: 10,
+  tomadas: 3.5,
+  ferramentas: 10,
+  infraestrutura: 5,
+  diversos: 1,
+};
+
+const getMinPriceForCategoryId = async (
+  categoryId: string | null | undefined,
+): Promise<number | null> => {
+  if (!categoryId) return null;
+  const cat = await prisma.category.findUnique({
+    where: { id: categoryId },
+  });
+  if (!cat) return null;
+  const minFromSlug = CATEGORY_MIN_PRICE_BY_SLUG[cat.slug];
+  if (typeof minFromSlug === "number") return minFromSlug;
+  return 0;
+};
+
 // Helper to format product
 const formatProduct = (product: any) => {
   if (!product) return null;
@@ -101,8 +125,22 @@ export const getProduct = async (idOrSku: string) => {
 export const createProduct = async (data: any, userId: string = "unknown") => {
   // Check if SKU already exists
   if (data.sku) {
-    const existing = await prisma.product.findFirst({ where: { sku: data.sku } });
+    const existing = await prisma.product.findFirst({
+      where: { sku: data.sku },
+    });
     if (existing) throw new Error("SKU já existe");
+  }
+
+  const minPrice =
+    typeof data.categoryId === "string"
+      ? await getMinPriceForCategoryId(data.categoryId)
+      : null;
+  if (minPrice !== null && typeof data.price === "number") {
+    if (data.price < minPrice) {
+      throw new Error(
+        `Preço mínimo para a categoria é R$ ${minPrice.toFixed(2)}`,
+      );
+    }
   }
 
   const product = await prisma.product.create({
@@ -126,34 +164,56 @@ export const createProduct = async (data: any, userId: string = "unknown") => {
   return formatProduct(product);
 };
 
-export const updateProduct = async (id: string, data: any, userId: string = "unknown") => {
+export const updateProduct = async (
+  id: string,
+  data: any,
+  userId: string = "unknown",
+) => {
   // Handle category connect/disconnect logic if present in data
   // For simplicity, we assume controller passes cleaner data or we handle it here
-  // But wait, the controller had specific logic for category connection. 
+  // But wait, the controller had specific logic for category connection.
   // We'll trust the caller passes Prisma-compatible structure or we adapt.
   // The controller logic was:
   // if (categoryId) data.category = { connect: { id: categoryId } }
   // Let's assume the controller prepares `data` or we do it here.
-  // To keep service clean, let's assume `data` is ready for Prisma Update, 
+  // To keep service clean, let's assume `data` is ready for Prisma Update,
   // EXCEPT for the complex fields like variants/json.
-  
+
   // Actually, better to replicate the logic here to keep controller really thin.
   const updateData: any = { ...data };
-  
+
+  if (typeof updateData.price === "number") {
+    const existing = await prisma.product.findUnique({
+      where: { id },
+      select: { categoryId: true },
+    });
+    const effectiveCategoryId =
+      (updateData.categoryId as string | undefined) ??
+      existing?.categoryId ??
+      null;
+    const minPrice = await getMinPriceForCategoryId(effectiveCategoryId);
+    if (minPrice !== null && updateData.price < minPrice) {
+      throw new Error(
+        `Preço mínimo para a categoria é R$ ${minPrice.toFixed(2)}`,
+      );
+    }
+  }
+
   // JSON fields handling
   if (data.variants !== undefined) updateData.variants = data.variants;
   if (data.features !== undefined) updateData.features = data.features;
-  if (data.specifications !== undefined) updateData.specifications = data.specifications;
+  if (data.specifications !== undefined)
+    updateData.specifications = data.specifications;
   if (data.images !== undefined) updateData.images = data.images;
 
   // Category handling
   if (data.categoryId !== undefined) {
-      if (data.categoryId) {
-        updateData.category = { connect: { id: data.categoryId } };
-      } else {
-        updateData.category = { disconnect: true };
-      }
-      delete updateData.categoryId;
+    if (data.categoryId) {
+      updateData.category = { connect: { id: data.categoryId } };
+    } else {
+      updateData.category = { disconnect: true };
+    }
+    delete updateData.categoryId;
   }
 
   const product = await prisma.product.update({
@@ -183,7 +243,10 @@ export const deleteProduct = async (id: string, userId: string = "unknown") => {
       where: { id },
       data: { active: false },
     });
-    return { action: "deactivated", message: "Produto desativado pois possui pedidos vinculados" };
+    return {
+      action: "deactivated",
+      message: "Produto desativado pois possui pedidos vinculados",
+    };
   }
 
   await prisma.product.delete({ where: { id } });
@@ -199,11 +262,35 @@ export const deleteProduct = async (id: string, userId: string = "unknown") => {
   return { action: "deleted", message: "Produto excluído permanentemente" };
 };
 
-export const bulkUpdate = async (ids: string[], data: any, userId: string = "unknown") => {
+export const bulkUpdate = async (
+  ids: string[],
+  data: any,
+  userId: string = "unknown",
+) => {
   const updateData: Prisma.ProductUpdateManyMutationInput = {};
   if (data.active !== undefined) updateData.active = data.active;
   if (data.featured !== undefined) updateData.featured = data.featured;
-  if (data.price !== undefined) updateData.price = parseFloat(data.price);
+  if (data.price !== undefined) {
+    const idsWithCategory = await prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, categoryId: true },
+    });
+
+    for (const { categoryId } of idsWithCategory) {
+      const minPrice = await getMinPriceForCategoryId(categoryId);
+      if (
+        minPrice !== null &&
+        typeof data.price === "number" &&
+        data.price < minPrice
+      ) {
+        throw new Error(
+          `Preço mínimo para a categoria é R$ ${minPrice.toFixed(2)}`,
+        );
+      }
+    }
+    updateData.price =
+      typeof data.price === "number" ? data.price : parseFloat(data.price);
+  }
 
   const result = await prisma.product.updateMany({
     where: { id: { in: ids } },
@@ -256,8 +343,15 @@ export const bulkDelete = async (ids: string[], userId: string = "unknown") => {
   return { deleted: idsToDelete.length, deactivated: idsWithOrders.length };
 };
 
-export const processImport = async (fileBuffer: Buffer, mimeType: string, userId: string = "unknown") => {
-  const importedData = await importExportService.parseImportFile(fileBuffer, mimeType);
+export const processImport = async (
+  fileBuffer: Buffer,
+  mimeType: string,
+  userId: string = "unknown",
+) => {
+  const importedData = await importExportService.parseImportFile(
+    fileBuffer,
+    mimeType,
+  );
 
   let createdCount = 0;
   let updatedCount = 0;
@@ -305,7 +399,11 @@ export const processImport = async (fileBuffer: Buffer, mimeType: string, userId
     action: "IMPORT",
     userId,
     targetType: "PRODUCT",
-    details: { created: createdCount, updated: updatedCount, errorsCount: errors.length },
+    details: {
+      created: createdCount,
+      updated: updatedCount,
+      errorsCount: errors.length,
+    },
   });
 
   return { created: createdCount, updated: updatedCount, errors };
@@ -329,7 +427,10 @@ export const generateExport = async (userId: string = "unknown") => {
   return buffer;
 };
 
-export const processSheetSync = async (sheetUrl: string, userId: string = "unknown") => {
+export const processSheetSync = async (
+  sheetUrl: string,
+  userId: string = "unknown",
+) => {
   const importedData = await googleSheetsService.syncFromPublicSheet(sheetUrl);
 
   let createdCount = 0;
@@ -368,7 +469,11 @@ export const processSheetSync = async (sheetUrl: string, userId: string = "unkno
     action: "SYNC",
     userId,
     targetType: "PRODUCT",
-    details: { source: "GoogleSheet", created: createdCount, updated: updatedCount },
+    details: {
+      source: "GoogleSheet",
+      created: createdCount,
+      updated: updatedCount,
+    },
   });
 
   return { created: createdCount, updated: updatedCount };

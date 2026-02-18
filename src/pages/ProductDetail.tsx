@@ -11,7 +11,6 @@ import { getProductImage, PLACEHOLDER_IMAGE } from "../utils/productHelpers";
 import { toast } from "react-hot-toast";
 import ProductCardWithVariants from "../components/ProductCardWithVariants";
 import ProductDetailSkeleton from "../components/ProductDetailSkeleton";
-import SEO from "../components/SEO";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();

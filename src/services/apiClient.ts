@@ -10,15 +10,24 @@ const TOKEN_KEY = "eletrostart_admin_token";
 const API_BASE_URL =
   import.meta.env.VITE_BACKEND_URL ||
   import.meta.env.VITE_API_URL ||
-  "https://eletrostartbackend-api.onrender.com/api";
+  (import.meta.env.DEV ? "http://localhost:3001/api" : "");
 
 // Create Axios instance
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL || undefined,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+if (!API_BASE_URL && !import.meta.env.DEV) {
+  // Fail fast in production if base URL is missing
+  // Avoid hard-coded defaults to enforce proper environment configuration
+  // eslint-disable-next-line no-console
+  console.error(
+    "VITE_API_URL/VITE_BACKEND_URL não configurado. Defina a variável no ambiente de produção.",
+  );
+}
 
 // Helper to get token
 export const getToken = () => localStorage.getItem(TOKEN_KEY);

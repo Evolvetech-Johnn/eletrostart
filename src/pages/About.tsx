@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle, Award, Users, Clock, Zap, Target, Eye, Heart } from "lucide-react";
 

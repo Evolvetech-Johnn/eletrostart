@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '../../../components/ui/Button';
-import { Upload, X, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, X, Check, Loader2 } from 'lucide-react';
 import { productService } from '../../../services/productService';
 import { toast } from 'react-hot-toast';
 

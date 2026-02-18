@@ -1,5 +1,4 @@
-import React from "react";
-import { Cookie, Settings, BarChart3, Target, Shield, CheckCircle, X, Info } from "lucide-react";
+import { Cookie, Settings, BarChart3, Target, Shield, CheckCircle, Info } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Cookies: React.FC = () => {

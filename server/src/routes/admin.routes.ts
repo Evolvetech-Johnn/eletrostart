@@ -8,14 +8,18 @@ import {
   bulkMessagesAction,
   deleteMessage,
   getDashboard,
-  syncDiscordMessages,
+  getDashboardAnalytics,
   exportMessages,
   getTags,
   createTag,
   deleteTag,
-  testDiscordIntegration,
-  getDiscordLogs,
+  getAuditLogs,
   getUsers,
+  createUser,
+  updateUser,
+  updateUserRole,
+  updateUserStatus,
+  resetPassword,
   syncCategories,
 } from "../controllers/admin.controller";
 
@@ -28,11 +32,10 @@ router.use(requireAdmin);
 // POST /api/admin/categories/sync - Sincronizar categorias e produtos
 router.post("/categories/sync", syncCategories);
 
-// POST /api/admin/messages/sync - Sincronizar mensagens do Discord
-router.post("/messages/sync", syncDiscordMessages);
-
 // GET /api/admin/dashboard - Estatísticas do dashboard
 router.get("/dashboard", getDashboard);
+// GET /api/admin/dashboard/analytics - Estatísticas avançadas
+router.get("/dashboard/analytics", getDashboardAnalytics);
 
 // GET /api/admin/messages/export - Exportar mensagens (antes de :id)
 router.get("/messages/export", exportMessages);
@@ -60,11 +63,15 @@ router.get("/tags", getTags);
 router.post("/tags", createTag);
 router.delete("/tags/:id", deleteTag);
 
-// Integrações
-router.post("/integrations/discord/test", testDiscordIntegration);
-router.get("/integrations/discord/logs", getDiscordLogs);
+// Audit Logs
+router.get("/audit/logs", getAuditLogs);
 
 // Users
 router.get("/users", getUsers);
+router.post("/users", createUser);
+router.put("/users/:id", updateUser);
+router.patch("/users/:id/role", updateUserRole);
+router.patch("/users/:id/status", updateUserStatus);
+router.post("/users/reset-password", resetPassword);
 
 export default router;

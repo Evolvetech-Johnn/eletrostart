@@ -33,7 +33,8 @@ const Checkout = lazy(() => import("./pages/Checkout"));
 
 // Admin Pages (Lazy Loaded)
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminDashboard = React.lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const AdminMessageDetail = lazy(
   () => import("./pages/admin/AdminMessageDetail"),
@@ -44,6 +45,11 @@ const AdminProductForm = lazy(() => import("./pages/admin/AdminProductForm"));
 const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminOrderDetail = lazy(() => import("./pages/admin/AdminOrderDetail"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminAuditLogs = React.lazy(() => import("./pages/admin/AdminAuditLogs"));
+const AdminStockMovements = lazy(
+  () => import("./pages/admin/AdminStockMovements"),
+);
 
 // Loading Component
 const AdminLoading = () => (
@@ -72,6 +78,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/analytics"
+                element={
+                  <ProtectedRoute>
+                    <AdminAnalytics />
                   </ProtectedRoute>
                 }
               />
@@ -146,6 +160,30 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminOrderDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute>
+                    <AdminUsers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/audit"
+                element={
+                  <ProtectedRoute>
+                    <AdminAuditLogs />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/stock-movements"
+                element={
+                  <ProtectedRoute>
+                    <AdminStockMovements />
                   </ProtectedRoute>
                 }
               />

@@ -1,4 +1,3 @@
-import React from "react";
 import { RotateCcw, ShieldCheck, AlertCircle } from "lucide-react";
 
 const Returns = () => {

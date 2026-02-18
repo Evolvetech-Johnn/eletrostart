@@ -153,22 +153,12 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       return product.image;
     }
 
-    // Tenta construir o caminho baseado na categoria
     if (product.category && product.id) {
-       // Category can be string or object
-       const catId = typeof product.category === 'object' ? (product.category as any).id : product.category;
-       // Or slug? JS code used product.category directly in string template. 
-       // If product.category is object, toString() might be [object Object].
-       // Let's assume it's string or we handle it.
-       // Original code: `/img/${product.category}/${product.id}-main.jpg`
-       // This implies product.category was likely a slug or id string.
-       // In Product interface: category?: Category; (object) or categoryId?: string.
-       // If it's an object, we should probably use slug or id.
-       if (typeof product.category === 'string') {
-          return `/img/${product.category}/${product.id}-main.jpg`;
-       } else if (product.category && (product.category as any).slug) {
-          return `/img/${(product.category as any).slug}/${product.id}-main.jpg`;
-       }
+      if (typeof product.category === "string") {
+        return `/img/${product.category}/${product.id}-main.jpg`;
+      } else if ((product.category as any).slug) {
+        return `/img/${(product.category as any).slug}/${product.id}-main.jpg`;
+      }
     }
 
     return null;

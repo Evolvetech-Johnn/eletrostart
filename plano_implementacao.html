@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<!-- saved from url=(0110)file:///C:/Users/dlpun/.gemini/antigravity/brain/567bf165-0f94-46c5-9c1e-6e330292d51c/plano_implementacao.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #1e40af;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        h2 {
+            color: #1e40af;
+            border-bottom: 2px solid #60a5fa;
+            padding-bottom: 8px;
+            margin-top: 25px;
+        }
+        h3 {
+            color: #2563eb;
+            margin-top: 20px;
+        }
+        h4 {
+            color: #3b82f6;
+        }
+        code {
+            background-color: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        pre code {
+            background-color: transparent;
+            color: #e2e8f0;
+            padding: 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3b82f6;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        blockquote {
+            border-left: 4px solid #3b82f6;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background-color: #eff6ff;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .emoji {
+            font-size: 1.2em;
+        }
+        @media print {
+            body {
+                max-width: 100%;
+            }
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+            pre, table {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>🚀 Plano de Implementação — Sistema Multi-Lojista Padronizado</h1>
+<h2>ETAPA 1 — Estrutura Base Multi-Loja</h2>
+<h3>Objetivo</h3>
+<p>Garantir relacionamento correto e isolamento de dados por loja.</p>
+<h3>Backend</h3>
+<h4>1.1 Ajuste no Model ProductOffer</h4>
+<pre class="codehilite"><code class="language-python"># backend/api/models.py
+
+class ProductOffer(models.Model):
+    # ... campos existentes ...
+
+    # 🆕 ADICIONAR
+    low_stock_threshold = models.PositiveIntegerField(
+        default=10,
+        help_text="Alerta quando estoque ficar abaixo deste valor"
+    )
+
+    @property
+    def is_low_stock(self):
+        """Retorna True se estoque estiver abaixo do limite"""
+        return self.stock &lt; self.low_stock_threshold
+</code></pre>
+
+<h4>1.2 Atualizar Serializer</h4>
+<pre class="codehilite"><code class="language-python"># backend/api/serializers.py
+
+class ProductOfferSerializer(serializers.ModelSerializer):
+    is_low_stock = serializers.ReadOnlyField()
+
+    class Meta:
+        model = ProductOffer
+        fields = '__all__'
+</code></pre>
+
+<h4>1.3 Garantir slug único para Organization</h4>
+<p>✅ <strong>Já implementado</strong> via <code>username</code> (slugificado no save)</p>
+<h4>1.4 Criar endpoint de filtro por loja</h4>
+<pre class="codehilite"><code class="language-python"># backend/api/views/organization.py
+
+class OrganizationViewSet(ModelViewSet):
+    queryset = Organization.objects.all()
+
+    def get_object(self):
+        # Permitir busca por username (slug)
+        lookup_value = self.kwargs.get(self.lookup_field or 'pk')
+
+        # Tentar por username primeiro
+        obj = self.get_queryset().filter(username=lookup_value).first()
+
+        if not obj:
+            # Fallback para UUID
+            obj = get_object_or_404(self.get_queryset(), pk=lookup_value)
+
+        return obj
+</code></pre>
+
+<h3>Frontend</h3>
+<h4>1.5 Atualizar StoreService</h4>
+<pre class="codehilite"><code class="language-typescript">// frontend/src/services/storeService.ts
+
+export const storeService = {
+  async getByUsername(username: string) {
+    const response = await api.get(`/organizations/${username}/`)
+    return response.data
+  },
+
+  async getStoreOffers(organizationId: string) {
+    const response = await api.get(`/offers/?organization=${organizationId}`)
+    return response.data
+  }
+}
+</code></pre>
+
+<h3>Migrations</h3>
+<pre class="codehilite"><code class="language-bash">python manage.py makemigrations
+python manage.py migrate
+</code></pre>
+
+<hr>
+<h2>ETAPA 2 — Landing Page Padronizada Real</h2>
+<h3>Objetivo</h3>
+<p>Substituir mock data por integração real com backend.</p>
+<h3>2.1 Refatorar StoreProfile.tsx</h3>
+<pre class="codehilite"><code class="language-typescript">// frontend/src/pages/StoreProfile.tsx
+
+import { storeService } from '../services/storeService'
+import { offerService } from '../services/offerService'
+
+export function StoreProfile() {
+  const { username } = useParams() // Pegar username da URL
+  const [store, setStore] = useState(null)
+  const [offers, setOffers] = useState([])
+
+  useEffect(() =&gt; {
+    const loadStore = async () =&gt; {
+      try {
+        // Buscar dados reais da loja
+        const storeData = await storeService.getByUsername(username)
+        setStore(storeData)
+
+        // Buscar ofertas reais da loja
+        const offersData = await storeService.getStoreOffers(storeData.id)
+        setOffers(offersData.results)
+      } catch (error) {
+        console.error('Erro ao carregar loja', error)
+      }
+    }
+    loadStore()
+  }, [username])
+
+  // Renderizar com dados reais...
+}
+</code></pre>
+
+<h3>2.2 Layout Padronizado</h3>
+<p><strong>Componentes do Layout:</strong><br>
+- Header da loja (logo, nome, categoria)<br>
+- Banner/Hero (imagem de capa + frase destaque)<br>
+- Grid de produtos em cards<br>
+- Informações de contato (fixo)<br>
+- Sem customização individual (CSS global)</p>
+<p><strong>Estrutura:</strong></p>
+<pre class="codehilite"><code>┌──────────────────────────────────┐
+│  Logo   Nome da Loja   ⭐ 4.5   │
+├──────────────────────────────────┤
+│      Banner (Imagem Capa)        │
+│   "Ofertas Especiais da Semana"  │
+├──────────────────────────────────┤
+│  📍 Endereço  | 📞 Telefone      │
+│  🕐 Horário   | 🚚 Entrega       │
+├──────────────────────────────────┤
+│  [Card] [Card] [Card] [Card]     │
+│  [Card] [Card] [Card] [Card]     │
+└──────────────────────────────────┘
+</code></pre>
+
+<hr>
+<h2>ETAPA 3 — Estoque Inteligente (Backend)</h2>
+<h3>Objetivo</h3>
+<p>Implementar sistema de alerta de estoque baixo.</p>
+<h3>3.1 Criar Endpoint de Alertas</h3>
+<pre class="codehilite"><code class="language-python"># backend/api/views/organization.py
+
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+class OrganizationViewSet(ModelViewSet):
+    # ... código existente ...
+
+    @action(detail=True, methods=['get'], url_path='low-stock-alerts')
+    def low_stock_alerts(self, request, pk=None):
+        """Retorna produtos com estoque baixo da organização"""
+        organization = self.get_object()
+
+        # Buscar ofertas com estoque baixo
+        low_stock_offers = ProductOffer.objects.filter(
+            organization=organization
+        ).select_related('product')
+
+        # Filtrar apenas os com estoque baixo
+        alerts = [
+            offer for offer in low_stock_offers 
+            if offer.is_low_stock
+        ]
+
+        serializer = ProductOfferSerializer(alerts, many=True)
+        return Response(serializer.data)
+</code></pre>
+
+<h3>3.2 Badge Visual no Frontend</h3>
+<pre class="codehilite"><code class="language-typescript">// frontend/src/components/OfferCard.tsx
+
+function StockBadge({ stock, threshold }) {
+  const isLow = stock &lt; threshold
+
+  return (
+    &lt;Badge variant={isLow ? "danger" : "success"}&gt;
+      {isLow &amp;&amp; "⚠️ "} {stock} unidades
+    &lt;/Badge&gt;
+  )
+}
+</code></pre>
+
+<hr>
+<h2>ETAPA 4 — Dashboard Amigável do Lojista</h2>
+<h3>Objetivo</h3>
+<p>Criar visão consolidada para o lojista gerenciar seu estoque.</p>
+<h3>4.1 Atualizar Overview.tsx</h3>
+<pre class="codehilite"><code class="language-typescript">// frontend/src/pages/dashboard/Overview.tsx
+
+export function Overview() {
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    lowStockProducts: 0,
+    totalValue: 0
+  })
+
+  useEffect(() =&gt; {
+    const loadStats = async () =&gt; {
+      // Buscar estatísticas da organização do usuário
+      const user = await authService.getCurrentUser()
+      const organization = user.organizations[0] // Primeira org
+
+      // Buscar alertas de estoque baixo
+      const alerts = await api.get(
+        `/organizations/${organization.id}/low-stock-alerts/`
+      )
+
+      setStats({
+        totalProducts: organization.products_count,
+        lowStockProducts: alerts.data.length,
+        totalValue: calculateTotalValue(offers)
+      })
+    }
+    loadStats()
+  }, [])
+
+  return (
+    &lt;div className="grid grid-cols-3 gap-4"&gt;
+      &lt;StatCard
+        title="Total de Produtos"
+        value={stats.totalProducts}
+        icon={Package}
+      /&gt;
+      &lt;StatCard
+        title="Estoque Baixo"
+        value={stats.lowStockProducts}
+        icon={AlertTriangle}
+        variant="warning"
+      /&gt;
+      &lt;StatCard
+        title="Valor em Estoque"
+        value={formatCurrency(stats.totalValue)}
+        icon={DollarSign}
+      /&gt;
+    &lt;/div&gt;
+  )
+}
+</code></pre>
+
+<h3>4.2 Tabela de Alertas de Estoque</h3>
+<pre class="codehilite"><code class="language-typescript">&lt;Card&gt;
+  &lt;h3&gt;⚠️ Produtos com Estoque Baixo&lt;/h3&gt;
+  &lt;Table&gt;
+    &lt;thead&gt;
+      &lt;tr&gt;
+        &lt;th&gt;Produto&lt;/th&gt;
+        &lt;th&gt;Estoque Atual&lt;/th&gt;
+        &lt;th&gt;Limite&lt;/th&gt;
+        &lt;th&gt;Ações&lt;/th&gt;
+      &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+      {lowStockOffers.map(offer =&gt; (
+        &lt;tr key={offer.id}&gt;
+          &lt;td&gt;{offer.product.name}&lt;/td&gt;
+          &lt;td className="text-red-600"&gt;{offer.stock}&lt;/td&gt;
+          &lt;td&gt;{offer.low_stock_threshold}&lt;/td&gt;
+          &lt;td&gt;
+            &lt;Button onClick={() =&gt; navigate(`/dashboard/ofertas/${offer.id}`)}&gt;
+              Editar Estoque
+            &lt;/Button&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;
+      ))}
+    &lt;/tbody&gt;
+  &lt;/Table&gt;
+&lt;/Card&gt;
+</code></pre>
+
+<hr>
+<h2>ETAPA 5 — Sistema de Favoritos (Cliente)</h2>
+<h3>Objetivo</h3>
+<p>Permitir que clientes salvem produtos favoritos.</p>
+<h3>Backend</h3>
+<h4>5.1 Criar Model Favorite</h4>
+<pre class="codehilite"><code class="language-python"># backend/api/models.py
+
+class Favorite(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='favorites'
+    )
+    product = models.ForeignKey(
+        Product, 
+        on_delete=models.CASCADE, 
+        related_name='favorited_by'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'product')
+        verbose_name = 'Favorite'
+        verbose_name_plural = 'Favorites'
+
+    def __str__(self):
+        return f'{self.user.username} - {self.product.name}'
+</code></pre>
+
+<h4>5.2 Criar Serializer e ViewSet</h4>
+<pre class="codehilite"><code class="language-python"># backend/api/serializers.py
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    product_details = ProductSerializer(source='product', read_only=True)
+
+    class Meta:
+        model = Favorite
+        fields = '__all__'
+        read_only_fields = ['user']
+
+# backend/api/views/favorite.py
+
+class FavoriteViewSet(ModelViewSet):
+    serializer_class = FavoriteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Usuário só vê seus próprios favoritos
+        return Favorite.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+</code></pre>
+
+<h4>5.3 Adicionar rota</h4>
+<pre class="codehilite"><code class="language-python"># backend/api/urls.py
+
+router.register(
+    r'favorites',
+    FavoriteViewSet,
+    basename='favorite'
+)
+</code></pre>
+
+<h3>Frontend</h3>
+<h4>5.4 Criar FavoriteContext</h4>
+<pre class="codehilite"><code class="language-typescript">// frontend/src/contexts/FavoriteContext.tsx
+
+export const FavoriteProvider = ({ children }) =&gt; {
+  const [favorites, setFavorites] = useState&lt;Product[]&gt;([])
+
+  const toggleFavorite = async (productId: string) =&gt; {
+    const isFavorited = favorites.some(p =&gt; p.id === productId)
+
+    if (isFavorited) {
+      // Remover
+      await api.delete(`/favorites/${getFavoriteId(productId)}/`)
+      setFavorites(prev =&gt; prev.filter(p =&gt; p.id !== productId))
+    } else {
+      // Adicionar
+      const response = await api.post(`/favorites/`, { product: productId })
+      setFavorites(prev =&gt; [...prev, response.data])
+    }
+  }
+
+  return (
+    &lt;FavoriteContext.Provider value={{ favorites, toggleFavorite }}&gt;
+      {children}
+    &lt;/FavoriteContext.Provider&gt;
+  )
+}
+</code></pre>
+
+<h4>5.5 Botão de Favoritar no ProductCard</h4>
+<pre class="codehilite"><code class="language-typescript">// frontend/src/components/ProductCard.tsx
+
+import { useFavorites } from '../contexts/FavoriteContext'
+
+export function ProductCard({ product }) {
+  const { favorites, toggleFavorite } = useFavorites()
+  const isFavorited = favorites.some(p =&gt; p.id === product.id)
+
+  return (
+    &lt;Card&gt;
+      &lt;button 
+        onClick={() =&gt; toggleFavorite(product.id)}
+        className="absolute top-2 right-2"
+      &gt;
+        &lt;Heart 
+          className={isFavorited ? "fill-red-500 text-red-500" : "text-gray-400"}
+        /&gt;
+      &lt;/button&gt;
+      {/* ... resto do card ... */}
+    &lt;/Card&gt;
+  )
+}
+</code></pre>
+
+<hr>
+<h2>ETAPA 6 — Carrinho Multi-Loja Controlado</h2>
+<h3>Objetivo</h3>
+<p>Implementar carrinho com regra: apenas produtos de uma loja por vez.</p>
+<h3>Backend</h3>
+<h4>6.1 Criar Models Cart e CartItem</h4>
+<pre class="codehilite"><code class="language-python"># backend/api/models.py
+
+class Cart(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='cart'
+    )
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Loja atual do carrinho (apenas uma por vez)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class CartItem(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    offer = models.ForeignKey(ProductOffer, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        unique_together = ('cart', 'offer')
+</code></pre>
+
+<h4>6.2 Validação Multi-Loja</h4>
+<pre class="codehilite"><code class="language-python"># backend/api/views/cart.py
+
+class CartViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def add_item(self, request):
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        offer_id = request.data.get('offer')
+        offer = ProductOffer.objects.get(id=offer_id)
+
+        # Validar se é da mesma loja
+        if cart.organization and cart.organization != offer.organization:
+            return Response({
+                'error': f'Seu carrinho já contém itens de {cart.organization.name}. '
+                         f'Finalize a compra antes de adicionar produtos de outra loja.'
+            }, status=400)
+
+        # Definir loja do carrinho
+        if not cart.organization:
+            cart.organization = offer.organization
+            cart.save()
+
+        # Adicionar item
+        item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            offer=offer,
+            defaults={'quantity': request.data.get('quantity', 1)}
+        )
+
+        if not created:
+            item.quantity += request.data.get('quantity', 1)
+            item.save()
+
+        return Response(CartSerializer(cart).data)
+</code></pre>
+
+<h3>Frontend</h3>
+<h4>6.3 CartContext</h4>
+<pre class="codehilite"><code class="language-typescript">// frontend/src/contexts/CartContext.tsx
+
+export const CartProvider = ({ children }) =&gt; {
+  const [cart, setCart] = useState(null)
+
+  const addToCart = async (offerId: string, quantity: number) =&gt; {
+    try {
+      const response = await api.post('/cart/add-item/', { 
+        offer: offerId, 
+        quantity 
+      })
+      setCart(response.data)
+      toast.success('Produto adicionado ao carrinho!')
+    } catch (error) {
+      if (error.response?.status === 400) {
+        toast.error(error.response.data.error)
+      }
+    }
+  }
+
+  return (
+    &lt;CartContext.Provider value={{ cart, addToCart }}&gt;
+      {children}
+    &lt;/CartContext.Provider&gt;
+  )
+}
+</code></pre>
+
+<hr>
+<h2>ETAPA 7 — Alertas Automáticos</h2>
+<h3>Objetivo</h3>
+<p>Verificação automática e notificação de estoque baixo.</p>
+<h3>7.1 Criar Management Command</h3>
+<pre class="codehilite"><code class="language-python"># backend/api/management/commands/check_low_stock.py
+
+from django.core.management.base import BaseCommand
+from api.models import ProductOffer
+
+class Command(BaseCommand):
+    help = 'Verifica e notifica estoque baixo'
+
+    def handle(self, *args, **options):
+        low_stock_offers = [
+            offer for offer in ProductOffer.objects.all()
+            if offer.is_low_stock
+        ]
+
+        for offer in low_stock_offers:
+            self.stdout.write(
+                f'⚠️  {offer.product.name} - Estoque: {offer.stock} '
+                f'(limite: {offer.low_stock_threshold})'
+            )
+
+            # Aqui poderia enviar email para o lojista
+            # send_low_stock_email(offer)
+</code></pre>
+
+<h3>7.2 Agendar com Cron (opcional)</h3>
+<pre class="codehilite"><code class="language-bash"># Executar diariamente às 8h
+0 8 * * * cd /path/to/project &amp;&amp; python manage.py check_low_stock
+</code></pre>
+
+<hr>
+<h2>ETAPA 8 — Padronização Visual Global</h2>
+<h3>Objetivo</h3>
+<p>Design system único e consistente.</p>
+<h3>8.1 Componente ProductCard Padronizado</h3>
+<pre class="codehilite"><code class="language-typescript">// frontend/src/components/ProductCard.tsx
+
+export function ProductCard({ product, offer }) {
+  return (
+    &lt;Card className="product-card"&gt;
+      &lt;div className="relative"&gt;
+        &lt;img src={product.image} alt={product.name} /&gt;
+        &lt;FavoriteButton productId={product.id} /&gt;
+      &lt;/div&gt;
+
+      &lt;div className="p-4 space-y-2"&gt;
+        &lt;Badge&gt;{product.category?.name}&lt;/Badge&gt;
+        &lt;h3 className="font-bold text-lg"&gt;{product.name}&lt;/h3&gt;
+        &lt;p className="text-sm text-gray-600 line-clamp-2"&gt;
+          {product.description}
+        &lt;/p&gt;
+
+        &lt;div className="flex items-center justify-between"&gt;
+          &lt;span className="text-xs text-gray-500"&gt;
+            SKU: {product.sku}
+          &lt;/span&gt;
+          &lt;StockBadge 
+            stock={offer.stock} 
+            threshold={offer.low_stock_threshold} 
+          /&gt;
+        &lt;/div&gt;
+
+        &lt;div className="flex items-center justify-between mt-4"&gt;
+          &lt;span className="text-2xl font-bold text-primary"&gt;
+            R$ {offer.price}
+          &lt;/span&gt;
+          &lt;Button onClick={() =&gt; addToCart(offer.id)}&gt;
+            Adicionar
+          &lt;/Button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/Card&gt;
+  )
+}
+</code></pre>
+
+<hr>
+<h2>ETAPA 9 — Segurança e Permissões</h2>
+<h3>Objetivo</h3>
+<p>Garantir isolamento e segurança dos dados.</p>
+<h3>9.1 Verificações de Permissão</h3>
+<pre class="codehilite"><code class="language-python"># backend/api/permissions.py
+
+class IsOwnerOrReadOnly(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+
+        # Admin global tem acesso total
+        if request.user.is_staff:
+            return True
+
+        # Verificar ownership
+        if hasattr(obj, 'organization'):
+            return obj.organization.owner == request.user
+
+        if hasattr(obj, 'owner'):
+            return obj.owner == request.user
+
+        return False
+</code></pre>
+
+<h3>9.2 Middleware de Validação de Token</h3>
+<p>✅ <strong>Já implementado</strong> via SimpleJWT</p>
+<h3>9.3 Validação no Frontend</h3>
+<pre class="codehilite"><code class="language-typescript">// frontend/src/components/ProtectedRoute.tsx
+
+export function ProtectedRoute({ children, requireStoreAdmin = false }) {
+  const { user, isAuthenticated } = useAuth()
+
+  if (!isAuthenticated) {
+    return &lt;Navigate to="/login" /&gt;
+  }
+
+  if (requireStoreAdmin &amp;&amp; user.user_type !== 2) {
+    return &lt;Navigate to="/" /&gt;
+  }
+
+  return children
+}
+</code></pre>
+
+<hr>
+<h2>📁 FASE 4 — ORGANIZAÇÃO FINAL</h2>
+<h3>Backend</h3>
+<pre class="codehilite"><code>api/
+├── models.py              # Organization, Product, ProductOffer, Favorite, Cart
+├── serializers.py         # Serializers
+├── permissions.py         # IsOwnerOrReadOnly, etc
+├── services/              # Lógica de negócio
+│   ├── stock_service.py   # Alertas de estoque
+│   └── cart_service.py    # Lógica de carrinho
+└── views/
+    ├── product.py
+    ├── organization.py
+    ├── favorite.py
+    └── cart.py
+</code></pre>
+
+<h3>Frontend</h3>
+<pre class="codehilite"><code>src/
+├── pages/
+│   ├── Home.tsx
+│   ├── StoreProfile.tsx   # Landing page da loja
+│   ├── Favorites.tsx
+│   ├── Cart.tsx
+│   └── dashboard/
+│       └── Overview.tsx   # Dashboard com alertas
+├── components/
+│   ├── ProductCard.tsx    # Padronizado
+│   ├── StockBadge.tsx
+│   └── ui/
+├── contexts/
+│   ├── AuthContext.ts
+│   ├── FavoriteContext.tsx
+│   └── CartContext.tsx
+└── services/
+    ├── authService.ts
+    ├── productService.ts
+    ├── storeService.ts
+    ├── favoriteService.ts
+    └── cartService.ts
+</code></pre>
+
+<hr>
+<h2>✅ FASE 5 — TESTES E VALIDAÇÃO</h2>
+<h3>Testes Backend</h3>
+<h4>5.1 Testes de Models</h4>
+<pre class="codehilite"><code class="language-python"># backend/api/tests/test_models.py
+
+class ProductOfferTestCase(TestCase):
+    def test_is_low_stock(self):
+        offer = ProductOffer.objects.create(
+            stock=5,
+            low_stock_threshold=10,
+            # ... outros campos
+        )
+        self.assertTrue(offer.is_low_stock)
+</code></pre>
+
+<h4>5.2 Testes de Permissões</h4>
+<pre class="codehilite"><code class="language-python">def test_store_admin_cannot_edit_other_store_product(self):
+    # Criar lojista A
+    # Criar produto de lojista B
+    # Tentar editar como lojista A
+    # Deve falhar
+</code></pre>
+
+<h4>5.3 Testes de Carrinho Multi-Loja</h4>
+<pre class="codehilite"><code class="language-python">def test_cannot_add_product_from_different_store(self):
+    # Adicionar produto da loja A
+    # Tentar adicionar produto da loja B
+    # Deve retornar erro 400
+</code></pre>
+
+<h3>Testes Frontend</h3>
+<h4>5.4 Teste de Favoritos</h4>
+<pre class="codehilite"><code class="language-typescript">describe('FavoriteContext', () =&gt; {
+  it('should toggle favorite', async () =&gt; {
+    // Adicionar favorito
+    // Verificar se foi adicionado
+    // Remover favorito
+    // Verificar se foi removido
+  })
+})
+</code></pre>
+
+<h3>Testes Manuais</h3>
+<h4>5.5 Fluxo Completo</h4>
+<ol>
+<li>✅ Criar conta de lojista</li>
+<li>✅ Criar organização</li>
+<li>✅ Adicionar produtos</li>
+<li>✅ Criar ofertas com estoque baixo</li>
+<li>✅ Verificar alertas no dashboard</li>
+<li>✅ Acessar <code>/loja/{username}</code> como cliente</li>
+<li>✅ Favoritar produtos</li>
+<li>✅ Adicionar ao carrinho</li>
+<li>✅ Tentar adicionar produto de outra loja (deve bloquear)</li>
+</ol>
+<hr>
+<h2>🎯 RESULTADO FINAL ESPERADO</h2>
+<p>✅ Lojista cria loja<br>
+✅ Landing page gerada automaticamente em <code>/loja/{username}</code><br>
+✅ Produtos exibidos em cards padronizados com SKU, preço e estoque<br>
+✅ Dashboard operacional com alertas de estoque baixo<br>
+✅ Cliente pode favoritar produtos (backend + frontend)<br>
+✅ Cliente pode adicionar ao carrinho (uma loja por vez)<br>
+✅ Sistema multi-tenant seguro e escalável<br>
+✅ Permissões corretas (lojista edita só seus produtos)<br>
+✅ Sem complexidade desnecessária  </p>
+<hr>
+<h2>📊 Estimativa de Esforço</h2>
+<table>
+<thead>
+<tr>
+<th>Etapa</th>
+<th>Complexidade</th>
+<th>Tempo Estimado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ETAPA 1</td>
+<td>Baixa</td>
+<td>2-3 horas</td>
+</tr>
+<tr>
+<td>ETAPA 2</td>
+<td>Média</td>
+<td>3-4 horas</td>
+</tr>
+<tr>
+<td>ETAPA 3</td>
+<td>Baixa</td>
+<td>2 horas</td>
+</tr>
+<tr>
+<td>ETAPA 4</td>
+<td>Média</td>
+<td>3-4 horas</td>
+</tr>
+<tr>
+<td>ETAPA 5</td>
+<td>Média</td>
+<td>4-5 horas</td>
+</tr>
+<tr>
+<td>ETAPA 6</td>
+<td>Alta</td>
+<td>6-8 horas</td>
+</tr>
+<tr>
+<td>ETAPA 7</td>
+<td>Baixa</td>
+<td>1-2 horas</td>
+</tr>
+<tr>
+<td>ETAPA 8</td>
+<td>Baixa</td>
+<td>2-3 horas</td>
+</tr>
+<tr>
+<td>ETAPA 9</td>
+<td>Média</td>
+<td>2-3 horas</td>
+</tr>
+<tr>
+<td><strong>TOTAL</strong></td>
+<td>—</td>
+<td><strong>25-34 horas</strong></td>
+</tr>
+</tbody>
+</table>
+
+
+</body></html>
