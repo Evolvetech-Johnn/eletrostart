@@ -14,6 +14,8 @@ import { Button } from "../../components/ui/Button";
 import { Select } from "../../components/ui/Select";
 import toast from "react-hot-toast";
 
+type AdminUsersData = Awaited<ReturnType<typeof adminService.getUsers>>;
+
 const AdminUsers: React.FC = () => {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
@@ -26,7 +28,7 @@ const AdminUsers: React.FC = () => {
     isError,
     refetch,
     isFetching,
-  } = useQuery<AdminUser[]>({
+  } = useQuery<AdminUsersData>({
     queryKey: ["admin-users"],
     queryFn: () => adminService.getUsers(),
   });
@@ -202,16 +204,16 @@ const AdminUsers: React.FC = () => {
                         onClick={() =>
                           updateStatusMutation.mutate({
                             id: user.id,
-                            active: !(user as any).active,
+                            active: !user.active,
                           })
                         }
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          (user as any).active
+                          user.active
                             ? "bg-green-50 text-green-700"
                             : "bg-red-50 text-red-700"
                         }`}
                       >
-                        {(user as any).active ? "Ativo" : "Inativo"}
+                        {user.active ? "Ativo" : "Inativo"}
                       </button>
                     </td>
                     <td className="px-4 py-3 text-right">

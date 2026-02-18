@@ -33,6 +33,8 @@ export interface AdminUser {
   name: string;
   email: string;
   role: string;
+  active: boolean;
+  lastLogin?: string;
 }
 
 export interface Message {
