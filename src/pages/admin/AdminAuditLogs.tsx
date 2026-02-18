@@ -2,9 +2,15 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import AdminLayout from "./components/AdminLayout";
-import { adminService, AuditLog, AdminUser } from "../../services/adminService";
+import {
+  adminService,
+  AuditLog,
+  AdminUser,
+} from "../../services/adminService";
 import { AlertCircle, Loader2, Filter } from "lucide-react";
 import { Button } from "../../components/ui/Button";
+
+type AuditLogsData = Awaited<ReturnType<typeof adminService.getAuditLogs>>;
 
 const AdminAuditLogs: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -19,15 +25,8 @@ const AdminAuditLogs: React.FC = () => {
     queryFn: () => adminService.getUsers(),
   });
 
-  const { data, isLoading, isError, refetch, isFetching } = useQuery<{
-    logs: AuditLog[];
-    pagination: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
-  }>({
+  const { data, isLoading, isError, refetch, isFetching } =
+    useQuery<AuditLogsData>({
     queryKey: [
       "audit-logs",
       page,
@@ -45,11 +44,10 @@ const AdminAuditLogs: React.FC = () => {
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       }),
-  });
+    });
 
   const handleApplyFilters = () => {
     setPage(1);
-    refetch();
   };
 
   const totalPages = data?.pagination.totalPages || 1;
