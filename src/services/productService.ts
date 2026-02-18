@@ -126,6 +126,16 @@ export interface StockMovement {
   createdAt: string;
 }
 
+export interface StockMovementsResponse {
+  data: StockMovement[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 export const productService = {
   // Public
   getProducts: async (params: GetProductsParams = {}): Promise<Product[]> => {
@@ -231,14 +241,27 @@ export const productService = {
     emptySku?: string;
     page?: number;
     limit?: number;
-  }): Promise<{ data: StockMovement[]; pagination: any }> => {
+  }): Promise<StockMovementsResponse> => {
     const queryString = new URLSearchParams(params as any).toString();
-    const response = await apiClient.get<any, ApiResponse<StockMovement[]>>(
-      `/ecommerce/stock-movements?${queryString}`,
-    );
+    const response = await apiClient.get<
+      any,
+      ApiResponse<{
+        data: StockMovement[];
+        pagination: StockMovementsResponse["pagination"];
+      }>
+    >(`/ecommerce/stock-movements?${queryString}`);
+
+    const payload = response.data as any;
+
     return {
-      data: (response as any).data,
-      pagination: (response as any).pagination,
+      data: (payload.data || []) as StockMovement[],
+      pagination:
+        payload.pagination || {
+          total: payload.data?.length || 0,
+          page: params.page || 1,
+          limit: params.limit || payload.data?.length || 0,
+          totalPages: 1,
+        },
     };
   },
 

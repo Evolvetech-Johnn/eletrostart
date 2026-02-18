@@ -5,6 +5,7 @@ import {
   productService,
   StockMovement,
   Product,
+  StockMovementsResponse,
 } from "../../services/productService";
 import { adminService, AdminUser } from "../../services/adminService";
 import { Input } from "../../components/ui/Input";
@@ -12,6 +13,10 @@ import { Button } from "../../components/ui/Button";
 import { AlertCircle, Filter, Download, Edit3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
+
+type StockMovementsData = Awaited<
+  ReturnType<typeof productService.getStockMovements>
+>;
 
 const AdminStockMovements: React.FC = () => {
   const [productId, setProductId] = useState<string>("");
@@ -54,7 +59,7 @@ const AdminStockMovements: React.FC = () => {
 
   const queryClient = useQueryClient();
 
-  const { data: products = [] } = useQuery({
+  const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["products", { all: true }],
     queryFn: () => productService.getProducts({ all: true }),
   });
@@ -64,7 +69,11 @@ const AdminStockMovements: React.FC = () => {
     queryFn: () => adminService.getUsers(),
   });
 
-  const { data, isLoading, error } = useQuery({
+  const {
+    data,
+    isLoading,
+    error,
+  } = useQuery<StockMovementsData>({
     queryKey: [
       "stock-movements",
       {
