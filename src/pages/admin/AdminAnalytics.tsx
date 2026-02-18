@@ -16,10 +16,14 @@ import {
   Bar,
 } from "recharts";
 
+type AnalyticsData = Awaited<
+  ReturnType<typeof adminService.getDashboardAnalytics>
+>;
+
 const AdminAnalytics: React.FC = () => {
   const [days, setDays] = useState(30);
 
-  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+  const { data, isLoading, isError, isFetching } = useQuery<AnalyticsData>({
     queryKey: ["admin-analytics", days],
     queryFn: () => adminService.getDashboardAnalytics(days),
   });
@@ -28,7 +32,6 @@ const AdminAnalytics: React.FC = () => {
     const parsed = Number(value);
     if (!Number.isNaN(parsed)) {
       setDays(parsed);
-      refetch();
     }
   };
 
