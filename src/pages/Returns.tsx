@@ -4,12 +4,12 @@ const Returns = () => {
   return (
     <div className="bg-[#f8f9fa] min-h-screen pb-20">
       <div className="bg-[#222998] text-white py-16">
-        <div className="container mx-auto px-4">
+        <div className="layout-container">
           <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 leading-none text-center">Trocas e<br/>Devoluções</h1>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 -mt-8 max-w-4xl">
+      <div className="layout-container -mt-8 max-w-4xl">
         <div className="bg-white rounded-[40px] shadow-xl shadow-blue-900/5 p-8 md:p-16">
           <div className="flex items-center space-x-4 mb-12 text-secondary">
             <RotateCcw size={32} />

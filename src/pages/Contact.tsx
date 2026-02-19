@@ -123,7 +123,7 @@ const Contact = () => {
         <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4">
           <MessageSquare size={400} />
         </div>
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="layout-container relative z-10">
           <nav className="flex items-center space-x-2 text-[10px] uppercase font-bold tracking-[0.2em] mb-6 opacity-60">
             <span>Início</span>
             <span>/</span>
@@ -139,7 +139,7 @@ const Contact = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 -mt-16 relative z-20">
+      <div className="layout-container -mt-16 relative z-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Contact Info Cards */}
           <div className="lg:col-span-1 space-y-6">

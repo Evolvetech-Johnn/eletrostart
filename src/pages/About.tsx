@@ -11,7 +11,7 @@ const About = () => {
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-primary/80 backdrop-blur-sm" />
-        <div className="container mx-auto px-4 relative z-10 text-white">
+        <div className="layout-container relative z-10 text-white">
           <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4 leading-none">
             Nossa<br/>História
           </h1>
@@ -21,7 +21,7 @@ const About = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-20">
+      <div className="layout-container py-20">
         <div className="flex flex-col lg:flex-row gap-16 mb-32 items-center">
           <div className="lg:w-1/2">
             <div className="relative">
@@ -122,7 +122,7 @@ const About = () => {
 
       {/* Team CTA */}
       <section className="bg-[#222998] py-20">
-        <div className="container mx-auto px-4 text-center">
+        <div className="layout-container text-center">
           <h2 className="text-3xl md:text-5xl font-black text-white uppercase mb-8 leading-tight">Vamos construir seu<br/> projeto juntos?</h2>
           <Link to="/contact" className="bg-secondary text-white px-10 py-4 rounded-full font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-black/20 inline-block">Fale com um Especialista</Link>
         </div>

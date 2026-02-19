@@ -8,7 +8,7 @@ const WorkWithUs: React.FC = () => {
         <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4">
           <Briefcase size={400} />
         </div>
-        <div className="container mx-auto px-4 relative z-10 text-center">
+        <div className="layout-container relative z-10 text-center">
           <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4 leading-none">
             Trabalhe Conosco
           </h1>
@@ -19,7 +19,7 @@ const WorkWithUs: React.FC = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-20">
+      <div className="layout-container py-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center mb-20">
           <div>
             <h2 className="text-sm font-black text-primary uppercase tracking-[0.3em] mb-4">

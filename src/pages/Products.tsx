@@ -257,7 +257,7 @@ const Products = () => {
       />
       {/* Header / Search Bar */}
       <div className="bg-white border-b sticky top-0 z-30 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
+        <div className="layout-container py-4">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             <h1 className="text-2xl font-black uppercase tracking-tight text-gray-900 hidden md:block">
               Nossos <span className="text-primary">Produtos</span>
@@ -321,7 +321,7 @@ const Products = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="layout-container py-8">
         {/* Render filtered products */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (

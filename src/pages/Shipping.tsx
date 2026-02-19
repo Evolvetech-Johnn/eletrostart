@@ -4,13 +4,13 @@ const Shipping = () => {
   return (
     <div className="bg-[#f8f9fa] min-h-screen pb-20">
       <div className="bg-[#222998] text-white py-16">
-        <div className="container mx-auto px-4">
+        <div className="layout-container">
           <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 leading-none">Prazos e Entrega</h1>
           <p className="text-blue-100 font-medium italic opacity-80">Logística eficiente para garantir sua obra no prazo.</p>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 -mt-8">
+      <div className="layout-container -mt-8">
         <div className="bg-white rounded-[40px] shadow-xl shadow-blue-900/5 p-8 md:p-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20 border-b border-gray-50 pb-20">
             {[

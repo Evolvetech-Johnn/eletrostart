@@ -51,7 +51,7 @@ const Services: React.FC = () => {
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-[#222998] to-transparent" />
-        <div className="container mx-auto px-4 relative z-10 text-white">
+        <div className="layout-container relative z-10 text-white">
           <nav className="flex items-center space-x-2 text-[10px] uppercase font-bold tracking-[0.3em] mb-6 opacity-60">
             <Link to="/" className="hover:text-secondary transition-colors">Início</Link>
             <span>/</span>
@@ -67,7 +67,7 @@ const Services: React.FC = () => {
       </div>
 
       {/* Services Grid */}
-      <div className="container mx-auto px-4 py-32">
+      <div className="layout-container py-32">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {services.map((service, index) => (
             <div
@@ -110,7 +110,7 @@ const Services: React.FC = () => {
 
       {/* Quality Highlights */}
       <section className="bg-gray-50 py-32 border-y border-gray-100">
-        <div className="container mx-auto px-4">
+        <div className="layout-container">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
             <div className="flex flex-col items-center text-center">
               <ShieldCheck size={48} className="text-secondary mb-6" />
@@ -133,7 +133,7 @@ const Services: React.FC = () => {
 
       {/* Final CTA */}
       <section className="py-32 bg-white">
-        <div className="container mx-auto px-4 text-center">
+        <div className="layout-container text-center">
           <h2 className="text-4xl md:text-6xl font-black text-[#222998] uppercase leading-none mb-12">Pronto para<br/>dar o Próximo Passo?</h2>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <Link to="/contact" className="bg-primary text-white px-12 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl shadow-primary/30 hover:scale-105 transition-all">Solicitar Orçamento</Link>

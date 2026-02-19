@@ -30,7 +30,7 @@ const FAQ = () => {
   return (
     <div className="bg-[#f8f9fa] min-h-screen pb-20">
       <div className="bg-[#222998] text-white py-16">
-        <div className="container mx-auto px-4 text-center">
+        <div className="layout-container text-center">
           <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 leading-none">Dúvidas Frequentes</h1>
           <div className="max-w-2xl mx-auto relative mt-8">
             <input type="text" placeholder="Como podemos ajudar?" className="w-full px-8 py-4 rounded-full bg-white text-gray-900 shadow-xl outline-none focus:ring-4 ring-blue-400/30 font-medium" />
@@ -39,7 +39,7 @@ const FAQ = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-20 max-w-3xl">
+      <div className="layout-container py-20 max-w-3xl">
         <div className="space-y-4">
           {faqs.map((faq, i) => (
             <div key={i} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">

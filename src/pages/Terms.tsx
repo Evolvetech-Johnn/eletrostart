@@ -132,7 +132,7 @@ const Terms: React.FC = () => {
           <div className="absolute top-10 left-10 w-64 h-64 border border-white/20 rounded-full"></div>
           <div className="absolute bottom-10 right-10 w-96 h-96 border border-white/20 rounded-full"></div>
         </div>
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="layout-container relative z-10">
           <div className="flex items-center gap-4 mb-6">
             <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-sm">
               <FileText size={40} />
@@ -152,7 +152,7 @@ const Terms: React.FC = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 -mt-10 relative z-20">
+      <div className="layout-container -mt-10 relative z-20">
         {/* Last Update Card */}
         <div className="bg-white rounded-3xl shadow-xl shadow-blue-900/5 p-6 md:p-8 mb-8 flex flex-wrap items-center justify-between gap-6">
           <div className="flex items-center gap-4">

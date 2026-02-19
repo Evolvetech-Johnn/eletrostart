@@ -173,7 +173,7 @@ const Home = () => {
       </section>
 
       {/* Categories Grid */}
-      <section className="container mx-auto px-4 -mt-10 md:-mt-16 relative z-30">
+      <section className="layout-container -mt-10 md:-mt-16 relative z-30">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
           {categories.slice(0, 8).map((cat) => {
             const Icon = cat.icon;
@@ -208,7 +208,7 @@ const Home = () => {
       </section>
 
       {/* Featured Products (Destaques) */}
-      <section className="container mx-auto px-4 py-16">
+      <section className="layout-container py-16">
         <div className="flex justify-between items-end mb-10 pb-4 border-b-2 border-primary/10">
           <div>
             <h2 className="text-2xl md:text-3xl font-black text-gray-900 uppercase">

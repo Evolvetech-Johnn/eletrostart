@@ -95,7 +95,7 @@ const Header: React.FC = () => {
 
       {/* Main Header */}
       <div className="border-b border-gray-100">
-        <div className="container mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="layout-container py-4 flex flex-wrap items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" className="flex-shrink-0 flex items-center gap-3">
             <img
@@ -194,7 +194,7 @@ const Header: React.FC = () => {
 
       {/* Navigation Menu (Desktop) */}
       <div className="hidden lg:block bg-white border-b border-gray-100 shadow-sm">
-        <div className="container mx-auto px-4">
+        <div className="layout-container">
           <nav className="flex items-center space-x-2">
             <MainNav />
           </nav>
