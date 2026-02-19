@@ -4,6 +4,7 @@ import { BarChart2, Loader2, AlertCircle } from "lucide-react";
 import AdminLayout from "./components/AdminLayout";
 import { adminService } from "../../services/adminService";
 import { Select } from "../../components/ui/Select";
+import { useAuth } from "../../context/AuthContext";
 import {
   ResponsiveContainer,
   LineChart,
@@ -22,10 +23,12 @@ type AnalyticsData = Awaited<
 
 const AdminAnalytics: React.FC = () => {
   const [days, setDays] = useState(30);
+  const { loading, isAuthenticated } = useAuth();
 
   const { data, isLoading, isError, isFetching } = useQuery<AnalyticsData>({
     queryKey: ["admin-analytics", days],
     queryFn: () => adminService.getDashboardAnalytics(days),
+    enabled: !loading && isAuthenticated,
   });
 
   const handleChangePeriod = (value: string) => {

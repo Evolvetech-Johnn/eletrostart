@@ -16,15 +16,16 @@ import { adminService, DashboardData } from "../../services/adminService";
 import AdminLayout from "./components/AdminLayout";
 import toast from "react-hot-toast";
 import { Button } from "../../components/ui/Button";
+import { useAuth } from "../../context/AuthContext";
 
 const AdminDashboard: React.FC = () => {
-  // queryClient removido
+  const { loading, isAuthenticated } = useAuth();
 
-  // Query for dashboard data
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
     queryKey: ["admin-dashboard"],
     queryFn: adminService.getDashboard,
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60000,
+    enabled: !loading && isAuthenticated,
   });
 
   // Sincronização via Discord removida

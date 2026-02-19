@@ -9,6 +9,7 @@ import { CATEGORY_MIN_PRICE_BY_SLUG } from "../../../config/pricing";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../../../context/AuthContext";
 
 interface QuickAddProductModalProps {
   isOpen: boolean;
@@ -30,14 +31,18 @@ export const QuickAddProductModal: React.FC<QuickAddProductModalProps> = ({
   const [unit, setUnit] = useState("un");
   const [active, setActive] = useState(true);
 
+  const { loading, isAuthenticated } = useAuth();
+
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: productService.getCategories,
+    enabled: !loading && isAuthenticated,
   });
 
   const { data: minPriceConfig } = useQuery({
     queryKey: ["minPriceConfig"],
     queryFn: productService.getMinPriceConfig,
+    enabled: !loading && isAuthenticated,
   });
 
   const minPriceMap = minPriceConfig || CATEGORY_MIN_PRICE_BY_SLUG;

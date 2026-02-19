@@ -7,6 +7,7 @@ import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+import { useAuth } from "../../context/AuthContext";
 
 const AdminOrders: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,6 +20,8 @@ const AdminOrders: React.FC = () => {
   // Local state for search input to avoid debounce issues for now
   const [searchInput, setSearchInput] = useState(search);
 
+  const { loading: authLoading, isAuthenticated } = useAuth();
+
   // Queries
   const {
     data: orders = [],
@@ -27,6 +30,7 @@ const AdminOrders: React.FC = () => {
   } = useQuery({
     queryKey: ["orders", { page, status, search }],
     queryFn: () => orderService.getOrders({ page, status, search }),
+    enabled: !authLoading && isAuthenticated,
   });
 
   // Mutations

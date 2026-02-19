@@ -13,6 +13,7 @@ import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Select } from "../../components/ui/Select";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
 
 type AdminUsersData = Awaited<ReturnType<typeof adminService.getUsers>>;
 
@@ -21,6 +22,7 @@ const AdminUsers: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetPassword, setResetPassword] = useState("");
+  const { loading, isAuthenticated } = useAuth();
 
   const {
     data: users,
@@ -31,6 +33,7 @@ const AdminUsers: React.FC = () => {
   } = useQuery<AdminUsersData>({
     queryKey: ["admin-users"],
     queryFn: () => adminService.getUsers(),
+    enabled: !loading && isAuthenticated,
   });
 
   const createMutation = useMutation({

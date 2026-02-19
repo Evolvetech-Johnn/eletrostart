@@ -23,6 +23,7 @@ import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+import { useAuth } from "../../context/AuthContext";
 
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
@@ -71,7 +72,8 @@ const AdminProductForm: React.FC = () => {
 
   const variantUpdateTimers = useRef<Record<string, number | undefined>>({});
 
-  // React Hook Form
+  const { loading, isAuthenticated } = useAuth();
+
   const {
     register,
     handleSubmit,
@@ -97,10 +99,10 @@ const AdminProductForm: React.FC = () => {
 
   const imageUrl = watch("image");
 
-  // Queries
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: productService.getCategories,
+    enabled: !loading && isAuthenticated,
   });
 
   const {
@@ -110,7 +112,7 @@ const AdminProductForm: React.FC = () => {
   } = useQuery({
     queryKey: ["product", id],
     queryFn: () => productService.getProduct(id!),
-    enabled: isEdit,
+    enabled: isEdit && !loading && isAuthenticated,
   });
 
   // Product images and variants (only in edit mode)
@@ -124,7 +126,7 @@ const AdminProductForm: React.FC = () => {
       const json = await res.json();
       return json.data || [];
     },
-    enabled: isEdit,
+    enabled: isEdit && !loading && isAuthenticated,
   });
 
   const { data: variants = [], refetch: refetchVariants } = useQuery({
@@ -137,7 +139,7 @@ const AdminProductForm: React.FC = () => {
       const json = await res.json();
       return json.data || [];
     },
-    enabled: isEdit,
+    enabled: isEdit && !loading && isAuthenticated,
   });
 
   const {
@@ -147,7 +149,7 @@ const AdminProductForm: React.FC = () => {
   } = useQuery({
     queryKey: ["product-stock-movements", id],
     queryFn: () => productService.getProductStockMovements(id!, { limit: 5 }),
-    enabled: isEdit,
+    enabled: isEdit && !loading && isAuthenticated,
   });
 
   // Effect to populate form when product loads

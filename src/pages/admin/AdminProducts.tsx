@@ -31,6 +31,7 @@ import {
 import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
 import { Button } from "../../components/ui/Button";
+import { useAuth } from "../../context/AuthContext";
 import { Input } from "../../components/ui/Input";
 
 const AdminProducts: React.FC = () => {
@@ -58,6 +59,7 @@ const AdminProducts: React.FC = () => {
   const [stockModalValue, setStockModalValue] = useState<string>("");
   const [stockModalReason, setStockModalReason] = useState<string>("");
   const [stockThreshold, setStockThreshold] = useState<number>(5);
+  const { loading, isAuthenticated } = useAuth();
 
   // Queries
   const {
@@ -71,18 +73,21 @@ const AdminProducts: React.FC = () => {
         page,
         search,
         category,
-        all: true, // Based on original code which set all: true
+        all: true,
       }),
+    enabled: !loading && isAuthenticated,
   });
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: productService.getCategories,
+    enabled: !loading && isAuthenticated,
   });
 
   const { data: minPriceConfig } = useQuery({
     queryKey: ["minPriceConfig"],
     queryFn: productService.getMinPriceConfig,
+    enabled: !loading && isAuthenticated,
   });
 
   const minPriceMap = minPriceConfig || CATEGORY_MIN_PRICE_BY_SLUG;
@@ -94,6 +99,7 @@ const AdminProducts: React.FC = () => {
   } = useQuery<LowStockProduct[]>({
     queryKey: ["lowStockProducts", stockThreshold],
     queryFn: () => productService.getLowStockProducts(stockThreshold),
+    enabled: !loading && isAuthenticated,
   });
 
   // Mutations

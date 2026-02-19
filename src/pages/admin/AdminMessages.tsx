@@ -24,6 +24,7 @@ import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+import { useAuth } from "../../context/AuthContext";
 
 const AdminMessages: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,17 +49,19 @@ const AdminMessages: React.FC = () => {
     priority: currentPriority || undefined,
   };
 
-  // Fetch Messages
+  const { loading, isAuthenticated } = useAuth();
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-messages", queryParams],
     queryFn: () => adminService.getMessages(queryParams),
-    placeholderData: (previousData) => previousData, // Keep previous data while fetching new page
+    placeholderData: (previousData) => previousData,
+    enabled: !loading && isAuthenticated,
   });
 
-  // Fetch Tags
   const { data: tags = [] } = useQuery({
     queryKey: ["admin-tags"],
     queryFn: adminService.getTags,
+    enabled: !loading && isAuthenticated,
   });
 
   // Bulk Action Mutation

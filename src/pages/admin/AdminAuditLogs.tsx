@@ -9,6 +9,7 @@ import {
 } from "../../services/adminService";
 import { AlertCircle, Loader2, Filter } from "lucide-react";
 import { Button } from "../../components/ui/Button";
+import { useAuth } from "../../context/AuthContext";
 
 type AuditLogsData = Awaited<ReturnType<typeof adminService.getAuditLogs>>;
 
@@ -20,9 +21,12 @@ const AdminAuditLogs: React.FC = () => {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
+  const { loading, isAuthenticated } = useAuth();
+
   const { data: users } = useQuery<AdminUser[]>({
     queryKey: ["admin-users"],
     queryFn: () => adminService.getUsers(),
+    enabled: !loading && isAuthenticated,
   });
 
   const { data, isLoading, isError, refetch, isFetching } =
@@ -44,6 +48,7 @@ const AdminAuditLogs: React.FC = () => {
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       }),
+    enabled: !loading && isAuthenticated,
     });
 
   const handleApplyFilters = () => {

@@ -29,6 +29,7 @@ import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Textarea } from "../../components/ui/Textarea";
+import { useAuth } from "../../context/AuthContext";
 
 const AdminMessageDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,7 +43,8 @@ const AdminMessageDetail: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const [newTagName, setNewTagName] = useState("");
 
-  // Queries
+  const { loading, isAuthenticated } = useAuth();
+
   const {
     data: message,
     isLoading: isLoadingMessage,
@@ -50,17 +52,19 @@ const AdminMessageDetail: React.FC = () => {
   } = useQuery({
     queryKey: ["message", id],
     queryFn: () => adminService.getMessage(id!),
-    enabled: !!id,
+    enabled: !!id && !loading && isAuthenticated,
   });
 
   const { data: availableTags = [] } = useQuery({
     queryKey: ["tags"],
     queryFn: adminService.getTags,
+    enabled: !loading && isAuthenticated,
   });
 
   const { data: adminUsers = [] } = useQuery({
     queryKey: ["users"],
     queryFn: adminService.getUsers,
+    enabled: !loading && isAuthenticated,
   });
 
   // Sync local state with fetched message

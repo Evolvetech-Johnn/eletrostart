@@ -13,12 +13,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderService } from "../../services/orderService";
 import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
 
 const AdminOrderDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
 
   const orderId = id || "";
+  const { loading: authLoading, isAuthenticated } = useAuth();
 
   const {
     data: order,
@@ -27,7 +29,7 @@ const AdminOrderDetail: React.FC = () => {
   } = useQuery({
     queryKey: ["order", orderId],
     queryFn: () => orderService.getOrder(orderId),
-    enabled: !!orderId,
+    enabled: !!orderId && !authLoading && isAuthenticated,
   });
 
   const [trackingDraft, setTrackingDraft] = useState("");

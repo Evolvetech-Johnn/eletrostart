@@ -6,14 +6,18 @@ import { productService, Category } from "../../services/productService";
 import AdminLayout from "./components/AdminLayout";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+import { useAuth } from "../../context/AuthContext";
 
 const AdminCategories: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
 
+  const { loading: authLoading, isAuthenticated } = useAuth();
+
   const { data: categories = [], isLoading: loading } = useQuery({
     queryKey: ["categories"],
     queryFn: productService.getCategories,
+    enabled: !authLoading && isAuthenticated,
   });
 
   const syncMutation = useMutation({

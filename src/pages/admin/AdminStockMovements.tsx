@@ -13,6 +13,7 @@ import { Button } from "../../components/ui/Button";
 import { AlertCircle, Filter, Download, Edit3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
 
 type StockMovementsData = Awaited<
   ReturnType<typeof productService.getStockMovements>
@@ -59,14 +60,18 @@ const AdminStockMovements: React.FC = () => {
 
   const queryClient = useQueryClient();
 
+  const { loading, isAuthenticated } = useAuth();
+
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["products", { all: true }],
     queryFn: () => productService.getProducts({ all: true }),
+    enabled: !loading && isAuthenticated,
   });
 
   const { data: users = [] } = useQuery<AdminUser[]>({
     queryKey: ["admin-users"],
     queryFn: () => adminService.getUsers(),
+    enabled: !loading && isAuthenticated,
   });
 
   const {
@@ -101,6 +106,7 @@ const AdminStockMovements: React.FC = () => {
         page,
         limit: 20,
       }),
+    enabled: !loading && isAuthenticated,
   });
 
   const movements = (data?.data || []) as StockMovement[];
@@ -121,6 +127,7 @@ const AdminStockMovements: React.FC = () => {
         userId: selectedUserId || undefined,
         delta: delta || undefined,
       }),
+    enabled: !loading && isAuthenticated,
   });
   const adjustStockMutation = useMutation({
     mutationFn: ({
