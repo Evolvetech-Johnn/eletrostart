@@ -11,6 +11,11 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderService } from "../../services/orderService";
+import { productService } from "../../services/productService";
+import {
+  buildWhatsappMessage,
+  orderToMessageDetails,
+} from "../../utils/orderMessage";
 import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
@@ -41,6 +46,37 @@ const AdminOrderDetail: React.FC = () => {
       setTrackingDraft("");
     }
   }, [order?.trackingCode]);
+
+  const [productCodes, setProductCodes] = useState<
+    Record<string, string | undefined>
+  >({});
+  useEffect(() => {
+    const loadCodes = async () => {
+      try {
+        const ids = Array.from(
+          new Set((order?.items || []).map((i) => i.productId).filter(Boolean)),
+        );
+        const results = await Promise.all(
+          ids.map(async (pid) => {
+            try {
+              const p = await productService.getProduct(pid);
+              return { id: pid, code: p.code };
+            } catch {
+              return { id: pid, code: undefined };
+            }
+          }),
+        );
+        const map: Record<string, string | undefined> = {};
+        results.forEach((r) => (map[r.id] = r.code));
+        setProductCodes(map);
+      } catch {
+        // silencioso; códigos são opcionais na mensagem
+      }
+    };
+    if (order && order.items && order.items.length > 0) {
+      loadCodes();
+    }
+  }, [order?.id]);
 
   const updateStatusMutation = useMutation({
     mutationFn: ({
@@ -82,6 +118,27 @@ const AdminOrderDetail: React.FC = () => {
     return map[status] || "bg-gray-100 text-gray-800";
   };
 
+  const buildMessageFromOrder = () => {
+    if (!order) return "";
+    const details = orderToMessageDetails(order, productCodes);
+    return buildWhatsappMessage(details);
+  };
+
+  const copyWhatsappMessage = () => {
+    const msg = buildMessageFromOrder();
+    if (!msg) return;
+    navigator.clipboard.writeText(msg).then(
+      () => toast.success("Mensagem copiada"),
+      () => toast.error("Não foi possível copiar a mensagem"),
+    );
+  };
+
+  const openWhatsappWeb = () => {
+    const msg = buildMessageFromOrder();
+    const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -119,7 +176,7 @@ const AdminOrderDetail: React.FC = () => {
             <ArrowLeft size={16} className="mr-1" /> Voltar
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <span className="text-sm text-gray-500">Mudar Status:</span>
             <select
               className="border rounded px-3 py-1 bg-white"
@@ -133,6 +190,22 @@ const AdminOrderDetail: React.FC = () => {
               <option value="DELIVERED">Entregue</option>
               <option value="CANCELLED">Cancelado</option>
             </select>
+            <button
+              type="button"
+              className="px-3 py-1 rounded border text-sm hover:bg-gray-50"
+              onClick={copyWhatsappMessage}
+              title="Copiar mensagem de pedido para WhatsApp"
+            >
+              Copiar WhatsApp
+            </button>
+            <button
+              type="button"
+              className="px-3 py-1 rounded bg-green-600 text-white text-sm hover:bg-green-700"
+              onClick={openWhatsappWeb}
+              title="Abrir WhatsApp Web com a mensagem"
+            >
+              Abrir WhatsApp
+            </button>
           </div>
         </div>
 
@@ -154,94 +227,96 @@ const AdminOrderDetail: React.FC = () => {
                   <Package size={18} /> Itens do Pedido
                 </h3>
               </div>
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-sm font-medium text-gray-500">
-                      Produto
-                    </th>
-                    <th className="px-6 py-3 text-sm font-medium text-gray-500 text-right">
-                      Qtd
-                    </th>
-                    <th className="px-6 py-3 text-sm font-medium text-gray-500 text-right">
-                      Unitário
-                    </th>
-                    <th className="px-6 py-3 text-sm font-medium text-gray-500 text-right">
-                      Total
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {order.items.map((item) => (
-                    <tr key={item.id}>
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">
-                          {item.productName}
-                        </div>
+              <div className="w-full overflow-x-auto">
+                <table className="min-w-[900px] w-full text-sm text-left">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-6 py-3 text-sm font-medium text-gray-500">
+                        Produto
+                      </th>
+                      <th className="px-6 py-3 text-sm font-medium text-gray-500 text-right">
+                        Qtd
+                      </th>
+                      <th className="px-6 py-3 text-sm font-medium text-gray-500 text-right">
+                        Unitário
+                      </th>
+                      <th className="px-6 py-3 text-sm font-medium text-gray-500 text-right">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {order.items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-gray-900">
+                            {item.productName}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-600">
+                          {item.quantity}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-600">
+                          {new Intl.NumberFormat("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          }).format(item.unitPrice)}
+                        </td>
+                        <td className="px-6 py-4 text-right font-medium text-gray-900">
+                          {new Intl.NumberFormat("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          }).format(item.totalPrice)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-gray-50">
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="px-6 py-3 text-right font-medium text-gray-500"
+                      >
+                        Subtotal
                       </td>
-                      <td className="px-6 py-4 text-right text-gray-600">
-                        {item.quantity}
-                      </td>
-                      <td className="px-6 py-4 text-right text-gray-600">
+                      <td className="px-6 py-3 text-right font-bold text-gray-900">
                         {new Intl.NumberFormat("pt-BR", {
                           style: "currency",
                           currency: "BRL",
-                        }).format(item.unitPrice)}
-                      </td>
-                      <td className="px-6 py-4 text-right font-medium text-gray-900">
-                        {new Intl.NumberFormat("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        }).format(item.totalPrice)}
+                        }).format(order.subtotal)}
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot className="bg-gray-50">
-                  <tr>
-                    <td
-                      colSpan={3}
-                      className="px-6 py-3 text-right font-medium text-gray-500"
-                    >
-                      Subtotal
-                    </td>
-                    <td className="px-6 py-3 text-right font-bold text-gray-900">
-                      {new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      }).format(order.subtotal)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td
-                      colSpan={3}
-                      className="px-6 py-3 text-right font-medium text-gray-500"
-                    >
-                      Frete
-                    </td>
-                    <td className="px-6 py-3 text-right font-bold text-gray-900">
-                      {new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      }).format(order.shippingCost)}
-                    </td>
-                  </tr>
-                  <tr className="bg-gray-100">
-                    <td
-                      colSpan={3}
-                      className="px-6 py-4 text-right font-black text-gray-900 text-lg"
-                    >
-                      Total
-                    </td>
-                    <td className="px-6 py-4 text-right font-black text-gray-900 text-lg">
-                      {new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      }).format(order.total)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="px-6 py-3 text-right font-medium text-gray-500"
+                      >
+                        Frete
+                      </td>
+                      <td className="px-6 py-3 text-right font-bold text-gray-900">
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(order.shippingCost)}
+                      </td>
+                    </tr>
+                    <tr className="bg-gray-100">
+                      <td
+                        colSpan={3}
+                        className="px-6 py-4 text-right font-black text-gray-900 text-lg"
+                      >
+                        Total
+                      </td>
+                      <td className="px-6 py-4 text-right font-black text-gray-900 text-lg">
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(order.total)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
 
             {order.notes && (

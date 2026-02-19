@@ -48,10 +48,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-gray-100 flex w-full overflow-hidden">
+      
       {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex flex-col w-64 bg-[#222998] text-white">
-        {/* Logo */}
+      <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-[#222998] text-white">
         <div className="p-6 border-b border-white/10">
           <Link to="/" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
@@ -66,8 +66,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </Link>
         </div>
 
-        {/* Menu */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -87,7 +86,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           })}
         </nav>
 
-        {/* User & Logout */}
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3 px-4 py-3 mb-2">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
@@ -98,6 +96,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <p className="text-xs text-white/60 truncate">{user?.email}</p>
             </div>
           </div>
+
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-red-500/20 hover:text-red-400 transition-all font-bold"
@@ -147,6 +146,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 );
               })}
             </nav>
+
             <div className="absolute bottom-4 left-4 right-4">
               <button
                 onClick={handleLogout}
@@ -161,7 +161,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 p-6 lg:p-8 pt-20 lg:pt-8 overflow-auto">
+      <main className="flex-1 min-w-0 p-6 lg:p-8 pt-20 lg:pt-8 overflow-x-hidden overflow-y-auto">
         {children}
       </main>
     </div>

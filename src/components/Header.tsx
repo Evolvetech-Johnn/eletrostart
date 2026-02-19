@@ -15,6 +15,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { productService, Category } from "../services/productService";
 import { getCategoryIcon, CATEGORY_METADATA } from "../utils/categoryData";
+import MainNav from "./Navigation/MainNav";
 
 interface HeaderCategory extends Category {
   icon: LucideIcon;
@@ -195,51 +196,7 @@ const Header: React.FC = () => {
       <div className="hidden lg:block bg-white border-b border-gray-100 shadow-sm">
         <div className="container mx-auto px-4">
           <nav className="flex items-center space-x-2">
-            <div className="relative group mr-4">
-              <button className="flex items-center space-x-2 bg-primary text-white px-4 py-3 font-bold text-sm uppercase transition-colors hover:bg-blue-800">
-                <Menu size={20} />
-                <span>Todos os Departamentos</span>
-              </button>
-
-              {/* Dropdown Menu */}
-              <div className="absolute top-full left-0 w-64 bg-white shadow-xl rounded-b-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <ul className="py-2">
-                  {categories.map((category) => (
-                    <li key={category.id}>
-                      <button
-                        onClick={() => handleCategoryClick(category.id)}
-                        className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700 hover:text-primary flex items-center space-x-3 transition-colors text-sm"
-                      >
-                        {React.createElement(category.icon, { size: 18 })}
-                        <span>{category.name}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Main Links */}
-            <div className="flex items-center space-x-1">
-              <Link
-                to="/"
-                className="font-bold text-sm text-gray-700 hover:text-primary px-4 py-3 uppercase transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                to="/products"
-                className="font-bold text-sm text-gray-700 hover:text-primary px-4 py-3 uppercase transition-colors"
-              >
-                Ofertas
-              </Link>
-              <Link
-                to="/contact"
-                className="font-bold text-sm text-gray-700 hover:text-primary px-4 py-3 uppercase transition-colors"
-              >
-                Fale Conosco
-              </Link>
-            </div>
+            <MainNav />
           </nav>
         </div>
       </div>

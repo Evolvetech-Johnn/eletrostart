@@ -308,9 +308,9 @@ const AdminMessages: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div className="w-full overflow-x-auto">
+              <table className="min-w-[900px] w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="px-6 py-3 w-10">

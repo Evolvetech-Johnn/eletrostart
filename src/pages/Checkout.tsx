@@ -29,6 +29,7 @@ import {
   isValidCEP,
   isValidPhone,
 } from "../utils/formatters";
+import { buildWhatsappMessage } from "../utils/orderMessage";
 
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "554330295020";
 
@@ -98,6 +99,7 @@ const Checkout: React.FC = () => {
 
   const [paymentMethod, setPaymentMethod] = useState("");
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loadingCEP, setLoadingCEP] = useState(false);
@@ -191,39 +193,39 @@ const Checkout: React.FC = () => {
   };
 
   const generateOrderMessage = (orderId: string | null = null) => {
-    const itemsList = cart
-      .map((item) => {
-        const variantInfo = item.variant ? ` (${item.variant.name})` : "";
-        const codeInfo = item.code ? ` (COD: ${item.code})` : "";
-        return `- ${item.name}${variantInfo}${codeInfo}\n  Qtd: ${item.quantity} | Unit: ${formatPrice(item.price)}`;
-      })
-      .join("\n\n");
-
-    const addressInfo = formData.endereco
-      ? `\n📍 *Endereço de Entrega:*\n${formData.endereco}, ${formData.numero}${formData.complemento ? " - " + formData.complemento : ""}\n${formData.bairro} - ${formData.cidade}/${formData.estado}\nCEP: ${formData.cep}`
-      : "";
-
+    const address =
+      formData.endereco && formData.cidade && formData.estado && formData.cep
+        ? {
+            street: formData.endereco,
+            number: formData.numero,
+            comp: formData.complemento || undefined,
+            city: formData.cidade,
+            state: formData.estado,
+            zip: formData.cep,
+          }
+        : undefined;
+    const items = cart.map((item) => ({
+      name: item.variant ? `${item.name} (${item.variant.name})` : item.name,
+      quantity: item.quantity,
+      unitPrice: item.price,
+      code: item.code,
+    }));
     const paymentLabels: Record<string, string> = {
       pix: "PIX",
       boleto: "Boleto Bancário",
       cartao: "Cartão de Crédito",
       whatsapp: "Combinar via WhatsApp",
     };
-
-    const orderIdText = orderId
-      ? ` #PEDIDO-${orderId.slice(-6).toUpperCase()}`
-      : "";
-
-    return (
-      `🛒 *NOVO PEDIDO${orderIdText}*\n\n` +
-      `Cliente: ${formData.nome}\n` +
-      `Telefone: ${formData.telefone}\n` +
-      `E-mail: ${formData.email}\n` +
-      `${addressInfo}\n\n` +
-      `Itens:\n${itemsList}\n\n` +
-      `Total: ${formatPrice(cartTotal)}\n` +
-      `Forma de Pagamento: ${paymentLabels[paymentMethod]}`
-    );
+    return buildWhatsappMessage({
+      id: orderId || undefined,
+      customerName: formData.nome,
+      customerPhone: formData.telefone,
+      customerEmail: formData.email,
+      address,
+      items,
+      total: cartTotal,
+      paymentMethod: paymentLabels[paymentMethod],
+    });
   };
 
   const handleSubmit = async () => {
@@ -276,8 +278,9 @@ const Checkout: React.FC = () => {
       window.open(whatsappUrl, "_blank");
 
       // Salvar no histórico local
+      const historyId = orderId || `WA-${Date.now()}`;
       saveOrderToHistory({
-        id: orderId || `WA-${Date.now()}`,
+        id: historyId,
         date: new Date().toISOString(),
         total: cartTotal,
         items: cart.map((i) => ({
@@ -289,6 +292,7 @@ const Checkout: React.FC = () => {
       });
 
       // 4. Finalizar
+      setLastOrderId(orderId);
       setOrderPlaced(true);
     } catch (error) {
       console.error("Erro inesperado no checkout:", error);
@@ -365,6 +369,7 @@ const Checkout: React.FC = () => {
 
   // Order confirmation screen
   if (orderPlaced) {
+    const messagePreview = generateOrderMessage(lastOrderId);
     return (
       <div className="min-h-screen bg-gray-50 py-20">
         <div className="container mx-auto px-4">
@@ -379,11 +384,34 @@ const Checkout: React.FC = () => {
               Seu pedido foi enviado via WhatsApp. Nossa equipe entrará em
               contato para confirmar os detalhes e finalizar o pagamento.
             </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8">
-              <p className="text-blue-800 font-medium text-sm">
-                💡 Caso a janela do WhatsApp não tenha aberto, entre em contato
-                pelo telefone <strong>(43) 3029-5020</strong>
-              </p>
+            <div className="space-y-4 mb-8">
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+                <p className="text-blue-800 font-medium text-sm">
+                  💡 Caso a janela do WhatsApp não tenha aberto, entre em
+                  contato pelo telefone <strong>(43) 3029-5020</strong>
+                </p>
+              </div>
+              {messagePreview && (
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-left">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+                      Resumo da mensagem enviada
+                    </p>
+                    <button
+                      type="button"
+                      className="text-xs font-bold text-primary hover:underline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(messagePreview);
+                      }}
+                    >
+                      Copiar texto
+                    </button>
+                  </div>
+                  <pre className="text-xs text-gray-700 whitespace-pre-wrap max-h-60 overflow-y-auto">
+                    {messagePreview}
+                  </pre>
+                </div>
+              )}
             </div>
             <button
               onClick={handleFinishOrder}
@@ -798,9 +826,11 @@ const Checkout: React.FC = () => {
                       <h4 className="font-bold text-gray-900 text-sm truncate">
                         {item.name}
                       </h4>
-                      <p className="text-[10px] text-gray-500 font-mono mb-1">
-                        COD: {item.code || item.sku || "—"}
-                      </p>
+                      {item.code && (
+                        <p className="text-[10px] text-gray-500 font-mono mb-1">
+                          COD: {item.code}
+                        </p>
+                      )}
                       {item.variant && (
                         <p className="text-xs text-gray-500">
                           {item.variant.name}

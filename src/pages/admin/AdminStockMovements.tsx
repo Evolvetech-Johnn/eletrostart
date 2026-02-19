@@ -461,7 +461,7 @@ const AdminStockMovements: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
           {isLoading ? (
             <div className="p-6 text-gray-500 text-sm">Carregando...</div>
           ) : error ? (
@@ -471,7 +471,8 @@ const AdminStockMovements: React.FC = () => {
             </div>
           ) : (
             <>
-              <table className="min-w-full text-sm">
+              <div className="w-full overflow-x-auto">
+                <table className="min-w-[900px] w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="text-left px-3 py-2">Data</th>
@@ -540,7 +541,7 @@ const AdminStockMovements: React.FC = () => {
                         </td>
                         <td className="px-3 py-2">{user || "-"}</td>
                         <td className="px-3 py-2">{m.reason || "-"}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {m.order?.id ? (
                               <Link
@@ -586,7 +587,8 @@ const AdminStockMovements: React.FC = () => {
                     </tr>
                   )}
                 </tbody>
-              </table>
+                </table>
+              </div>
 
               <div className="flex justify-between items-center p-3 text-xs text-gray-600">
                 <span>

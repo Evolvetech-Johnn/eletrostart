@@ -39,3 +39,38 @@ export const getCategoryIcon = (categorySlug: string): LucideIcon => {
 };
 
 export const CATEGORY_METADATA: Record<string, { subcategories: string[] }> = {};
+
+export const MAIN_CATEGORIES = [
+  "Iluminação",
+  "Fios e Cabos",
+  "Chuveiros e Torneiras",
+  "Industrial e Proteção",
+  "Ferramentas",
+  "Interruptores e Tomadas",
+] as const;
+
+export type MainCategoryName = (typeof MAIN_CATEGORIES)[number];
+
+export const CATEGORY_KEYWORDS: Record<MainCategoryName, string[]> = {
+  "Interruptores e Tomadas": ["interrupt", "tomada", "plug"],
+  "Ferramentas": ["ferrament", "broca", "chave", "alicate", "serra"],
+  "Chuveiros e Torneiras": ["chuve", "torneira", "aquec"],
+  "Fios e Cabos": ["fio", "cabo", "pp", "paralelo"],
+  "Iluminação": ["lamp", "lumin", "led", "refletor", "tubular", "plafon", "painel"],
+  "Industrial e Proteção": ["disjunt", "eletroduto", "industrial", "prote", "autotransformador", "quadros", "dps"],
+};
+
+export const classifyMainCategory = (
+  name?: string,
+  slug?: string,
+): MainCategoryName => {
+  const n = (name || "").toLowerCase();
+  const s = (slug || "").toLowerCase();
+  for (const main of MAIN_CATEGORIES) {
+    const keywords = CATEGORY_KEYWORDS[main];
+    if (keywords.some((k) => n.includes(k) || s.includes(k))) {
+      return main;
+    }
+  }
+  return "Industrial e Proteção";
+};

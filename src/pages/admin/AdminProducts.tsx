@@ -55,7 +55,9 @@ const AdminProducts: React.FC = () => {
   const [bulkActiveTarget, setBulkActiveTarget] = useState<
     "activate" | "deactivate"
   >("activate");
-  const [stockModalProduct, setStockModalProduct] = useState<Product | null>(null);
+  const [stockModalProduct, setStockModalProduct] = useState<Product | null>(
+    null,
+  );
   const [stockModalValue, setStockModalValue] = useState<string>("");
   const [stockModalReason, setStockModalReason] = useState<string>("");
   const [stockThreshold, setStockThreshold] = useState<number>(5);
@@ -328,70 +330,76 @@ const AdminProducts: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-4">
-          <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6 bg-white p-4 rounded-lg border shadow-sm">
-            <form
-              onSubmit={onSearchSubmit}
-              className="flex gap-2 flex-1 w-full md:max-w-md"
-            >
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
-                <Input
-                  type="text"
-                  placeholder="Buscar produtos..."
-                  className="pl-10"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                />
+          <div className="bg-white p-4 rounded-lg border shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <form
+                onSubmit={onSearchSubmit}
+                className="flex gap-2 flex-1 w-full md:max-w-md"
+              >
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                  <Input
+                    type="text"
+                    placeholder="Buscar produtos..."
+                    className="pl-10"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                  />
+                </div>
+                <Button type="submit">Buscar</Button>
+              </form>
+
+              <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsImportOpen(true)}
+                  title="Importar"
+                >
+                  <Upload size={18} className="mr-2" /> Importar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleExport}
+                  title="Exportar"
+                >
+                  <FileDown size={18} className="mr-2" /> Exportar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsSyncOpen(true)}
+                  title="Sincronizar"
+                >
+                  <RefreshCw size={18} className="mr-2" /> Sync
+                </Button>
+
+                <select
+                  className="border rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-primary-500"
+                  value={category}
+                  onChange={handleCategoryChange}
+                >
+                  <option value="">Todas Categorias</option>
+                  {categories.map((cat: Category) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setIsQuickAddOpen(true)}
+                  title="Criação rápida"
+                >
+                  <Plus size={18} className="mr-2" /> Rápido
+                </Button>
+                <Link
+                  to="/admin/products/new"
+                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-bold"
+                >
+                  <Plus size={18} />
+                  Novo
+                </Link>
               </div>
-              <Button type="submit">Buscar</Button>
-            </form>
-
-            <div className="flex gap-2 w-full md:w-auto">
-              <Button
-                variant="outline"
-                onClick={() => setIsImportOpen(true)}
-                title="Importar"
-              >
-                <Upload size={18} className="mr-2" /> Importar
-              </Button>
-              <Button variant="outline" onClick={handleExport} title="Exportar">
-                <FileDown size={18} className="mr-2" /> Exportar
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setIsSyncOpen(true)}
-                title="Sincronizar"
-              >
-                <RefreshCw size={18} className="mr-2" /> Sync
-              </Button>
-
-              <select
-                className="border rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-primary-500"
-                value={category}
-                onChange={handleCategoryChange}
-              >
-                <option value="">Todas Categorias</option>
-                {categories.map((cat: Category) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-
-              <Button
-                variant="outline"
-                onClick={() => setIsQuickAddOpen(true)}
-                title="Criação rápida"
-              >
-                <Plus size={18} className="mr-2" /> Rápido
-              </Button>
-              <Link
-                to="/admin/products/new"
-                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-bold"
-              >
-                <Plus size={18} />
-                Novo
-              </Link>
             </div>
           </div>
 
@@ -549,203 +557,210 @@ const AdminProducts: React.FC = () => {
             <AlertCircle size={20} /> {(productsError as Error).message}
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow border overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    <button onClick={toggleSelectAll}>
-                      {selectedProducts.length === products.length &&
-                      products.length > 0 ? (
-                        <CheckSquare size={18} />
-                      ) : (
-                        <Square size={18} />
-                      )}
-                    </button>
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    Produto
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    Categoria
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    Preço
-                    <span
-                      className="ml-1 text-xs text-gray-400"
-                      title="Regras de preço mínimo por categoria são aplicadas ao salvar"
-                    >
-                      (mín.)
-                    </span>
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    Estoque
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm text-right">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {products && products.length > 0 ? (
-                  products.map((product: Product) => (
-                    <tr key={product.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <button onClick={() => toggleSelect(product.id)}>
-                          {selectedProducts.includes(product.id) ? (
-                            <CheckSquare size={18} className="text-blue-600" />
-                          ) : (
-                            <Square size={18} className="text-gray-400" />
-                          )}
-                        </button>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
-                            {product.image ? (
-                              <img
-                                src={product.image}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
+          <div className="bg-white rounded-lg shadow border">
+            <div className="w-full overflow-x-auto">
+              <table className="min-w-[900px] w-full text-sm text-left">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      <button onClick={toggleSelectAll}>
+                        {selectedProducts.length === products.length &&
+                        products.length > 0 ? (
+                          <CheckSquare size={18} />
+                        ) : (
+                          <Square size={18} />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      Produto
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      Categoria
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      Preço
+                      <span
+                        className="ml-1 text-xs text-gray-400"
+                        title="Regras de preço mínimo por categoria são aplicadas ao salvar"
+                      >
+                        (mín.)
+                      </span>
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      Estoque
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm text-right">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {products && products.length > 0 ? (
+                    products.map((product: Product) => (
+                      <tr key={product.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <button onClick={() => toggleSelect(product.id)}>
+                            {selectedProducts.includes(product.id) ? (
+                              <CheckSquare
+                                size={18}
+                                className="text-blue-600"
                               />
                             ) : (
-                              <Package
-                                className="m-auto text-gray-400"
-                                size={20}
-                              />
+                              <Square size={18} className="text-gray-400" />
                             )}
-                          </div>
-                          <div>
-                            <p
-                              className="font-bold text-gray-900 line-clamp-1"
-                              title={product.name}
-                            >
-                              {product.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {product.sku}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {product.category?.name || "-"}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400">R$</span>
-                          <Input
-                            type="number"
-                            className="w-24 h-8 text-right"
-                            value={
-                              editingValues[product.id]?.price !== undefined
-                                ? editingValues[product.id].price
-                                : product.price
-                            }
-                            onChange={(e) =>
-                              handleInlineChange(
-                                product.id,
-                                "price",
-                                e.target.value,
-                              )
-                            }
-                            onBlur={() => saveInlineEdit(product.id)}
-                            onKeyDown={(e) =>
-                              e.key === "Enter" && saveInlineEdit(product.id)
-                            }
-                          />
-                          {product.category?.slug &&
-                            minPriceMap[product.category.slug] && (
-                              <span
-                                className="text-[10px] text-gray-400"
-                                title={`Preço mínimo para ${product.category.name}: R$ ${minPriceMap[product.category.slug].toFixed(2)}`}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
+                              {product.image ? (
+                                <img
+                                  src={product.image}
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Package
+                                  className="m-auto text-gray-400"
+                                  size={20}
+                                />
+                              )}
+                            </div>
+                            <div>
+                              <p
+                                className="font-bold text-gray-900 line-clamp-1"
+                                title={product.name}
                               >
-                                ≥ R${" "}
-                                {minPriceMap[product.category.slug].toFixed(2)}
-                              </span>
-                            )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            className="w-20 h-8 text-right"
-                            value={
-                              editingValues[product.id]?.stock !== undefined
-                                ? editingValues[product.id].stock
-                                : product.stock
-                            }
-                            onChange={(e) =>
-                              handleInlineChange(
-                                product.id,
-                                "stock",
-                                e.target.value,
-                              )
-                            }
-                            onBlur={() => saveInlineEdit(product.id)}
-                            onKeyDown={(e) =>
-                              e.key === "Enter" && saveInlineEdit(product.id)
-                            }
-                          />
-                          <span className="text-xs text-gray-400">
-                            {product.unit || "un"}
+                                {product.name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {product.sku}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {product.category?.name || "-"}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">R$</span>
+                            <Input
+                              type="number"
+                              className="w-24 h-8 text-right"
+                              value={
+                                editingValues[product.id]?.price !== undefined
+                                  ? editingValues[product.id].price
+                                  : product.price
+                              }
+                              onChange={(e) =>
+                                handleInlineChange(
+                                  product.id,
+                                  "price",
+                                  e.target.value,
+                                )
+                              }
+                              onBlur={() => saveInlineEdit(product.id)}
+                              onKeyDown={(e) =>
+                                e.key === "Enter" && saveInlineEdit(product.id)
+                              }
+                            />
+                            {product.category?.slug &&
+                              minPriceMap[product.category.slug] && (
+                                <span
+                                  className="text-[10px] text-gray-400"
+                                  title={`Preço mínimo para ${product.category.name}: R$ ${minPriceMap[product.category.slug].toFixed(2)}`}
+                                >
+                                  ≥ R${" "}
+                                  {minPriceMap[product.category.slug].toFixed(
+                                    2,
+                                  )}
+                                </span>
+                              )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              className="w-20 h-8 text-right"
+                              value={
+                                editingValues[product.id]?.stock !== undefined
+                                  ? editingValues[product.id].stock
+                                  : product.stock
+                              }
+                              onChange={(e) =>
+                                handleInlineChange(
+                                  product.id,
+                                  "stock",
+                                  e.target.value,
+                                )
+                              }
+                              onBlur={() => saveInlineEdit(product.id)}
+                              onKeyDown={(e) =>
+                                e.key === "Enter" && saveInlineEdit(product.id)
+                              }
+                            />
+                            <span className="text-xs text-gray-400">
+                              {product.unit || "un"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-bold ${
+                              product.active
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {product.active ? "Ativo" : "Inativo"}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-bold ${
-                            product.active
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {product.active ? "Ativo" : "Inativo"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => openStockModal(product)}
-                            className="p-2 text-amber-600 hover:bg-amber-50 rounded flex items-center gap-1 text-xs"
-                            title="Ajustar estoque"
-                          >
-                            <AlertTriangle size={16} />
-                          </button>
-                          <Link
-                            to={`/admin/products/${product.id}`}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                            title="Editar"
-                          >
-                            <Edit size={18} />
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(product.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded"
-                            title="Excluir"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
+                        </td>
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => openStockModal(product)}
+                              className="p-2 text-amber-600 hover:bg-amber-50 rounded flex items-center gap-1 text-xs"
+                              title="Ajustar estoque"
+                            >
+                              <AlertTriangle size={16} />
+                            </button>
+                            <Link
+                              to={`/admin/products/${product.id}`}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                              title="Editar"
+                            >
+                              <Edit size={18} />
+                            </Link>
+                            <button
+                              onClick={() => handleDelete(product.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded"
+                              title="Excluir"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-6 py-12 text-center text-gray-500"
+                      >
+                        Nenhum produto encontrado.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-12 text-center text-gray-500"
-                    >
-                      Nenhum produto encontrado.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {/* Pagination (Simplified) */}
             {/* Add pagination controls if needed, assuming controller returns pagination meta */}
@@ -822,10 +837,7 @@ const AdminProducts: React.FC = () => {
                 >
                   Cancelar
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={adjustStockMutation.isPending}
-                >
+                <Button type="submit" disabled={adjustStockMutation.isPending}>
                   {adjustStockMutation.isPending ? "Salvando..." : "Salvar"}
                 </Button>
               </div>

@@ -7,6 +7,10 @@ import { getCategoryIcon } from "../utils/categoryData";
 import { getProductImage, PLACEHOLDER_IMAGE } from "../utils/productHelpers";
 import ProductCardSkeleton from "../components/ProductCardSkeleton";
 import SEO from "../components/SEO";
+import chuveiros from "../assets/chuveiros.png";
+import iluminacaoModerna from "../assets/iluminacao-moderna.png";
+import ferramentasProfissionais from "../assets/ferramentas-profissionais.png";
+import torneirasModernas from "../assets/torneiras-modernas.png";
 
 interface HeroSlide {
   id: string | number;
@@ -28,42 +32,43 @@ const Home = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<CategoryWithIcon[]>([]);
   const [loading, setLoading] = useState(true);
-  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
-
-  const defaultBanners: HeroSlide[] = [
+  const slides: HeroSlide[] = [
     {
-      id: 1,
-      image:
-        "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=2069",
-      title: "Iluminação Moderna",
+      id: "iluminacao",
+      image: iluminacaoModerna,
+      title: "ILUMINAÇÃO MODERNA",
       subtitle: "Transforme cada ambiente",
       link: "/products?category=iluminacao",
     },
     {
-      id: 2,
-      image:
-        "https://images.unsplash.com/photo-1558444479-c8af551b66b8?auto=format&fit=crop&q=80&w=1973",
-      title: "Energia Solar",
-      subtitle: "Economia e Sustentabilidade",
-      link: "/products?category=energia-solar",
+      id: "chuveiros",
+      image: chuveiros,
+      title: "CHUVEIROS",
+      subtitle: "Conforto e eficiência",
+      link: "/products?category=chuveiros-e-torneiras",
     },
     {
-      id: 3,
-      image:
-        "https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&q=80&w=2074",
-      title: "Ferramentas Profissionais",
-      subtitle: "As melhores marcas",
+      id: "ferramentas",
+      image: ferramentasProfissionais,
+      title: "FERRAMENTAS",
+      subtitle: "Potência e precisão",
       link: "/products?category=ferramentas",
+    },
+    {
+      id: "torneiras",
+      image: torneirasModernas,
+      title: "TORNEIRAS",
+      subtitle: "Design e funcionalidade",
+      link: "/products?category=chuveiros-e-torneiras",
     },
   ];
 
   useEffect(() => {
-    const slides = heroSlides.length > 0 ? heroSlides : defaultBanners;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [heroSlides.length, heroSlides]); // Depend on heroSlides content
+  }, [slides.length]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -86,39 +91,6 @@ const Home = () => {
 
         if (productsData && Array.isArray(productsData)) {
           setProducts(productsData);
-
-          // Generate Dynamic Slides
-          const dynamicSlides: HeroSlide[] = [];
-          const usedCategories = new Set<string>();
-
-          // Strategy: Find one product for each available category
-          for (const product of productsData) {
-            // Normalize category ID access
-            const catId = product.category?.id || product.categoryId;
-            // const catSlug = product.category?.slug;
-
-            if (catId && !usedCategories.has(catId)) {
-              usedCategories.add(catId);
-              const categoryName =
-                product.category?.name ||
-                loadedCategories.find((c) => c.id === catId)?.name ||
-                "Destaque";
-
-              dynamicSlides.push({
-                id: `slide-${product.id}`,
-                image: getProductImage(product),
-                title: product.name,
-                subtitle: categoryName,
-                link: `/product/${product.id}`,
-              });
-            }
-            // Limit to number of categories or max slides (e.g. 5)
-            if (dynamicSlides.length >= 5) break;
-          }
-
-          if (dynamicSlides.length > 0) {
-            setHeroSlides(dynamicSlides);
-          }
         }
       } catch (err) {
         console.error("Error loading home data:", err);
@@ -130,7 +102,7 @@ const Home = () => {
   }, []);
 
   const featuredProducts = products.slice(0, 4);
-  const activeSlides = heroSlides.length > 0 ? heroSlides : defaultBanners;
+  const activeSlides = slides;
 
   const getCategoryName = (product: Product) => {
     if (product.category?.name) return product.category.name;
@@ -148,7 +120,7 @@ const Home = () => {
         description="Bem-vindo à EletroStart! Encontre os melhores materiais elétricos e automação para sua casa ou empresa."
       />
       {/* Hero Slider */}
-      <section className="relative h-[300px] md:h-[500px] overflow-hidden group">
+      <section className="relative h-[320px] sm:h-[420px] md:h-[520px] lg:h-[600px] overflow-hidden group">
         {activeSlides.map((banner, index) => (
           <div
             key={banner.id}
@@ -163,10 +135,10 @@ const Home = () => {
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-white text-center px-4">
-              <h1 className="text-3xl md:text-6xl font-black uppercase mb-4 tracking-tighter drop-shadow-lg">
+              <h1 className="text-3xl sm:text-4xl md:text-6xl font-black uppercase mb-4 tracking-tighter drop-shadow-lg">
                 {banner.title}
               </h1>
-              <p className="text-lg md:text-2xl font-light mb-8 drop-shadow-md italic">
+              <p className="text-base sm:text-lg md:text-2xl font-light mb-8 drop-shadow-md italic">
                 {banner.subtitle}
               </p>
               <Link

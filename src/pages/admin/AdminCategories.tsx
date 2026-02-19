@@ -102,9 +102,9 @@ const AdminCategories: React.FC = () => {
         </div>
 
         {/* Table */}
-        <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden flex-grow">
-          <div className="overflow-x-auto">
-            <table className="w-full">
+        <div className="bg-white border border-gray-100 rounded-xl shadow-sm flex-grow">
+          <div className="w-full overflow-x-auto">
+            <table className="min-w-[900px] w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">

@@ -93,7 +93,7 @@ const AdminOrders: React.FC = () => {
         </div>
 
         {/* Header Actions */}
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6 bg-white p-4 rounded-lg border shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white p-4 rounded-lg border shadow-sm">
           <form
             onSubmit={onSearchSubmit}
             className="flex gap-2 flex-1 w-full md:max-w-md"
@@ -135,102 +135,105 @@ const AdminOrders: React.FC = () => {
             <AlertCircle size={20} /> {(error as Error).message}
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow border overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    ID
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    Cliente
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    Data
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    Total
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                    Rastreio
-                  </th>
-                  <th className="px-6 py-3 font-medium text-gray-500 text-sm text-right">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {orders && orders.length > 0 ? (
-                  orders.map((order: Order) => (
-                    <tr key={order.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-mono text-gray-600">
-                        #{order.id.slice(0, 8)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-gray-900">
-                            {order.customerName}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {order.customerEmail}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-bold text-gray-900">
-                        {new Intl.NumberFormat("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        }).format(order.total)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <select
-                          value={order.status}
-                          onChange={(e) =>
-                            handleStatusChange(order.id, e.target.value)
-                          }
-                          disabled={updateStatusMutation.isPending}
-                          className={`px-2 py-1 rounded text-xs font-bold border-none outline-none cursor-pointer ${getStatusColor(order.status)}`}
-                        >
-                          <option value="PENDING">Pendente</option>
-                          <option value="PAID">Pago</option>
-                          <option value="SHIPPED">Enviado</option>
-                          <option value="DELIVERED">Entregue</option>
-                          <option value="CANCELLED">Cancelado</option>
-                        </select>
-                      </td>
-                      <td className="px-6 py-4 text-xs text-gray-600 font-mono">
-                        {order.trackingCode && order.trackingCode.trim().length > 0
-                          ? order.trackingCode
-                          : "-"}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <Link
-                          to={`/admin/orders/${order.id}`}
-                          className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium"
-                        >
-                          <Eye size={16} /> Detalhes
-                        </Link>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div className="w-full overflow-x-auto">
+              <table className="min-w-[900px] w-full text-sm text-left">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      ID
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      Cliente
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      Data
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      Total
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
+                      Rastreio
+                    </th>
+                    <th className="px-6 py-3 font-medium text-gray-500 text-sm text-right">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {orders && orders.length > 0 ? (
+                    orders.map((order: Order) => (
+                      <tr key={order.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm font-mono text-gray-600">
+                          #{order.id.slice(0, 8)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-gray-900">
+                              {order.customerName}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {order.customerEmail}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-bold text-gray-900">
+                          {new Intl.NumberFormat("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          }).format(order.total)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <select
+                            value={order.status}
+                            onChange={(e) =>
+                              handleStatusChange(order.id, e.target.value)
+                            }
+                            disabled={updateStatusMutation.isPending}
+                            className={`px-2 py-1 rounded text-xs font-bold border-none outline-none cursor-pointer ${getStatusColor(order.status)}`}
+                          >
+                            <option value="PENDING">Pendente</option>
+                            <option value="PAID">Pago</option>
+                            <option value="SHIPPED">Enviado</option>
+                            <option value="DELIVERED">Entregue</option>
+                            <option value="CANCELLED">Cancelado</option>
+                          </select>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-gray-600 font-mono">
+                          {order.trackingCode &&
+                          order.trackingCode.trim().length > 0
+                            ? order.trackingCode
+                            : "-"}
+                        </td>
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                          <Link
+                            to={`/admin/orders/${order.id}`}
+                            className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium"
+                          >
+                            <Eye size={16} /> Detalhes
+                          </Link>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-6 py-12 text-center text-gray-500"
+                      >
+                        Nenhum pedido encontrado.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-12 text-center text-gray-500"
-                    >
-                      Nenhum pedido encontrado.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

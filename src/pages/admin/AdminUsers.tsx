@@ -150,87 +150,89 @@ const AdminUsers: React.FC = () => {
             Erro ao carregar usuários.
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">
-                    Nome
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">
-                    E-mail
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">
-                    Papel
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">
-                    Status
-                  </th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {users?.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-t border-gray-100 hover:bg-gray-50/50"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">
-                        {user.name || "Sem nome"}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{user.email}</td>
-                    <td className="px-4 py-3">
-                      <Select
-                        value={user.role}
-                        onChange={(e) =>
-                          updateRoleMutation.mutate({
-                            id: user.id,
-                            role: (e.target as HTMLSelectElement).value as
-                              | "ADMIN"
-                              | "MANAGER"
-                              | "EDITOR",
-                          })
-                        }
-                        options={[
-                          { label: "Admin", value: "ADMIN" },
-                          { label: "Manager", value: "MANAGER" },
-                          { label: "Editor", value: "EDITOR" },
-                        ]}
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() =>
-                          updateStatusMutation.mutate({
-                            id: user.id,
-                            active: !user.active,
-                          })
-                        }
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          user.active
-                            ? "bg-green-50 text-green-700"
-                            : "bg-red-50 text-red-700"
-                        }`}
-                      >
-                        {user.active ? "Ativo" : "Inativo"}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => setResetEmail(user.email)}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Resetar senha
-                      </button>
-                    </td>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div className="w-full overflow-x-auto">
+              <table className="min-w-[900px] w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">
+                      Nome
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">
+                      E-mail
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">
+                      Papel
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">
+                      Status
+                    </th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-500">
+                      Ações
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {users?.map((user) => (
+                    <tr
+                      key={user.id}
+                      className="border-t border-gray-100 hover:bg-gray-50/50"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-gray-900">
+                          {user.name || "Sem nome"}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">{user.email}</td>
+                      <td className="px-4 py-3">
+                        <Select
+                          value={user.role}
+                          onChange={(e) =>
+                            updateRoleMutation.mutate({
+                              id: user.id,
+                              role: (e.target as HTMLSelectElement).value as
+                                | "ADMIN"
+                                | "MANAGER"
+                                | "EDITOR",
+                            })
+                          }
+                          options={[
+                            { label: "Admin", value: "ADMIN" },
+                            { label: "Manager", value: "MANAGER" },
+                            { label: "Editor", value: "EDITOR" },
+                          ]}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() =>
+                            updateStatusMutation.mutate({
+                              id: user.id,
+                              active: !user.active,
+                            })
+                          }
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            user.active
+                              ? "bg-green-50 text-green-700"
+                              : "bg-red-50 text-red-700"
+                          }`}
+                        >
+                          {user.active ? "Ativo" : "Inativo"}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => setResetEmail(user.email)}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          Resetar senha
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

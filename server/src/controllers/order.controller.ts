@@ -3,6 +3,11 @@ import { prisma } from "../lib/prisma";
 import { Prisma } from "@prisma/client";
 import { createOrderSchema } from "../schemas/order.schema";
 import { logAction } from "../services/audit.service";
+import {
+  buildOrderEmailTemplates,
+  orderToMessageDetails,
+  sendEmail,
+} from "../services/emailTemplates.service";
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
@@ -145,7 +150,23 @@ export const createOrder = async (req: Request, res: Response) => {
       return createdOrder;
     });
 
-    // Integração Discord removida
+    const detailsForEmail = orderToMessageDetails(order);
+    const preview = buildOrderEmailTemplates(detailsForEmail);
+    console.log("EMAIL_PREVIEW_SUBJECT:", preview.subject);
+    console.log("EMAIL_PREVIEW_TO:", detailsForEmail.customerEmail);
+    console.log("EMAIL_PREVIEW_TEXT:", preview.text);
+    try {
+      await logAction({
+        action: "EXPORT",
+        targetType: "ORDER",
+        targetId: order.id,
+        details: {
+          emailSubject: preview.subject,
+          emailTo: detailsForEmail.customerEmail,
+        },
+      });
+    } catch {}
+    await sendEmail(detailsForEmail);
 
     res.status(201).json({ success: true, data: order });
   } catch (error: any) {
