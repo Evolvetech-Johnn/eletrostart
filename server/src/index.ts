@@ -11,6 +11,8 @@ import authRoutes from "./routes/auth.routes";
 import messageRoutes from "./routes/message.routes";
 import adminRoutes from "./routes/admin.routes";
 import ecommerceRoutes from "./routes/ecommerce.routes";
+import executiveRoutes from "./modules/executive/routes";
+import { initAnalyticsCron } from "./cron/analytics.cron";
 
 // Validate Database URL on Startup
 if (!env.databaseUrl) {
@@ -116,6 +118,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/ecommerce", ecommerceRoutes);
+app.use("/api/executive", executiveRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
@@ -123,4 +126,5 @@ app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`🌍 Frontend URL: ${env.frontendUrl}`);
+  initAnalyticsCron();
 });

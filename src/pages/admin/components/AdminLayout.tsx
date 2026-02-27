@@ -14,6 +14,7 @@ import {
   Folder,
   Shield,
   Activity,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -39,6 +40,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { path: "/admin/audit", label: "Auditoria", icon: Shield },
     { path: "/admin/stock-movements", label: "Estoque", icon: Activity },
   ];
+
+  const isSuperAdmin = (user?.role || "").toUpperCase() === "SUPER_ADMIN";
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -84,6 +87,22 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               </Link>
             );
           })}
+          {isSuperAdmin && (
+            <>
+              <div className="border-t border-white/10 my-2" />
+              <Link
+                to="/admin/executive"
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
+                  location.pathname.startsWith("/admin/executive")
+                    ? "bg-white text-primary"
+                    : "text-yellow-300/90 hover:bg-white/10"
+                }`}
+              >
+                <TrendingUp size={20} />
+                Executivo
+              </Link>
+            </>
+          )}
         </nav>
 
         <div className="p-4 border-t border-white/10">

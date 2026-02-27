@@ -116,6 +116,37 @@ model IntegrationLog {
   @@map("integration_logs")
 }
 
+// --- Executive / Analytics Models ---
+
+// Normalização de Cliente
+model Customer {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  phone     String
+  email     String?
+  createdAt DateTime @default(now())
+
+  @@map("customers")
+  @@index([phone])
+  @@index([email])
+}
+
+// Snapshot Analítico (gerado por cron)
+model AnalyticsSnapshot {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  periodType  String   // "daily" | "monthly"
+  periodRef   String   // "2025-01-27" | "2025-01"
+  revenue     Float
+  cost        Float
+  grossProfit Float
+  ordersCount Int
+  avgTicket   Float
+  createdAt   DateTime @default(now())
+
+  @@map("analytics_snapshots")
+  @@index([periodType, periodRef])
+}
+
 // --- E-commerce Models ---
 
 // Categorias de Produtos
@@ -205,6 +236,9 @@ model ProductImage {
 model Order {
   id            String      @id @default(auto()) @map("_id") @db.ObjectId
   
+  // Vínculo analítico com Customer (opcional, sem relation formal para não quebrar dados antigos)
+  customerId    String?     @db.ObjectId
+
   // Informações do Cliente (Simplificado por enquanto)
   customerName  String
   customerEmail String
@@ -241,6 +275,7 @@ model Order {
   updatedAt     DateTime    @updatedAt
 
   @@map("orders")
+  @@index([customerId])
   @@index([customerEmail])
   @@index([status])
   @@index([createdAt])
@@ -280,6 +315,7 @@ model OrderItem {
   createdAt DateTime @default(now())
 
   @@map("order_items")
+  @@index([productId])
 }
 
 model StockMovement {

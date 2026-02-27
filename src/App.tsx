@@ -51,6 +51,13 @@ const AdminStockMovements = lazy(
   () => import("./pages/admin/AdminStockMovements"),
 );
 
+// Executive Pages (SUPER_ADMIN only)
+const AdminExecutive = lazy(() => import("./pages/admin/AdminExecutive"));
+const AdminExecutiveFinancial = lazy(() => import("./pages/admin/AdminExecutiveFinancial"));
+const AdminExecutiveInventory = lazy(() => import("./pages/admin/AdminExecutiveInventory"));
+const AdminExecutiveCustomers = lazy(() => import("./pages/admin/AdminExecutiveCustomers"));
+const AdminExecutiveProfitability = lazy(() => import("./pages/admin/AdminExecutiveProfitability"));
+
 // Loading Component
 const AdminLoading = () => (
   <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -184,6 +191,48 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminStockMovements />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Executive Routes - SUPER_ADMIN only */}
+              <Route
+                path="/admin/executive"
+                element={
+                  <ProtectedRoute>
+                    <AdminExecutive />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/executive/financial"
+                element={
+                  <ProtectedRoute>
+                    <AdminExecutiveFinancial />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/executive/inventory"
+                element={
+                  <ProtectedRoute>
+                    <AdminExecutiveInventory />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/executive/customers"
+                element={
+                  <ProtectedRoute>
+                    <AdminExecutiveCustomers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/executive/profitability"
+                element={
+                  <ProtectedRoute>
+                    <AdminExecutiveProfitability />
                   </ProtectedRoute>
                 }
               />
