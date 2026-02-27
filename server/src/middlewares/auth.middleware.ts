@@ -62,13 +62,14 @@ export const authenticate = async (
   }
 };
 
-// Middleware para verificar role de admin
+// Middleware para verificar role de admin (aceita ADMIN e SUPER_ADMIN)
 export const requireAdmin = (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
-  if (!req.user || (req.user.role || "").toUpperCase() !== "ADMIN") {
+  const role = (req.user?.role || "").toUpperCase();
+  if (!req.user || (role !== "ADMIN" && role !== "SUPER_ADMIN")) {
     return res.status(403).json({
       error: true,
       message: "Acesso negado. Permissão de administrador necessária.",
