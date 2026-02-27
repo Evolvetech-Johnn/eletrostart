@@ -1,10 +1,8 @@
 services:
   - type: web
     name: eletrostartbackend-api
-    env: node
-    region: oregon
+    runtime: node
     rootDir: server
     buildCommand: npm install && npx prisma generate && npm run build
     startCommand: node dist/index.js
-    envVarGroups: []
     autoDeploy: true
