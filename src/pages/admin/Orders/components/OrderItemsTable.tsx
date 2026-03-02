@@ -1,6 +1,6 @@
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import React from "react";
-import { PackageOpen, Plus, Trash2 } from "lucide-react";
+import { PackageOpen, Trash2 } from "lucide-react";
 import { Product } from "../../../../services/productService";
 import { OrderFormValues } from "../schema/orderSchema";
 import { toast } from "react-hot-toast";
@@ -13,6 +13,7 @@ const OrderItemsTable = () => {
   const {
     control,
     setValue,
+    getValues,
     formState: { errors },
   } = useFormContext<OrderFormValues>();
 
@@ -31,40 +32,44 @@ const OrderItemsTable = () => {
   // without needing to query all products upfront
   const [selectedProductsCache, setSelectedProductsCache] = React.useState<Record<string, Product>>({});
 
-  const handleProductSelect = (index: number, product: Product) => {
-    // Save to local cache
-    setSelectedProductsCache((prev) => ({ ...prev, [product.id]: product }));
-
-    // Check if duplicate row
-    const existingIndex = fields.findIndex(
-      (_, i) => i !== index && itemsWatched[i]?.productId === product.id
+  const handleProductSelect = (product: Product) => {
+    // Check if duplicate product exists in the cart
+    const currentItems = getValues("items") || [];
+    const existingIndex = currentItems.findIndex(
+      (item) => item.productId === product.id
     );
 
     if (existingIndex >= 0) {
-      const currentQty = itemsWatched[existingIndex].quantity || 1;
+      const currentQty = itemsWatched[existingIndex]?.quantity || 1;
       let newQty = currentQty + 1;
       
       if (product.stock && newQty > product.stock) {
-        toast.error(`Estoque máximo: ${product.stock}`, { id: `stock-${index}` });
+        toast.error(`Estoque máximo atingido: ${product.stock}`, { id: `stock-${product.id}` });
         newQty = product.stock;
+      } else {
+        toast.success("Quantidade acrescida (+1)");
       }
       
       setValue(`items.${existingIndex}.quantity`, newQty, { shouldValidate: true });
+    } else {
+      // Create entirely new item
+      // Check if there is an empty placeholder item
+      const emptyIndex = currentItems.findIndex((item) => !item.productId);
       
-      if (fields.length > 1) {
-        remove(index);
+      if (emptyIndex >= 0) {
+        setValue(`items.${emptyIndex}.productId`, product.id, { shouldValidate: true });
+        setValue(`items.${emptyIndex}.unitPrice`, product.price, { shouldValidate: true });
+        setValue(`items.${emptyIndex}.quantity`, 1, { shouldValidate: true });
       } else {
-        setValue(`items.${index}.productId`, "", { shouldValidate: true });
-        setValue(`items.${index}.unitPrice`, 0, { shouldValidate: true });
-        setValue(`items.${index}.quantity`, 1, { shouldValidate: true });
+        append({
+          productId: product.id,
+          unitPrice: product.price,
+          quantity: 1,
+        });
       }
-      toast.success("Quantidade atualizada no item existente");
-      return;
+      // Save metadata to cache so grid can show product names immediately
+      setSelectedProductsCache((prev) => ({ ...prev, [product.id]: product }));
     }
-
-    // Auto-fill price logic for normal selection
-    setValue(`items.${index}.productId`, product.id, { shouldValidate: true });
-    setValue(`items.${index}.unitPrice`, product.price, { shouldValidate: true });
   };
 
   const handleQtyChange = (index: number, qtyString: string, maxStock?: number) => {
@@ -81,7 +86,7 @@ const OrderItemsTable = () => {
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mt-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
             <PackageOpen className="w-5 h-5" />
@@ -90,10 +95,15 @@ const OrderItemsTable = () => {
             <h2 className="text-lg font-semibold text-gray-900">
               Itens do Pedido
             </h2>
-            <p className="text-sm text-gray-500">Selecione os produtos e controle as quantidades.</p>
+            <p className="text-sm text-gray-500">Busque e adicione produtos ao pedido.</p>
           </div>
         </div>
       </div>
+
+      {/* Global Search Input (Top of Card) */}
+      <ProductCombobox 
+        onSelect={handleProductSelect}
+      />
 
       <div className="bg-gray-50/50 rounded-xl border border-gray-200 overflow-hidden">
         {/* Table Header */}
@@ -123,14 +133,21 @@ const OrderItemsTable = () => {
               return (
                 <div key={field.id} className="grid grid-cols-12 gap-y-3 gap-x-4 p-4 items-center hover:bg-white transition-colors">
                   
-                  {/* Select Produto */}
-                  <div className="col-span-12 md:col-span-5">
-                    <ProductCombobox 
-                      value={currentProductId || ""}
-                      onSelect={(product) => handleProductSelect(index, product)}
-                      error={!!rowErrors?.productId}
-                      selectedProductCache={currentProduct || undefined}
-                    />
+                  {/* Produto (Texto Fixo da Tabela) */}
+                  <div className="col-span-12 md:col-span-5 flex-col flex justify-center">
+                    {currentProductId ? (
+                      <>
+                        <span className="text-sm font-semibold text-gray-900 line-clamp-1">{currentProduct?.name || "Produto não encontrado"}</span>
+                        <span className="text-[11px] text-gray-500 mt-0.5 font-mono uppercase">
+                          SKU: {currentProduct?.sku || "N/A"} {currentProduct?.code && `| COD: ${currentProduct?.code}`}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-400 italic">Pesquise e adicione um produto acima...</span>
+                    )}
+                    {rowErrors?.productId && (
+                      <span className="text-[11px] text-red-500 mt-1 font-medium">{rowErrors.productId.message}</span>
+                    )}
                   </div>
 
                   {/* Preço Unitário (Somente Leitura por enquanto) */}
@@ -178,19 +195,11 @@ const OrderItemsTable = () => {
           </div>
         )}
       </div>
-      {/* Botão Add */}
+      {/* Helper */}
       <div className="mt-4 flex justify-between items-center">
         {errors.items?.root?.message && (
           <span className="text-sm text-red-500 font-medium">{errors.items.root.message}</span>
         )}
-        <button
-          type="button"
-          onClick={() => append({ productId: "", quantity: 1, unitPrice: 0 })}
-          className="flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 hover:bg-primary/5 px-3 py-2 rounded-lg transition-colors ml-auto"
-        >
-          <Plus className="w-4 h-4" />
-          Adicionar novo item
-        </button>
       </div>
 
     </div>

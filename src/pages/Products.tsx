@@ -7,7 +7,8 @@ import ProductCardSkeleton from "../components/ProductCardSkeleton";
 import SEO from "../components/SEO";
 import { productService, Product, Category } from "../services/productService";
 import { getCategoryIcon, CATEGORY_METADATA } from "../utils/categoryData";
-// Removed unused: getProductImage, PLACEHOLDER_IMAGE
+import { useCart } from "../context/CartContext";
+import { toast } from "react-hot-toast";
 
 interface CategoryWithMeta extends Category {
   icon: React.ElementType;
@@ -31,10 +32,7 @@ const Products = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
-  // Unused state: viewMode, quickViewProduct
-  // const [viewMode, setViewMode] = useState("grid");
-  // const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-  // const { addToCart } = useCart(); // Unused in this file directly
+  const { addToCart } = useCart();
 
   // Load Data
   useEffect(() => {
@@ -325,7 +323,14 @@ const Products = () => {
         {/* Render filtered products */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
-            <ProductCardWithVariants key={product.id} product={product} />
+            <ProductCardWithVariants 
+              key={product.id} 
+              product={product} 
+              onAddToCart={(p, variant) => {
+                addToCart(p, 1, variant);
+                toast.success(`Adicionado ao carrinho!`);
+              }}
+            />
           ))}
         </div>
 
