@@ -4,8 +4,7 @@ import {
   Search, Eye, Loader2, AlertCircle, Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { orderService, Order, CreateOrderParams, UpdateOrderParams } from "../../services/orderService";
-import { productService, Product } from "../../services/productService";
+import { orderService, Order, UpdateOrderParams } from "../../services/orderService";
 import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
@@ -29,186 +28,9 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-red-100 text-red-800",
 };
 
-const PAYMENT_OPTIONS = [
-  "pix", "cartao_credito", "cartao_debito", "boleto", "dinheiro", "transferencia"
-];
+
 
 /* ─────────────────────────── Modals ──────────────────────────── */
-
-interface OrderCreateModalProps {
-  onClose: () => void;
-  products: Product[];
-  onCreated: () => void;
-}
-
-const emptyCustomer = { name: "", email: "", phone: "", doc: "" };
-const emptyAddress = { zip: "", street: "", number: "", comp: "", city: "", state: "" };
-
-const OrderCreateModal: React.FC<OrderCreateModalProps> = ({ onClose, products, onCreated }) => {
-  const queryClient = useQueryClient();
-  const [customer, setCustomer] = useState(emptyCustomer);
-  const [address, setAddress] = useState(emptyAddress);
-  const [paymentMethod, setPaymentMethod] = useState("pix");
-  const [notes, setNotes] = useState("");
-  const [items, setItems] = useState([{ productId: "", quantity: 1 }]);
-
-  const createMutation = useMutation({
-    mutationFn: (data: CreateOrderParams) => orderService.createOrder(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Pedido criado!");
-      onCreated();
-      onClose();
-    },
-    onError: (err: any) => toast.error("Erro ao criar pedido: " + (err.message || "Erro")),
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const validItems = items.filter((i) => i.productId && i.quantity > 0);
-    if (!validItems.length) { toast.error("Adicione ao menos um item"); return; }
-    if (!customer.name || !customer.email) { toast.error("Nome e e-mail são obrigatórios"); return; }
-    createMutation.mutate({ customer, address, items: validItems, paymentMethod, notes });
-  };
-
-  const addItem = () => setItems([...items, { productId: "", quantity: 1 }]);
-  const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
-  const updateItem = (i: number, key: "productId" | "quantity", val: string | number) =>
-    setItems(items.map((item, idx) => idx === i ? { ...item, [key]: val } : item));
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-white px-6 pt-6 pb-4 border-b flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Novo Pedido</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100"><X className="w-5 h-5" /></button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Cliente */}
-          <div>
-            <h3 className="font-semibold text-gray-700 mb-3">Dados do Cliente</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[
-                { label: "Nome *", key: "name", type: "text" },
-                { label: "E-mail *", key: "email", type: "email" },
-                { label: "Telefone", key: "phone", type: "text" },
-                { label: "CPF/CNPJ", key: "doc", type: "text" },
-              ].map(({ label, key, type }) => (
-                <div key={key}>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-                  <input
-                    type={type}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={(customer as any)[key]}
-                    onChange={(e) => setCustomer({ ...customer, [key]: e.target.value })}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Endereço */}
-          <div>
-            <h3 className="font-semibold text-gray-700 mb-3">Endereço de Entrega</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { label: "CEP", key: "zip", col: 1 },
-                { label: "Rua", key: "street", col: 2 },
-                { label: "Número", key: "number", col: 1 },
-                { label: "Complemento", key: "comp", col: 1 },
-                { label: "Cidade", key: "city", col: 1 },
-                { label: "Estado (UF)", key: "state", col: 1 },
-              ].map(({ label, key }) => (
-                <div key={key}>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-                  <input
-                    type="text"
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={(address as any)[key]}
-                    onChange={(e) => setAddress({ ...address, [key]: e.target.value })}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Itens */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-700">Itens do Pedido</h3>
-              <button type="button" onClick={addItem} className="text-sm text-blue-600 font-semibold hover:underline">+ Adicionar item</button>
-            </div>
-            <div className="space-y-2">
-              {items.map((item, i) => (
-                <div key={i} className="flex gap-2 items-center">
-                  <select
-                    className="flex-1 border rounded-lg px-3 py-2 text-sm bg-white"
-                    value={item.productId}
-                    onChange={(e) => updateItem(i, "productId", e.target.value)}
-                  >
-                    <option value="">Selecione um produto</option>
-                    {products.filter((p) => p.active && p.stock > 0).map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} — {fmt(p.price)} (estoque: {p.stock})
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    min={1}
-                    className="w-20 border rounded-lg px-3 py-2 text-sm text-center"
-                    value={item.quantity}
-                    onChange={(e) => updateItem(i, "quantity", parseInt(e.target.value) || 1)}
-                  />
-                  <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1}
-                    className="p-2 rounded-lg hover:bg-red-50 text-red-400 disabled:opacity-30">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Pagamento & Notas */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Forma de Pagamento</label>
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              >
-                {PAYMENT_OPTIONS.map((pm) => (
-                  <option key={pm} value={pm}>{pm.replace(/_/g, " ")}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Observações</label>
-              <input
-                type="text"
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose}
-              className="px-4 py-2 rounded-xl border text-gray-600 hover:bg-gray-50 text-sm font-medium">
-              Cancelar
-            </button>
-            <button type="submit" disabled={createMutation.isPending}
-              className="px-6 py-2 rounded-xl bg-[#222998] text-white text-sm font-bold hover:bg-blue-800 disabled:opacity-60">
-              {createMutation.isPending ? "Criando..." : "Criar Pedido"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
 
 /* ─── Edit Modal ─── */
 interface OrderEditModalProps {
@@ -306,7 +128,6 @@ const AdminOrders: React.FC = () => {
   const search = searchParams.get("search") || "";
   const [searchInput, setSearchInput] = useState(search);
 
-  const [showCreate, setShowCreate] = useState(false);
   const [editOrder, setEditOrder] = useState<Order | null>(null);
 
   const isAdmin =
@@ -316,12 +137,6 @@ const AdminOrders: React.FC = () => {
     queryKey: ["orders", { page, status, search }],
     queryFn: () => orderService.getOrders({ page, status, search }),
     enabled: !authLoading && isAuthenticated,
-  });
-
-  const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ["products", { all: true }],
-    queryFn: () => productService.getProducts({ all: true }),
-    enabled: showCreate,
   });
 
   const updateStatusMutation = useMutation({
@@ -368,17 +183,20 @@ const AdminOrders: React.FC = () => {
     <AdminLayout>
       <div className="max-w-7xl mx-auto space-y-5 p-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-black text-gray-900">Pedidos</h1>
-            <p className="text-gray-500 text-sm">Gerencie as vendas da loja</p>
+            <h1 className="text-3xl font-black tracking-tight text-gray-900">Pedidos</h1>
+            <p className="text-gray-500 mt-1">Gerencie os pedidos do E-commerce</p>
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#222998] text-white rounded-xl text-sm font-bold hover:bg-blue-800 transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" /> Novo Pedido
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/admin/orders/new"
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors font-medium shadow-sm shadow-blue-200"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Novo Pedido</span>
+            </Link>
+          </div>
         </div>
 
         {/* Filters */}
@@ -526,14 +344,7 @@ const AdminOrders: React.FC = () => {
         )}
       </div>
 
-      {/* Modals */}
-      {showCreate && (
-        <OrderCreateModal
-          onClose={() => setShowCreate(false)}
-          products={products}
-          onCreated={() => setShowCreate(false)}
-        />
-      )}
+      {/* Modals Extras (Update/Confirm Delete) permaneceram intactos abaixo do List */}
       {editOrder && (
         <OrderEditModal
           order={editOrder}

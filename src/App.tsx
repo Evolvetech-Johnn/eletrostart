@@ -46,6 +46,7 @@ const AdminProductForm = lazy(() => import("./pages/admin/AdminProductForm"));
 const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminOrderDetail = lazy(() => import("./pages/admin/AdminOrderDetail"));
+const NewOrderPage = lazy(() => import("./pages/admin/Orders/NewOrderPage"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminAuditLogs = React.lazy(() => import("./pages/admin/AdminAuditLogs"));
 const AdminStockMovements = lazy(
@@ -160,6 +161,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminOrders />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/orders/new"
+                element={
+                  <ProtectedRoute>
+                    <NewOrderPage />
                   </ProtectedRoute>
                 }
               />
