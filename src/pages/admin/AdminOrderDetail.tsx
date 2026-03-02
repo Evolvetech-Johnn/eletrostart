@@ -402,7 +402,7 @@ const AdminOrderDetail: React.FC = () => {
                     Status Pagamento
                   </p>
                   <p className="font-medium">
-                    {order.paymentStatus || "Pendente"}
+                    {order.status === "PAID" ? "Aprovado" : "Pendente"}
                   </p>
                 </div>
                 <div>

@@ -259,7 +259,8 @@ model Order {
   discount      Float       @default(0.0)
   total         Float       @default(0.0)
   
-  // Status e Pagamento
+  // Status, Fulfillment e Pagamento
+  fulfillmentType String    @default("delivery") // pickup, delivery
   status        String      @default("PENDING") // PENDING, PAID, SHIPPED, DELIVERED, CANCELED
   paymentMethod String?     // CREDIT_CARD, PIX, BOLETO
   paymentStatus String      @default("PENDING") // PENDING, PAID, FAILED

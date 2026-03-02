@@ -1,0 +1,9 @@
+﻿src/pages/admin/AdminAuditLogs.tsx(32,37): error TS6133: 'refetch' is declared but its value is never read.
+src/pages/admin/AdminOrderDetail.tsx(405,28): error TS2339: Property 'paymentStatus' does not exist on type 'Order'.
+src/pages/admin/AdminStockMovements.tsx(8,3): error TS6133: 'StockMovementsResponse' is declared but its value is never read.
+src/pages/admin/AdminUsers.tsx(11,24): error TS6133: 'AdminUser' is declared but its value is never read.
+src/pages/admin/Orders/components/AddressSection.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/pages/admin/Orders/NewOrderPage.tsx(35,69): error TS2345: Argument of type '{ customer: { name: string; email: string; phone?: string | undefined; doc?: string | undefined; }; items: { productId: string; quantity: number; unitPrice?: number | undefined; }[]; paymentMethod: string; fulfillmentType?: "pickup" | ... 1 more ... | undefined; address?: { ...; } | undefined; notes?: string | undef...' is not assignable to parameter of type 'CreateOrderParams'.
+  Types of property 'fulfillmentType' are incompatible.
+    Type '"pickup" | "delivery" | undefined' is not assignable to type '"pickup" | "delivery"'.
+      Type 'undefined' is not assignable to type '"pickup" | "delivery"'.

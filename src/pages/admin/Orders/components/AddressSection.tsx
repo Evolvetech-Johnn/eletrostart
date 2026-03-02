@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { MapPin, Search, Loader2 } from "lucide-react";
 import { OrderFormValues } from "../schema/orderSchema";
@@ -14,6 +14,8 @@ const AddressSection = () => {
   const [isSearchingCep, setIsSearchingCep] = useState(false);
 
   const zipValue = watch("address.zip");
+  const fulfillmentType = watch("fulfillmentType") || "delivery";
+  const isDelivery = fulfillmentType === "delivery";
 
   const handleCepSearch = async () => {
     const rawCep = zipValue?.replace(/\D/g, "");
@@ -52,12 +54,58 @@ const AddressSection = () => {
             <MapPin className="w-5 h-5" />
           </div>
           <h2 className="text-lg font-semibold text-gray-900">
-            Endereço de Entrega
+            Tipo de Atendimento
           </h2>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+      {/* Selector Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <label
+          className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all ${
+            isDelivery
+              ? "border-primary bg-primary/5 ring-1 ring-primary"
+              : "border-gray-200 hover:bg-gray-50 bg-white"
+          }`}
+        >
+          <div className="flex items-center gap-3 mb-1">
+            <input
+              type="radio"
+              value="delivery"
+              {...register("fulfillmentType")}
+              className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+            />
+            <span className="font-bold text-gray-900">Entrega</span>
+          </div>
+          <p className="text-sm text-gray-500 ml-7">
+            Entregar no endereço do cliente
+          </p>
+        </label>
+
+        <label
+          className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all ${
+            !isDelivery
+              ? "border-primary bg-primary/5 ring-1 ring-primary"
+              : "border-gray-200 hover:bg-gray-50 bg-white"
+          }`}
+        >
+          <div className="flex items-center gap-3 mb-1">
+            <input
+              type="radio"
+              value="pickup"
+              {...register("fulfillmentType")}
+              className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+            />
+            <span className="font-bold text-gray-900">Retirada na Loja</span>
+          </div>
+          <p className="text-sm text-gray-500 ml-7">
+            Cliente retira na unidade física
+          </p>
+        </label>
+      </div>
+
+      {isDelivery ? (
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
         {/* CEP com Autocomplete */}
         <div className="md:col-span-4 relative">
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -202,6 +250,18 @@ const AddressSection = () => {
           )}
         </div>
       </div>
+      ) : (
+        <div className="bg-blue-50 text-blue-800 p-5 rounded-xl border border-blue-100 flex items-start gap-4">
+          <MapPin className="w-6 h-6 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-bold mb-1">Retirada Selecionada</h4>
+            <p className="text-sm text-blue-700">
+              Neste modo, o endereço não é obrigatório. O cliente virá presencialmente 
+              buscar os itens na unidade.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

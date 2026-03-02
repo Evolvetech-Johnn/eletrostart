@@ -77,11 +77,7 @@ const Header: React.FC = () => {
               <span className="font-medium">contato@eletrostart.com.br</span>
             </div>
           </div>
-          <div className="hidden lg:block">
-            <span className="font-semibold uppercase tracking-wider">
-              Frete Grátis acima de R$ 299*
-            </span>
-          </div>
+
           <div className="flex items-center space-x-4 uppercase font-bold text-[10px]">
             <Link to="/about" className="hover:underline">
               Quem Somos

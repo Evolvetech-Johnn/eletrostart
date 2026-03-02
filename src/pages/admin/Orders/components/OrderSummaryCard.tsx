@@ -3,13 +3,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { CreditCard, Loader2 } from "lucide-react";
 import { OrderFormValues } from "../schema/orderSchema";
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  PAID: "bg-green-100 text-green-800",
-  SHIPPED: "bg-blue-100 text-blue-800",
-  DELIVERED: "bg-gray-100 text-gray-800",
-  CANCELLED: "bg-red-100 text-red-800",
-};
+
 
 const PAYMENT_OPTIONS = [
   { value: "pix", label: "PIX", description: "5% desc" },
@@ -45,7 +39,7 @@ const OrderSummaryCard: React.FC<Props> = ({ isLoading }) => {
   }, 0);
 
   // Exemplo de Frete Fixo/Free placeholder
-  const shipping = subtotal > 299 ? 0 : 0; // Você pode evoluir isso para input manual
+  const shipping = 0; // Você pode evoluir isso para input manual
   const discount = paymentMethod === "pix" ? subtotal * 0.05 : 0;
   const total = subtotal + shipping - discount;
 

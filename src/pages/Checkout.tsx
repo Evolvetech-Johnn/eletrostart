@@ -89,7 +89,13 @@ const Checkout: React.FC = () => {
   });
 
   const [paymentMethod, setPaymentMethod] = useState("");
-  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
+  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">(() => {
+    return (localStorage.getItem("eletrostart_checkout_delivery_type") as "delivery" | "pickup") || "delivery";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("eletrostart_checkout_delivery_type", deliveryType);
+  }, [deliveryType]);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -227,6 +233,7 @@ const Checkout: React.FC = () => {
           phone: formData.telefone,
           doc: "",
         },
+        fulfillmentType: deliveryType,
         address: deliveryType === "delivery" ? {
           zip: formData.cep,
           street: formData.endereco,
@@ -234,14 +241,7 @@ const Checkout: React.FC = () => {
           comp: formData.complemento,
           city: formData.cidade,
           state: formData.estado,
-        } : {
-          zip: "00000-000",
-          street: "Retirada na loja",
-          number: "S/N",
-          comp: "",
-          city: "Londrina",
-          state: "PR",
-        },
+        } : undefined,
         items: cart.map((item) => ({
           productId: item.id,
           quantity: item.quantity,

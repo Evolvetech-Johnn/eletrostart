@@ -32,7 +32,10 @@ const NewOrderPage = () => {
   const { handleSubmit, formState: { isSubmitting } } = methods;
 
   const createMutation = useMutation({
-    mutationFn: (data: OrderFormValues) => orderService.createOrder(data),
+    mutationFn: (data: OrderFormValues) => orderService.createOrder({
+      ...data,
+      fulfillmentType: data.fulfillmentType as "delivery" | "pickup" | undefined,
+    } as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Pedido criado com sucesso!");

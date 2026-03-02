@@ -7,14 +7,15 @@ export const createOrderSchema = z.object({
     phone: z.string().optional(),
     doc: z.string().optional(),
   }),
+  fulfillmentType: z.enum(["delivery", "pickup"]).default("delivery").optional(),
   address: z.object({
-    zip: z.string().min(8, "CEP inválido"),
-    street: z.string().min(1, "Rua é obrigatória"),
-    number: z.string().min(1, "Número é obrigatório"),
+    zip: z.string().optional(),
+    street: z.string().optional(),
+    number: z.string().optional(),
     comp: z.string().optional(),
-    city: z.string().min(1, "Cidade é obrigatória"),
-    state: z.string().length(2, "Estado deve ter 2 letras"),
-  }),
+    city: z.string().optional(),
+    state: z.string().optional(),
+  }).optional(),
   items: z.array(
     z.object({
       productId: z.string().min(1, "ID do produto é obrigatório"),
@@ -23,4 +24,19 @@ export const createOrderSchema = z.object({
   ).min(1, "O pedido deve ter pelo menos um item"),
   paymentMethod: z.string().optional(),
   notes: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.fulfillmentType === "delivery" || !data.fulfillmentType) {
+    const minAddrError = (field: string) => {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${field} é obrigatório para entrega`,
+        path: ["address", field.toLowerCase()],
+      });
+    };
+    if (!data.address?.zip) minAddrError("CEP");
+    if (!data.address?.street) minAddrError("Rua");
+    if (!data.address?.number) minAddrError("Número");
+    if (!data.address?.city) minAddrError("Cidade");
+    if (!data.address?.state) minAddrError("Estado");
+  }
 });

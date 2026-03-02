@@ -14,7 +14,7 @@ export const createOrder = async (req: Request, res: Response) => {
     // Validate request body
     const validatedData = createOrderSchema.parse(req.body);
 
-    const { customer, address, items, paymentMethod, notes } = validatedData;
+    const { customer, address, items, paymentMethod, notes, fulfillmentType } = validatedData;
 
     // Calculate totals and validate stock
     let subtotal = 0;
@@ -103,12 +103,14 @@ export const createOrder = async (req: Request, res: Response) => {
           customerPhone: customer.phone,
           customerDoc: customer.doc,
 
-          addressZip: address.zip,
-          addressStreet: address.street,
-          addressNumber: address.number,
-          addressComp: address.comp,
-          addressCity: address.city,
-          addressState: address.state,
+          fulfillmentType: fulfillmentType || "delivery",
+
+          addressZip: address?.zip,
+          addressStreet: address?.street,
+          addressNumber: address?.number,
+          addressComp: address?.comp,
+          addressCity: address?.city,
+          addressState: address?.state,
 
           subtotal,
           shippingCost,

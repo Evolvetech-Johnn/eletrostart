@@ -126,6 +126,7 @@ const AdminOrders: React.FC = () => {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const status = searchParams.get("status") || "";
   const search = searchParams.get("search") || "";
+  const fulfillmentType = searchParams.get("fulfillmentType") || "";
   const [searchInput, setSearchInput] = useState(search);
 
   const [editOrder, setEditOrder] = useState<Order | null>(null);
@@ -134,8 +135,8 @@ const AdminOrders: React.FC = () => {
     user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
   const { data: orders = [], isLoading: loading, error } = useQuery<Order[]>({
-    queryKey: ["orders", { page, status, search }],
-    queryFn: () => orderService.getOrders({ page, status, search }),
+    queryKey: ["orders", { page, status, search, fulfillmentType }],
+    queryFn: () => orderService.getOrders({ page, status, search, fulfillmentType } as any),
     enabled: !authLoading && isAuthenticated,
   });
 
@@ -223,6 +224,21 @@ const AdminOrders: React.FC = () => {
             <option value="">Todos Status</option>
             {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
+
+          <select
+            className="border rounded-lg px-3 py-2 bg-white text-sm"
+            value={fulfillmentType}
+            onChange={(e) => {
+              const params = new URLSearchParams(searchParams);
+              if (e.target.value) params.set("fulfillmentType", e.target.value); else params.delete("fulfillmentType");
+              params.set("page", "1");
+              setSearchParams(params);
+            }}
+          >
+            <option value="">Todos os Tipos</option>
+            <option value="pickup">Retirada</option>
+            <option value="delivery">Entrega</option>
+          </select>
         </div>
 
         {/* Content */}
@@ -240,7 +256,7 @@ const AdminOrders: React.FC = () => {
               <table className="min-w-[900px] w-full text-sm text-left">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    {["ID", "Cliente", "Data", "Total", "Status", "Rastreio", "Ações"].map((h) => (
+                    {["ID", "Cliente", "Data", "Tipo", "Total", "Status", "Rastreio", "Ações"].map((h) => (
                       <th key={h} className="px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">
                         {h}
                       </th>
@@ -260,6 +276,13 @@ const AdminOrders: React.FC = () => {
                         </td>
                         <td className="px-5 py-4 text-gray-500">
                           {new Date(order.createdAt).toLocaleDateString("pt-BR")}
+                        </td>
+                        <td className="px-5 py-4 text-left">
+                          {order.fulfillmentType === "pickup" ? (
+                            <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider whitespace-nowrap">Retirada</span>
+                          ) : (
+                            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider whitespace-nowrap">Entrega</span>
+                          )}
                         </td>
                         <td className="px-5 py-4 font-bold text-gray-900">
                           {fmt(order.total)}
@@ -311,7 +334,7 @@ const AdminOrders: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-5 py-12 text-center text-gray-400">
+                      <td colSpan={8} className="px-5 py-12 text-center text-gray-400">
                         Nenhum pedido encontrado.
                       </td>
                     </tr>

@@ -64,7 +64,7 @@ const Terms: React.FC = () => {
       icon: Truck,
       content: [
         "Os prazos de entrega são contados a partir da confirmação do pagamento.",
-        "• **Frete grátis** para compras acima de R$ 299,00 (consulte regiões)",
+
         "• Os prazos podem variar conforme região e disponibilidade",
         "• Entregas são realizadas de segunda a sexta-feira, em horário comercial",
         "• O cliente deve conferir o produto na entrega e reportar avarias imediatamente",

@@ -32,7 +32,7 @@ const Shipping = () => {
           <div className="max-w-4xl space-y-12">
             <section>
               <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary mb-6">Custos de Frete</h3>
-              <p className="text-gray-600 leading-relaxed">O valor do frete é calculado automaticamente com base no peso, volume dos produtos e endereço de entrega. Oferecemos **Frete Grátis para Londrina** em compras acima de R$ 299,00.</p>
+              <p className="text-gray-600 leading-relaxed">O valor do frete é calculado automaticamente com base no peso, volume dos produtos e endereço de entrega.</p>
             </section>
             
             <section>

@@ -17,17 +17,33 @@ export const orderSchema = z.object({
       return digits.length === 11 || digits.length === 14;
     }, "CPF/CNPJ inválido"),
   }),
+  fulfillmentType: z.enum(["delivery", "pickup"]).default("delivery").optional(),
   address: z.object({
-    zip: z.string().min(8, "CEP inválido"),
-    street: z.string().min(3, "Rua obrigatória"),
-    number: z.string().min(1, "Número obrigatório"),
+    zip: z.string().optional(),
+    street: z.string().optional(),
+    number: z.string().optional(),
     comp: z.string().optional(),
-    city: z.string().min(2, "Cidade obrigatória"),
-    state: z.string().length(2, "UF inválida (ex: SP)"),
-  }),
+    city: z.string().optional(),
+    state: z.string().optional(),
+  }).optional(),
   items: z.array(orderItemSchema).min(1, "Adicione pelo menos 1 item ao pedido"),
   paymentMethod: z.string().min(1, "Selecione a forma de pagamento"),
   notes: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.fulfillmentType === "delivery" || !data.fulfillmentType) {
+    const minAddrError = (field: string) => {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${field} é obrigatório para entrega`,
+        path: ["address", field.toLowerCase()],
+      });
+    };
+    if (!data.address?.zip) minAddrError("CEP");
+    if (!data.address?.street) minAddrError("Rua");
+    if (!data.address?.number) minAddrError("Número");
+    if (!data.address?.city) minAddrError("Cidade");
+    if (!data.address?.state) minAddrError("Estado");
+  }
 });
 
 export type OrderFormValues = z.infer<typeof orderSchema>;

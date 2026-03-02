@@ -38,8 +38,8 @@ export interface Order {
   shippingCost: number;
   total: number;
   paymentMethod?: string;
-  paymentStatus?: string;
   status: "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  fulfillmentType: "pickup" | "delivery";
   trackingCode?: string | null;
   notes?: string;
   items: OrderItem[];
@@ -55,14 +55,15 @@ export interface CreateOrderParams {
     phone?: string;
     doc?: string;
   };
-  address: {
-    zip: string;
-    street: string;
-    number: string;
+  address?: {
+    zip?: string;
+    street?: string;
+    number?: string;
     comp?: string;
-    city: string;
-    state: string;
+    city?: string;
+    state?: string;
   };
+  fulfillmentType: "pickup" | "delivery";
   items: {
     productId: string;
     quantity: number;
