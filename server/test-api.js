@@ -12,7 +12,7 @@ const token = jwt.sign(
 
 async function test() {
   try {
-    const res = await fetch("https://eletrostart-p20r.onrender.com/api/admin/dashboard", {
+    const res = await fetch("https://eletrostart-p20r.onrender.com/api/executive/overview?type=daily", {
       headers: {
         "Authorization": `Bearer ${token}`
       }
