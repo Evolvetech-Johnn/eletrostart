@@ -1,39 +1,329 @@
 import React, { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, Eye, Loader2, AlertCircle } from "lucide-react";
+import {
+  Search, Eye, Loader2, AlertCircle, Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight
+} from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { orderService, Order } from "../../services/orderService";
+import { orderService, Order, CreateOrderParams, UpdateOrderParams } from "../../services/orderService";
+import { productService, Product } from "../../services/productService";
 import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
-import { Input } from "../../components/ui/Input";
-import { Button } from "../../components/ui/Button";
 import { useAuth } from "../../context/AuthContext";
+
+const fmt = (v: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+const STATUS_OPTIONS = [
+  { value: "PENDING", label: "Pendente" },
+  { value: "PAID", label: "Pago" },
+  { value: "SHIPPED", label: "Enviado" },
+  { value: "DELIVERED", label: "Entregue" },
+  { value: "CANCELLED", label: "Cancelado" },
+];
+
+const STATUS_COLORS: Record<string, string> = {
+  PENDING: "bg-yellow-100 text-yellow-800",
+  PAID: "bg-green-100 text-green-800",
+  SHIPPED: "bg-blue-100 text-blue-800",
+  DELIVERED: "bg-gray-100 text-gray-800",
+  CANCELLED: "bg-red-100 text-red-800",
+};
+
+const PAYMENT_OPTIONS = [
+  "pix", "cartao_credito", "cartao_debito", "boleto", "dinheiro", "transferencia"
+];
+
+/* ─────────────────────────── Modals ──────────────────────────── */
+
+interface OrderCreateModalProps {
+  onClose: () => void;
+  products: Product[];
+  onCreated: () => void;
+}
+
+const emptyCustomer = { name: "", email: "", phone: "", doc: "" };
+const emptyAddress = { zip: "", street: "", number: "", comp: "", city: "", state: "" };
+
+const OrderCreateModal: React.FC<OrderCreateModalProps> = ({ onClose, products, onCreated }) => {
+  const queryClient = useQueryClient();
+  const [customer, setCustomer] = useState(emptyCustomer);
+  const [address, setAddress] = useState(emptyAddress);
+  const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [notes, setNotes] = useState("");
+  const [items, setItems] = useState([{ productId: "", quantity: 1 }]);
+
+  const createMutation = useMutation({
+    mutationFn: (data: CreateOrderParams) => orderService.createOrder(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast.success("Pedido criado!");
+      onCreated();
+      onClose();
+    },
+    onError: (err: any) => toast.error("Erro ao criar pedido: " + (err.message || "Erro")),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const validItems = items.filter((i) => i.productId && i.quantity > 0);
+    if (!validItems.length) { toast.error("Adicione ao menos um item"); return; }
+    if (!customer.name || !customer.email) { toast.error("Nome e e-mail são obrigatórios"); return; }
+    createMutation.mutate({ customer, address, items: validItems, paymentMethod, notes });
+  };
+
+  const addItem = () => setItems([...items, { productId: "", quantity: 1 }]);
+  const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
+  const updateItem = (i: number, key: "productId" | "quantity", val: string | number) =>
+    setItems(items.map((item, idx) => idx === i ? { ...item, [key]: val } : item));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-white px-6 pt-6 pb-4 border-b flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">Novo Pedido</h2>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100"><X className="w-5 h-5" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Cliente */}
+          <div>
+            <h3 className="font-semibold text-gray-700 mb-3">Dados do Cliente</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { label: "Nome *", key: "name", type: "text" },
+                { label: "E-mail *", key: "email", type: "email" },
+                { label: "Telefone", key: "phone", type: "text" },
+                { label: "CPF/CNPJ", key: "doc", type: "text" },
+              ].map(({ label, key, type }) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                  <input
+                    type={type}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={(customer as any)[key]}
+                    onChange={(e) => setCustomer({ ...customer, [key]: e.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Endereço */}
+          <div>
+            <h3 className="font-semibold text-gray-700 mb-3">Endereço de Entrega</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { label: "CEP", key: "zip", col: 1 },
+                { label: "Rua", key: "street", col: 2 },
+                { label: "Número", key: "number", col: 1 },
+                { label: "Complemento", key: "comp", col: 1 },
+                { label: "Cidade", key: "city", col: 1 },
+                { label: "Estado (UF)", key: "state", col: 1 },
+              ].map(({ label, key }) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={(address as any)[key]}
+                    onChange={(e) => setAddress({ ...address, [key]: e.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Itens */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-700">Itens do Pedido</h3>
+              <button type="button" onClick={addItem} className="text-sm text-blue-600 font-semibold hover:underline">+ Adicionar item</button>
+            </div>
+            <div className="space-y-2">
+              {items.map((item, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <select
+                    className="flex-1 border rounded-lg px-3 py-2 text-sm bg-white"
+                    value={item.productId}
+                    onChange={(e) => updateItem(i, "productId", e.target.value)}
+                  >
+                    <option value="">Selecione um produto</option>
+                    {products.filter((p) => p.active && p.stock > 0).map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} — {fmt(p.price)} (estoque: {p.stock})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    className="w-20 border rounded-lg px-3 py-2 text-sm text-center"
+                    value={item.quantity}
+                    onChange={(e) => updateItem(i, "quantity", parseInt(e.target.value) || 1)}
+                  />
+                  <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1}
+                    className="p-2 rounded-lg hover:bg-red-50 text-red-400 disabled:opacity-30">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pagamento & Notas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Forma de Pagamento</label>
+              <select
+                className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                {PAYMENT_OPTIONS.map((pm) => (
+                  <option key={pm} value={pm}>{pm.replace(/_/g, " ")}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Observações</label>
+              <input
+                type="text"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 rounded-xl border text-gray-600 hover:bg-gray-50 text-sm font-medium">
+              Cancelar
+            </button>
+            <button type="submit" disabled={createMutation.isPending}
+              className="px-6 py-2 rounded-xl bg-[#222998] text-white text-sm font-bold hover:bg-blue-800 disabled:opacity-60">
+              {createMutation.isPending ? "Criando..." : "Criar Pedido"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Edit Modal ─── */
+interface OrderEditModalProps {
+  order: Order;
+  onClose: () => void;
+}
+
+const OrderEditModal: React.FC<OrderEditModalProps> = ({ order, onClose }) => {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState<UpdateOrderParams>({
+    customerName: order.customerName,
+    customerEmail: order.customerEmail,
+    customerPhone: order.customerPhone ?? "",
+    customerDoc: order.customerDoc ?? "",
+    addressZip: order.addressZip,
+    addressStreet: order.addressStreet,
+    addressNumber: order.addressNumber,
+    addressComp: order.addressComp ?? "",
+    addressCity: order.addressCity,
+    addressState: order.addressState,
+    notes: order.notes ?? "",
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: UpdateOrderParams) => orderService.updateOrder(order.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["order", order.id] });
+      toast.success("Pedido atualizado!");
+      onClose();
+    },
+    onError: (err: any) => toast.error("Erro ao atualizar: " + (err.message || "Erro")),
+  });
+
+  const set = (k: keyof UpdateOrderParams, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const fields: { label: string; key: keyof UpdateOrderParams; type?: string }[] = [
+    { label: "Nome do Cliente *", key: "customerName" },
+    { label: "E-mail *", key: "customerEmail", type: "email" },
+    { label: "Telefone", key: "customerPhone" },
+    { label: "CPF/CNPJ", key: "customerDoc" },
+    { label: "CEP", key: "addressZip" },
+    { label: "Rua", key: "addressStreet" },
+    { label: "Número", key: "addressNumber" },
+    { label: "Complemento", key: "addressComp" },
+    { label: "Cidade", key: "addressCity" },
+    { label: "Estado (UF)", key: "addressState" },
+    { label: "Observações", key: "notes" },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-white px-6 pt-6 pb-4 border-b flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">Editar Pedido #{order.id.slice(0, 8)}</h2>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100"><X className="w-5 h-5" /></button>
+        </div>
+        <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(form); }} className="p-6 space-y-3">
+          {fields.map(({ label, key, type }) => (
+            <div key={key}>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+              <input
+                type={type ?? "text"}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={(form[key] as string) ?? ""}
+                onChange={(e) => set(key, e.target.value)}
+              />
+            </div>
+          ))}
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 rounded-xl border text-gray-600 hover:bg-gray-50 text-sm font-medium">
+              Cancelar
+            </button>
+            <button type="submit" disabled={updateMutation.isPending}
+              className="px-6 py-2 rounded-xl bg-[#222998] text-white text-sm font-bold hover:bg-blue-800 disabled:opacity-60">
+              {updateMutation.isPending ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────────────────── Main Page ──────────────────────────── */
 
 const AdminOrders: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
 
   const page = parseInt(searchParams.get("page") || "1", 10);
   const status = searchParams.get("status") || "";
   const search = searchParams.get("search") || "";
-
-  // Local state for search input to avoid debounce issues for now
   const [searchInput, setSearchInput] = useState(search);
 
-  const { loading: authLoading, isAuthenticated } = useAuth();
+  const [showCreate, setShowCreate] = useState(false);
+  const [editOrder, setEditOrder] = useState<Order | null>(null);
 
-  // Queries
-  const {
-    data: orders = [],
-    isLoading: loading,
-    error,
-  } = useQuery({
+  const isAdmin =
+    user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+
+  const { data: orders = [], isLoading: loading, error } = useQuery<Order[]>({
     queryKey: ["orders", { page, status, search }],
     queryFn: () => orderService.getOrders({ page, status, search }),
     enabled: !authLoading && isAuthenticated,
   });
 
-  // Mutations
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ["products", { all: true }],
+    queryFn: () => productService.getProducts({ all: true }),
+    enabled: showCreate,
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       orderService.updateOrderStatus(id, status),
@@ -41,192 +331,169 @@ const AdminOrders: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Status atualizado!");
     },
-    onError: (err: any) => {
-      toast.error(
-        "Erro ao atualizar status: " + (err.message || "Erro desconhecido"),
-      );
-    },
+    onError: (err: any) => toast.error("Erro ao atualizar: " + (err.message || "Erro")),
   });
 
-  // Handlers
-  const handleStatusChange = (orderId: string, newStatus: string) => {
-    updateStatusMutation.mutate({ id: orderId, status: newStatus });
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => orderService.deleteOrder(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast.success("Pedido excluído!");
+    },
+    onError: (err: any) => toast.error("Erro ao excluir: " + (err.message || "Erro")),
+  });
+
+  const handleDelete = (order: Order) => {
+    if (!window.confirm(
+      `Excluir pedido #${order.id.slice(0, 8)} de ${order.customerName}?\n\nO estoque será restaurado automaticamente.`
+    )) return;
+    deleteMutation.mutate(order.id);
   };
 
   const onSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const params = new URLSearchParams(searchParams);
-    if (searchInput) params.set("search", searchInput);
-    else params.delete("search");
+    if (searchInput) params.set("search", searchInput); else params.delete("search");
     params.set("page", "1");
     setSearchParams(params);
   };
 
-  const handleStatusFilterChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ) => {
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const params = new URLSearchParams(searchParams);
-    if (e.target.value) params.set("status", e.target.value);
-    else params.delete("status");
+    if (e.target.value) params.set("status", e.target.value); else params.delete("status");
     setSearchParams(params);
-  };
-
-  const getStatusColor = (status: string) => {
-    const map: Record<string, string> = {
-      PENDING: "bg-yellow-100 text-yellow-800",
-      PAID: "bg-green-100 text-green-800",
-      SHIPPED: "bg-blue-100 text-blue-800",
-      DELIVERED: "bg-gray-100 text-gray-800",
-      CANCELLED: "bg-red-100 text-red-800",
-    };
-    return map[status] || "bg-gray-100 text-gray-800";
   };
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
+      <div className="max-w-7xl mx-auto space-y-5 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
-            <p className="text-gray-500">Gerencie as vendas da loja</p>
+            <h1 className="text-2xl font-black text-gray-900">Pedidos</h1>
+            <p className="text-gray-500 text-sm">Gerencie as vendas da loja</p>
           </div>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#222998] text-white rounded-xl text-sm font-bold hover:bg-blue-800 transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Novo Pedido
+          </button>
         </div>
 
-        {/* Header Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white p-4 rounded-lg border shadow-sm">
-          <form
-            onSubmit={onSearchSubmit}
-            className="flex gap-2 flex-1 w-full md:max-w-md"
-          >
-            <div className="flex-1">
-              <Input
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-xl border shadow-sm">
+          <form onSubmit={onSearchSubmit} className="flex gap-2 flex-1 min-w-[200px]">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Buscar por cliente ou ID..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                leftIcon={<Search className="h-4 w-4" />}
               />
             </div>
-            <Button type="submit">Buscar</Button>
+            <button type="submit" className="px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200">
+              Buscar
+            </button>
           </form>
-
-          <div className="w-full md:w-auto">
-            <select
-              className="w-full border rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-primary-500"
-              value={status}
-              onChange={handleStatusFilterChange}
-            >
-              <option value="">Todos Status</option>
-              <option value="PENDING">Pendente</option>
-              <option value="PAID">Pago</option>
-              <option value="SHIPPED">Enviado</option>
-              <option value="DELIVERED">Entregue</option>
-              <option value="CANCELLED">Cancelado</option>
-            </select>
-          </div>
+          <select
+            className="border rounded-lg px-3 py-2 bg-white text-sm"
+            value={status}
+            onChange={handleStatusFilterChange}
+          >
+            <option value="">Todos Status</option>
+            {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
         </div>
 
         {/* Content */}
         {loading ? (
-          <div className="flex justify-center p-12">
-            <Loader2 className="animate-spin h-8 w-8 text-primary" />
+          <div className="flex justify-center py-16">
+            <Loader2 className="animate-spin h-8 w-8 text-[#222998]" />
           </div>
         ) : error ? (
-          <div className="bg-red-50 text-red-600 p-4 rounded-lg flex items-center gap-2">
+          <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-2">
             <AlertCircle size={20} /> {(error as Error).message}
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="w-full overflow-x-auto">
               <table className="min-w-[900px] w-full text-sm text-left">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                      Cliente
-                    </th>
-                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                      Data
-                    </th>
-                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                      Total
-                    </th>
-                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 font-medium text-gray-500 text-sm">
-                      Rastreio
-                    </th>
-                    <th className="px-6 py-3 font-medium text-gray-500 text-sm text-right">
-                      Ações
-                    </th>
+                    {["ID", "Cliente", "Data", "Total", "Status", "Rastreio", "Ações"].map((h) => (
+                      <th key={h} className="px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y">
-                  {orders && orders.length > 0 ? (
+                <tbody className="divide-y divide-gray-50">
+                  {orders.length > 0 ? (
                     orders.map((order: Order) => (
-                      <tr key={order.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm font-mono text-gray-600">
+                      <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-5 py-4 font-mono text-gray-500 text-xs">
                           #{order.id.slice(0, 8)}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-gray-900">
-                              {order.customerName}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {order.customerEmail}
-                            </span>
-                          </div>
+                        <td className="px-5 py-4">
+                          <p className="font-semibold text-gray-900">{order.customerName}</p>
+                          <p className="text-xs text-gray-400">{order.customerEmail}</p>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {new Date(order.createdAt).toLocaleDateString()}
+                        <td className="px-5 py-4 text-gray-500">
+                          {new Date(order.createdAt).toLocaleDateString("pt-BR")}
                         </td>
-                        <td className="px-6 py-4 text-sm font-bold text-gray-900">
-                          {new Intl.NumberFormat("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          }).format(order.total)}
+                        <td className="px-5 py-4 font-bold text-gray-900">
+                          {fmt(order.total)}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-5 py-4">
                           <select
                             value={order.status}
-                            onChange={(e) =>
-                              handleStatusChange(order.id, e.target.value)
-                            }
+                            onChange={(e) => updateStatusMutation.mutate({ id: order.id, status: e.target.value })}
                             disabled={updateStatusMutation.isPending}
-                            className={`px-2 py-1 rounded text-xs font-bold border-none outline-none cursor-pointer ${getStatusColor(order.status)}`}
+                            className={`px-2 py-1 rounded-lg text-xs font-bold border-none outline-none cursor-pointer ${STATUS_COLORS[order.status] ?? "bg-gray-100 text-gray-800"}`}
                           >
-                            <option value="PENDING">Pendente</option>
-                            <option value="PAID">Pago</option>
-                            <option value="SHIPPED">Enviado</option>
-                            <option value="DELIVERED">Entregue</option>
-                            <option value="CANCELLED">Cancelado</option>
+                            {STATUS_OPTIONS.map((s) => (
+                              <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
                           </select>
                         </td>
-                        <td className="px-6 py-4 text-xs text-gray-600 font-mono">
-                          {order.trackingCode &&
-                          order.trackingCode.trim().length > 0
-                            ? order.trackingCode
-                            : "-"}
+                        <td className="px-5 py-4 text-xs text-gray-500 font-mono">
+                          {order.trackingCode?.trim() || "-"}
                         </td>
-                        <td className="px-6 py-4 text-right whitespace-nowrap">
-                          <Link
-                            to={`/admin/orders/${order.id}`}
-                            className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium"
-                          >
-                            <Eye size={16} /> Detalhes
-                          </Link>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-1 justify-end">
+                            <Link
+                              to={`/admin/orders/${order.id}`}
+                              className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
+                              title="Detalhes"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Link>
+                            <button
+                              onClick={() => setEditOrder(order)}
+                              className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-600 transition-colors"
+                              title="Editar dados"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleDelete(order)}
+                                disabled={deleteMutation.isPending}
+                                className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors disabled:opacity-40"
+                                title="Excluir pedido"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td
-                        colSpan={6}
-                        className="px-6 py-12 text-center text-gray-500"
-                      >
+                      <td colSpan={7} className="px-5 py-12 text-center text-gray-400">
                         Nenhum pedido encontrado.
                       </td>
                     </tr>
@@ -234,9 +501,45 @@ const AdminOrders: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between px-5 py-3 border-t bg-gray-50 text-sm text-gray-500">
+              <span>Página {page}</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { const p = new URLSearchParams(searchParams); p.set("page", String(page - 1)); setSearchParams(p); }}
+                  disabled={page <= 1}
+                  className="p-1.5 rounded-lg border hover:bg-white disabled:opacity-40"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => { const p = new URLSearchParams(searchParams); p.set("page", String(page + 1)); setSearchParams(p); }}
+                  disabled={orders.length < 20}
+                  className="p-1.5 rounded-lg border hover:bg-white disabled:opacity-40"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      {showCreate && (
+        <OrderCreateModal
+          onClose={() => setShowCreate(false)}
+          products={products}
+          onCreated={() => setShowCreate(false)}
+        />
+      )}
+      {editOrder && (
+        <OrderEditModal
+          order={editOrder}
+          onClose={() => setEditOrder(null)}
+        />
+      )}
     </AdminLayout>
   );
 };

@@ -214,6 +214,9 @@ router.delete(
 );
 
 // --- Orders Management ---
+// Public: track order by ID (no auth required, returns only non-sensitive fields)
+router.get("/orders/:id/public", orderController.getOrderPublic);
+// Admin only
 router.get("/orders", authenticate, requireAdmin, orderController.getOrders);
 router.get("/orders/:id", authenticate, requireAdmin, orderController.getOrder);
 router.patch(
@@ -221,6 +224,18 @@ router.patch(
   authenticate,
   requireAdmin,
   orderController.updateOrderStatus,
+);
+router.patch(
+  "/orders/:id",
+  authenticate,
+  requireAdmin,
+  orderController.updateOrder,
+);
+router.delete(
+  "/orders/:id",
+  authenticate,
+  requireAdmin,
+  orderController.deleteOrder,
 );
 
 export default router;

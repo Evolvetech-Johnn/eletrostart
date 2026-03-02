@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Product } from "../services/productService";
+import { toast } from "react-hot-toast";
 
 export interface CartVariant {
   id: string;
@@ -19,6 +20,8 @@ export interface CartItem {
   unit?: string;
   quantity: number;
   variant?: CartVariant | null;
+  /** Maximum units available in stock. undefined = unlimited. */
+  maxStock?: number;
 }
 
 interface CartContextType {
@@ -166,18 +169,17 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   // Adiciona um produto ao carrinho - sempre adiciona diretamente
   const addToCart = (product: Product, quantity = 1, variant: CartVariant | null = null) => {
-    // Pega a imagem correta considerando a variante
     const imageUrl = getProductImageUrl(product, variant);
-
-    // Prepara informações da variante para salvar
     const variantInfo = variant
-      ? {
-          id: variant.id,
-          name: variant.name,
-          value: variant.name, // Para retrocompatibilidade
-          image: variant.image,
-        }
+      ? { id: variant.id, name: variant.name, value: variant.name, image: variant.image }
       : null;
+
+    // Resolve maxStock: variant stock or product stock (undefined = no limit)
+    const stockSource = variant
+      ? (variant as any).stock
+      : (product.stock ?? undefined);
+    const maxStock: number | undefined =
+      typeof stockSource === "number" ? stockSource : undefined;
 
     setCart((prevCart) => {
       const existingItemIndex = prevCart.findIndex(
@@ -187,25 +189,47 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       );
 
       if (existingItemIndex > -1) {
-        // Atualiza a quantidade se o item já existe
+        const existing = prevCart[existingItemIndex];
+        const effectiveMax = existing.maxStock ?? maxStock;
+        const newQty = existing.quantity + quantity;
+
+        if (effectiveMax !== undefined && newQty > effectiveMax) {
+          toast.error(
+            `Estoque máximo é ${effectiveMax} unidade${effectiveMax !== 1 ? "s" : ""}`,
+            { icon: "⚠️", id: `stock-limit-${product.id}` }
+          );
+          return prevCart; // No change
+        }
+
         const updatedCart = [...prevCart];
-        updatedCart[existingItemIndex].quantity += quantity;
+        updatedCart[existingItemIndex] = { ...existing, quantity: newQty };
         return updatedCart;
       }
 
-      // Adiciona novo item
+      // New item — validate initial quantity
+      if (maxStock !== undefined && quantity > maxStock) {
+        toast.error(
+          `Estoque máximo é ${maxStock} unidade${maxStock !== 1 ? "s" : ""}`,
+          { icon: "⚠️", id: `stock-limit-${product.id}` }
+        );
+        if (maxStock <= 0) return prevCart;
+        // Add with capped quantity
+        return [
+          ...prevCart,
+          {
+            id: product.id, name: product.name, code: product.code,
+            sku: product.sku, price: product.price, image: imageUrl,
+            unit: product.unit, quantity: maxStock, variant: variantInfo, maxStock,
+          },
+        ];
+      }
+
       return [
         ...prevCart,
         {
-          id: product.id,
-          name: product.name,
-          code: product.code,
-          sku: product.sku,
-          price: product.price,
-          image: imageUrl,
-          unit: product.unit,
-          quantity,
-          variant: variantInfo,
+          id: product.id, name: product.name, code: product.code,
+          sku: product.sku, price: product.price, image: imageUrl,
+          unit: product.unit, quantity, variant: variantInfo, maxStock,
         },
       ];
     });
@@ -264,14 +288,30 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   // Incrementa a quantidade
   const incrementQuantity = (productId: string, variant: CartVariant | null = null) => {
-    setCart((prevCart) =>
-      prevCart.map((item) =>
-        item.id === productId &&
-        JSON.stringify(item.variant) === JSON.stringify(variant)
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      )
-    );
+    setCart((prevCart) => {
+      const item = prevCart.find(
+        (i) =>
+          i.id === productId &&
+          JSON.stringify(i.variant) === JSON.stringify(variant)
+      );
+
+      if (!item) return prevCart;
+
+      if (item.maxStock !== undefined && item.quantity >= item.maxStock) {
+        toast.error(
+          `Estoque máximo: ${item.maxStock} unidade${item.maxStock !== 1 ? "s" : ""}`,
+          { icon: "⚠️", id: `stock-limit-${productId}` }
+        );
+        return prevCart;
+      }
+
+      return prevCart.map((i) =>
+        i.id === productId &&
+        JSON.stringify(i.variant) === JSON.stringify(variant)
+          ? { ...i, quantity: i.quantity + 1 }
+          : i
+      );
+    });
   };
 
   // Decrementa a quantidade

@@ -413,3 +413,162 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       .json({ success: false, message: "Erro ao atualizar status" });
   }
 };
+
+export const getOrderPublic = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        statusHistory: {
+          orderBy: { createdAt: "asc" },
+          select: { status: true, notes: true, createdAt: true },
+        },
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Pedido não encontrado" });
+    }
+
+    // Return only non-sensitive fields
+    res.json({
+      success: true,
+      data: {
+        id: order.id,
+        status: order.status,
+        trackingCode: order.trackingCode,
+        paymentMethod: order.paymentMethod,
+        total: order.total,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        statusHistory: (order as any).statusHistory ?? [],
+        // Partial customer info only
+        customerName: order.customerName,
+        // Masked email: jo***@gmail.com
+        customerEmail: order.customerEmail
+          ? order.customerEmail.replace(/(.{2}).*(@.*)/, "$1***$2")
+          : null,
+      },
+    });
+  } catch (error: any) {
+    console.error("Error fetching public order:", error);
+    res.status(500).json({ success: false, message: "Erro ao buscar pedido" });
+  }
+};
+
+export const updateOrder = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const body = req.body as Record<string, string | undefined>;
+    const {
+      customerName, customerEmail, customerPhone, customerDoc,
+      addressZip, addressStreet, addressNumber, addressComp, addressCity, addressState,
+      notes,
+    } = body;
+    const requesterId = (req as any).user?.id as string | undefined;
+
+    const existing = await prisma.order.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "Pedido não encontrado" });
+    }
+
+    const data: any = {};
+    if (customerName !== undefined)   data.customerName   = customerName;
+    if (customerEmail !== undefined)  data.customerEmail  = customerEmail;
+    if (customerPhone !== undefined)  data.customerPhone  = customerPhone;
+    if (customerDoc !== undefined)    data.customerDoc    = customerDoc;
+    if (addressZip !== undefined)     data.addressZip     = addressZip;
+    if (addressStreet !== undefined)  data.addressStreet  = addressStreet;
+    if (addressNumber !== undefined)  data.addressNumber  = addressNumber;
+    if (addressComp !== undefined)    data.addressComp    = addressComp;
+    if (addressCity !== undefined)    data.addressCity    = addressCity;
+    if (addressState !== undefined)   data.addressState   = addressState;
+    if (notes !== undefined)          data.notes          = notes;
+
+    const updated = await prisma.order.update({ where: { id }, data });
+
+    try {
+      await logAction({
+        action: "UPDATE",
+        userId: requesterId,
+        targetId: id,
+        targetType: "ORDER",
+        details: { fields: Object.keys(data) },
+      });
+    } catch {}
+
+    res.json({ success: true, data: updated });
+  } catch (error: any) {
+    console.error("Error updating order:", error);
+    res.status(500).json({ success: false, message: "Erro ao atualizar pedido" });
+  }
+};
+
+export const deleteOrder = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const requesterId = (req as any).user?.id as string | undefined;
+
+    const existing = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "Pedido não encontrado" });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Restore stock only if order was NOT cancelled (cancelled already restored stock)
+      if (existing.status !== "CANCELLED") {
+        for (const item of (existing as any).items) {
+          const product = await tx.product.findUnique({ where: { id: item.productId as string } });
+          const prev = Number(product?.stock ?? 0);
+          const qty = Number(item.quantity);
+          await tx.product.update({
+            where: { id: item.productId as string },
+            data: { stock: { increment: qty } },
+          });
+          await (tx as any).stockMovement.create({
+            data: {
+              productId: item.productId,
+              orderId: existing.id,
+              type: "ORDER_CANCEL",
+              quantity: qty,
+              previousStock: prev,
+              newStock: prev + qty,
+              reason: `Pedido ${existing.id.slice(0, 8)} excluído manualmente`,
+              createdById: requesterId,
+            },
+          });
+        }
+      }
+
+      // Delete related records first (cascade not guaranteed)
+      await (tx as any).orderStatusHistory.deleteMany({ where: { orderId: id as string } });
+      await tx.orderItem.deleteMany({ where: { orderId: id as string } });
+      await tx.order.delete({ where: { id: id as string } });
+    });
+
+    try {
+      await logAction({
+        action: "DELETE",
+        userId: requesterId,
+        targetId: id,
+        targetType: "ORDER",
+        details: {
+          customerName: existing.customerName,
+          total: existing.total,
+          status: existing.status,
+        },
+      });
+    } catch {}
+
+    res.json({ success: true, message: "Pedido excluído com sucesso" });
+  } catch (error: any) {
+    console.error("Error deleting order:", error);
+    res.status(500).json({ success: false, message: "Erro ao excluir pedido" });
+  }
+};

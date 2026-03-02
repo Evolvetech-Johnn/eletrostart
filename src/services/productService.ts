@@ -1,6 +1,17 @@
 import apiClient from "./apiClient";
 import { ApiResponse } from "./adminService";
 
+/** Serializa apenas os campos com valor definido, evitando '?key=undefined' na URL */
+const buildQueryString = (params: Record<string, any>): string => {
+  const clean: Record<string, string> = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') {
+      clean[k] = String(v);
+    }
+  }
+  return new URLSearchParams(clean).toString();
+};
+
 export interface ProductVariant {
   id: string;
   name: string;
@@ -242,7 +253,7 @@ export const productService = {
     page?: number;
     limit?: number;
   }): Promise<StockMovementsResponse> => {
-    const queryString = new URLSearchParams(params as any).toString();
+    const queryString = buildQueryString(params as any);
     const response = await apiClient.get<
       any,
       ApiResponse<{
@@ -277,7 +288,7 @@ export const productService = {
     emptySku?: string;
     dateTz?: string;
   }): Promise<string> => {
-    const queryString = new URLSearchParams(params as any).toString();
+    const queryString = buildQueryString(params as any);
     const response = await apiClient.get<any, any>(
       `/ecommerce/stock-movements/export?${queryString}`,
       { responseType: "blob" },
@@ -298,7 +309,7 @@ export const productService = {
     emptySku?: string;
     dateTz?: string;
   }): Promise<string> => {
-    const queryString = new URLSearchParams(params as any).toString();
+    const queryString = buildQueryString(params as any);
     const response = await apiClient.get<any, any>(
       `/ecommerce/stock-movements/export.xlsx?${queryString}`,
       { responseType: "blob" },
@@ -316,7 +327,7 @@ export const productService = {
     userId?: string;
     delta?: string;
   }): Promise<number> => {
-    const queryString = new URLSearchParams(params as any).toString();
+    const queryString = buildQueryString(params as any);
     const response = await apiClient.get<any, { success: boolean; count: number }>(
       `/ecommerce/stock-movements/empty-sku-count?${queryString}`,
     );

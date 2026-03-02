@@ -30,6 +30,7 @@ const Shipping = lazy(() => import("./pages/Shipping"));
 const Returns = lazy(() => import("./pages/Returns"));
 const Cookies = lazy(() => import("./pages/Cookies"));
 const Checkout = lazy(() => import("./pages/Checkout"));
+const OrderStatus = lazy(() => import("./pages/OrderStatus"));
 
 // Admin Pages (Lazy Loaded)
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
@@ -258,6 +259,7 @@ function App() {
                       <Route path="/returns" element={<Returns />} />
                       <Route path="/cookies" element={<Cookies />} />
                       <Route path="/checkout" element={<Checkout />} />
+                      <Route path="/meu-pedido/:id" element={<OrderStatus />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Layout>

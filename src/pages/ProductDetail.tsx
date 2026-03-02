@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, AlertCircle } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ChevronLeft, AlertCircle, Plus, Minus, ShoppingCart, Zap } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import {
   productService,
@@ -14,7 +14,9 @@ import ProductDetailSkeleton from "../components/ProductDetailSkeleton";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { addToCart } = useCart();
+  const [qty, setQty] = useState(1);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -264,6 +266,11 @@ const ProductDetail = () => {
                 <p className="text-sm text-green-600 font-medium mt-1">
                   Em até 12x no cartão ou 5% de desconto no Pix
                 </p>
+                {!isOutOfStock && currentStock <= 5 && (
+                  <p className="text-sm text-amber-600 font-semibold mt-2 flex items-center gap-1">
+                    ⚠️ Apenas {currentStock} {currentStock === 1 ? "unidade disponível" : "unidades disponíveis"}
+                  </p>
+                )}
               </div>
 
               {/* Variants Selector */}
@@ -290,23 +297,63 @@ const ProductDetail = () => {
                 </div>
               )}
 
-              {/* Add to Cart - Re-enabled and Typed */}
-              <button
-                onClick={() => {
-                  addToCart(product, 1, selectedVariant || undefined);
-                  toast.success("Produto adicionado ao carrinho!");
-                }}
-                disabled={isOutOfStock}
-                className={`w-full mt-6 py-4 rounded-xl font-bold flex items-center justify-center space-x-2 transition-all uppercase tracking-widest shadow-lg ${
-                  isOutOfStock
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-primary hover:bg-blue-800 text-white hover:shadow-xl hover:scale-[1.02]"
-                }`}
-              >
-                <span>
-                  {isOutOfStock ? "Indisponível" : "Adicionar ao Carrinho"}
-                </span>
-              </button>
+              {/* Quantity selector */}
+              {!isOutOfStock && (
+                <div className="flex items-center gap-3 mt-6">
+                  <span className="text-sm font-semibold text-gray-600">Quantidade:</span>
+                  <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setQty((q) => Math.max(1, q - 1))}
+                      className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
+                    >
+                      <Minus size={16} />
+                    </button>
+                    <span className="w-10 text-center font-bold text-gray-900">{qty}</span>
+                    <button
+                      type="button"
+                      onClick={() => setQty((q) => Math.min(currentStock || 99, q + 1))}
+                      className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  {currentStock > 0 && (
+                    <span className="text-xs text-gray-400">{currentStock} em estoque</span>
+                  )}
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="flex flex-col gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    addToCart(product, qty, selectedVariant || undefined);
+                    toast.success(`${qty}x ${product.name} adicionado ao carrinho!`);
+                  }}
+                  disabled={isOutOfStock}
+                  className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all uppercase tracking-widest shadow-lg ${
+                    isOutOfStock
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-primary hover:bg-blue-800 text-white hover:shadow-xl hover:scale-[1.02]"
+                  }`}
+                >
+                  <ShoppingCart size={20} />
+                  <span>{isOutOfStock ? "Indisponível" : "Adicionar ao Carrinho"}</span>
+                </button>
+                {!isOutOfStock && (
+                  <button
+                    onClick={() => {
+                      addToCart(product, qty, selectedVariant || undefined);
+                      navigate("/checkout");
+                    }}
+                    className="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all uppercase tracking-widest bg-secondary hover:bg-red-700 text-white shadow-lg shadow-red-500/20"
+                  >
+                    <Zap size={20} />
+                    <span>Comprar Agora</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

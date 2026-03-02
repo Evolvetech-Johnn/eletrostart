@@ -250,6 +250,20 @@ const Header: React.FC = () => {
               >
                 Minha Conta
               </Link>
+              {cartItemCount > 0 && (
+                <button
+                  onClick={() => { setIsMenuOpen(false); toggleCart(); }}
+                  className="w-full flex items-center justify-between bg-primary text-white rounded-xl px-4 py-3 font-bold"
+                >
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart size={18} />
+                    <span>Ver Carrinho</span>
+                  </div>
+                  <span className="bg-secondary text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center">
+                    {cartItemCount > 9 ? "9+" : cartItemCount}
+                  </span>
+                </button>
+              )}
             </div>
           </nav>
         </div>

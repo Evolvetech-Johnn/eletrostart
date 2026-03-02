@@ -7,4 +7,18 @@ export default defineConfig({
   server: {
     port: 5174,
   },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'axios',
+      '@tanstack/react-query',
+      'react-hot-toast',
+      'lucide-react',
+      'recharts',
+      'react-hook-form',
+      'zod',
+    ],
+  },
 })

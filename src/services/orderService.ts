@@ -80,6 +80,20 @@ export interface GetOrdersParams {
   endDate?: string;
 }
 
+export interface UpdateOrderParams {
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  customerDoc?: string;
+  addressZip?: string;
+  addressStreet?: string;
+  addressNumber?: string;
+  addressComp?: string;
+  addressCity?: string;
+  addressState?: string;
+  notes?: string;
+}
+
 export const orderService = {
   // Public
   createOrder: async (data: CreateOrderParams): Promise<Order> => {
@@ -119,6 +133,38 @@ export const orderService = {
       `/ecommerce/orders/${id}/status`,
       body,
     );
+    return response.data;
+  },
+
+  updateOrder: async (id: string, data: UpdateOrderParams): Promise<Order> => {
+    const response = await apiClient.patch<any, ApiResponse<Order>>(
+      `/ecommerce/orders/${id}`,
+      data,
+    );
+    return response.data;
+  },
+
+  deleteOrder: async (id: string): Promise<void> => {
+    await apiClient.delete(`/ecommerce/orders/${id}`);
+  },
+
+  /** Public — no auth required. Returns status, tracking and history (masked email). */
+  getOrderPublic: async (id: string) => {
+    const response = await apiClient.get<any, {
+      success: boolean;
+      data: {
+        id: string;
+        status: string;
+        trackingCode: string | null;
+        paymentMethod: string | null;
+        total: number;
+        createdAt: string;
+        updatedAt: string;
+        statusHistory: { status: string; notes?: string; createdAt: string }[];
+        customerName: string;
+        customerEmail: string | null;
+      };
+    }>(`/ecommerce/orders/${id}/public`);
     return response.data;
   },
 };
