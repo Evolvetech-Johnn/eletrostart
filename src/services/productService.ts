@@ -154,11 +154,15 @@ export const productService = {
     const response = await apiClient.get<any, ApiResponse<Product[]>>(
       `/ecommerce/products?${queryString}`,
     );
-    // Handle both wrapped and unwrapped responses if necessary, but apiClient interceptor usually returns data
-    // Based on api.js, backend returns array directly or { success, data }
-    // adminService interface suggests data is Product[].
-    // Let's assume response.data is Product[] based on adminService.
     return response.data;
+  },
+
+  getProductsPaginated: async (params: GetProductsParams = {}): Promise<{ data: Product[]; pagination: any }> => {
+    const queryString = new URLSearchParams(params as any).toString();
+    const response = await apiClient.get<any, any>(
+      `/ecommerce/products?${queryString}`
+    );
+    return { data: response.data, pagination: response.pagination };
   },
 
   getProduct: async (id: string): Promise<Product> => {

@@ -1,10 +1,10 @@
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import React, { useMemo } from "react";
+import React from "react";
 import { PackageOpen, Plus, Trash2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { productService, Product } from "../../../../services/productService";
+import { Product } from "../../../../services/productService";
 import { OrderFormValues } from "../schema/orderSchema";
 import { toast } from "react-hot-toast";
+import { ProductCombobox } from "./ProductCombobox";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -27,32 +27,44 @@ const OrderItemsTable = () => {
     name: "items",
   });
 
-  // Fetch active products
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products", "active"],
-    queryFn: async () => {
-      const all = await productService.getProducts();
-      return all.filter((p) => p.active && p.stock > 0);
-    },
-  });
+  // Cache of selected products to preserve metadata after selection 
+  // without needing to query all products upfront
+  const [selectedProductsCache, setSelectedProductsCache] = React.useState<Record<string, Product>>({});
 
-  // Product Dictionary for O(1) lookups
-  const productDict = useMemo(() => {
-    return products.reduce((acc: Record<string, Product>, p: Product) => {
-      acc[p.id] = p;
-      return acc;
-    }, {});
-  }, [products]);
+  const handleProductSelect = (index: number, product: Product) => {
+    // Save to local cache
+    setSelectedProductsCache((prev) => ({ ...prev, [product.id]: product }));
 
-  const handleProductSelect = (index: number, productId: string) => {
-    setValue(`items.${index}.productId`, productId, { shouldValidate: true });
-    
-    // Auto-fill price
-    if (productId && productDict[productId]) {
-      setValue(`items.${index}.unitPrice`, productDict[productId].price, {
-        shouldValidate: true,
-      });
+    // Check if duplicate row
+    const existingIndex = fields.findIndex(
+      (_, i) => i !== index && itemsWatched[i]?.productId === product.id
+    );
+
+    if (existingIndex >= 0) {
+      const currentQty = itemsWatched[existingIndex].quantity || 1;
+      let newQty = currentQty + 1;
+      
+      if (product.stock && newQty > product.stock) {
+        toast.error(`Estoque máximo: ${product.stock}`, { id: `stock-${index}` });
+        newQty = product.stock;
+      }
+      
+      setValue(`items.${existingIndex}.quantity`, newQty, { shouldValidate: true });
+      
+      if (fields.length > 1) {
+        remove(index);
+      } else {
+        setValue(`items.${index}.productId`, "", { shouldValidate: true });
+        setValue(`items.${index}.unitPrice`, 0, { shouldValidate: true });
+        setValue(`items.${index}.quantity`, 1, { shouldValidate: true });
+      }
+      toast.success("Quantidade atualizada no item existente");
+      return;
     }
+
+    // Auto-fill price logic for normal selection
+    setValue(`items.${index}.productId`, product.id, { shouldValidate: true });
+    setValue(`items.${index}.unitPrice`, product.price, { shouldValidate: true });
   };
 
   const handleQtyChange = (index: number, qtyString: string, maxStock?: number) => {
@@ -102,7 +114,7 @@ const OrderItemsTable = () => {
           <div className="divide-y divide-gray-100">
             {fields.map((field, index) => {
               const currentProductId = itemsWatched[index]?.productId;
-              const currentProduct = currentProductId ? productDict[currentProductId] : null;
+              const currentProduct = currentProductId ? selectedProductsCache[currentProductId] : null;
               const price = itemsWatched[index]?.unitPrice || 0;
               const qty = itemsWatched[index]?.quantity || 1;
               const subtotal = price * qty;
@@ -113,29 +125,12 @@ const OrderItemsTable = () => {
                   
                   {/* Select Produto */}
                   <div className="col-span-12 md:col-span-5">
-                    <select
+                    <ProductCombobox 
                       value={currentProductId || ""}
-                      onChange={(e) => handleProductSelect(index, e.target.value)}
-                      className={`w-full bg-white border outline-none focus:ring-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-                        rowErrors?.productId ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-primary/20 focus:border-primary"
-                      }`}
-                    >
-                      <option value="">Buscar produto...</option>
-                      {isLoading ? (
-                        <option disabled>Carregando...</option>
-                      ) : (
-                        products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.code ? `[${p.code}] ` : ""}{p.name}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                    {currentProduct && (
-                      <div className="text-[10px] text-gray-400 mt-1 pl-1">
-                        Estoque disponível: <span className="font-bold text-gray-600">{currentProduct.stock}</span>
-                      </div>
-                    )}
+                      onSelect={(product) => handleProductSelect(index, product)}
+                      error={!!rowErrors?.productId}
+                      selectedProductCache={currentProduct || undefined}
+                    />
                   </div>
 
                   {/* Preço Unitário (Somente Leitura por enquanto) */}
