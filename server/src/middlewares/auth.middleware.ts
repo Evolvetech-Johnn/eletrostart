@@ -12,8 +12,10 @@ export const authenticate = async (
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log("🔒 [AUTH] Token ausente na requisição a", req.originalUrl);
       return res.status(401).json({
         error: true,
+        code: "AUTH_MISSING",
         message: "Token de autenticação não fornecido",
       });
     }
@@ -30,8 +32,10 @@ export const authenticate = async (
     });
 
     if (!user || !user.active) {
+      console.log(`🔒 [AUTH] Usuário inativo ou deletado no banco. ID: ${decoded.userId}`);
       return res.status(401).json({
         error: true,
+        code: "AUTH_USER_NOT_FOUND",
         message: "Usuário não encontrado ou inativo",
       });
     }
@@ -47,14 +51,18 @@ export const authenticate = async (
     next();
   } catch (error: any) {
     if (error.name === "JsonWebTokenError") {
+      console.log("🔒 [AUTH] Token corrompido ou com assinatura inválida");
       return res.status(401).json({
         error: true,
+        code: "TOKEN_INVALID",
         message: "Token inválido",
       });
     }
     if (error.name === "TokenExpiredError") {
+      console.log("🔒 [AUTH] Token expirado");
       return res.status(401).json({
         error: true,
+        code: "TOKEN_EXPIRED",
         message: "Token expirado",
       });
     }
@@ -70,8 +78,10 @@ export const requireAdmin = (
 ) => {
   const role = (req.user?.role || "").toUpperCase();
   if (!req.user || (role !== "ADMIN" && role !== "SUPER_ADMIN")) {
+      console.log(`🔒 [AUTH] Acesso negado por ROLE. Role atual: ${role}, Usuário ID: ${req.user?.id}, Rota: ${req.originalUrl}`);
     return res.status(403).json({
       error: true,
+      code: "NOT_ADMIN",
       message: "Acesso negado. Permissão de administrador necessária.",
     });
   }

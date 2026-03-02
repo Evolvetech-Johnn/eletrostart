@@ -15,6 +15,7 @@ const API_BASE_URL =
 // Create Axios instance
 const apiClient = axios.create({
   baseURL: API_BASE_URL || undefined,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -54,6 +55,7 @@ apiClient.interceptors.response.use(
     if (error.response) {
       // 401: Unauthorized
       if (error.response.status === 401) {
+        console.warn("🔐 Sessão Expirada ou Token em falta.", error.response.data);
         removeToken();
         if (!window.location.pathname.includes("/login")) {
           window.location.href = "/admin/login";
@@ -61,6 +63,11 @@ apiClient.interceptors.response.use(
         return Promise.reject(
           new Error("Sessão expirada. Faça login novamente."),
         );
+      }
+
+      // 403: Forbidden
+      if (error.response.status === 403) {
+        console.error("🚫 Acesso Negado (403):", error.response.data);
       }
 
       // 500: Server Error
