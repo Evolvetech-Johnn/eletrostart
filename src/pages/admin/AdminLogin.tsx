@@ -8,6 +8,7 @@ import {
   Loader2,
   AlertCircle,
   Zap,
+  ArrowLeft,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -152,6 +153,16 @@ const AdminLogin: React.FC = () => {
               )}
             </button>
           </form>
+
+          <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+            <button
+              onClick={() => window.location.href = '/'}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#222998] hover:text-blue-800 transition-colors"
+            >
+              <ArrowLeft size={16} />
+              Voltar para o site
+            </button>
+          </div>
         </div>
 
         <p className="text-center text-white/40 text-xs mt-6">
