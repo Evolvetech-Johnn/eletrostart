@@ -156,7 +156,7 @@ const AdminLogin: React.FC = () => {
 
           <div className="mt-6 pt-6 border-t border-gray-100 text-center">
             <button
-              onClick={() => window.location.href = '/'}
+              onClick={() => navigate("/")}
               className="inline-flex items-center gap-2 text-sm font-semibold text-[#222998] hover:text-blue-800 transition-colors"
             >
               <ArrowLeft size={16} />

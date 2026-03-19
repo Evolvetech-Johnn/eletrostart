@@ -103,9 +103,8 @@ apiClient.interceptors.response.use(
       if (error.response.status === 401) {
         console.warn("🔐 Sessão Expirada ou Token em falta.", error.response.data);
         removeToken();
-        if (!window.location.pathname.includes("/login")) {
-          window.location.href = "/admin/login";
-        }
+        // Redirecionamento removido daqui para evitar loops em rotas públicas.
+        // O ProtectedRoute ou o estado do AuthContext deve lidar com o acesso negado.
         return Promise.reject(new Error("Sessão expirada. Faça login novamente."));
       }
 
