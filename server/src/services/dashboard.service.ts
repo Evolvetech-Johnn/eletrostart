@@ -8,9 +8,38 @@ export const getDashboardStats = async () => {
   weekStart.setDate(weekStart.getDate() - 7);
 
   // General stats
+  const [messages, orders, users, customers, recentOrders, recentCustomers] = await Promise.all([
+    prisma.contactMessage.count(),
+    prisma.order.count(),
+    prisma.adminUser.count(),
+    prisma.customer.count(),
+    prisma.order.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        customerName: true,
+        total: true,
+        status: true,
+        createdAt: true,
+      },
+    }),
+    prisma.customer.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        active: true,
+        createdAt: true,
+      },
+    }),
+  ]);
+
   const stats = {
     messages: {
-      total: await prisma.contactMessage.count(),
+      total: messages,
       new: await prisma.contactMessage.count({
         where: { status: "NEW" },
       }),
@@ -22,15 +51,28 @@ export const getDashboardStats = async () => {
       }),
     },
     orders: {
-      total: await prisma.order.count(),
+      total: orders,
       pending: await prisma.order.count({
         where: { status: "PENDING" },
       }),
     },
-    users: await prisma.adminUser.count(),
+    customers: {
+      total: customers,
+      active: await prisma.customer.count({
+        where: { active: true },
+      }),
+    },
+    users,
   };
 
-  return { stats: stats.messages, orders: stats.orders, users: stats.users };
+  return { 
+    stats: stats.messages, 
+    orders: stats.orders, 
+    users: stats.users, 
+    customers: stats.customers,
+    recentOrders,
+    recentCustomers
+  };
 };
 
 export const getAnalyticsStats = async (query?: any) => {
@@ -106,6 +148,11 @@ export const getAnalyticsStats = async (query?: any) => {
   const ticketMedio = totalOrders > 0 ? totalRevenue / totalOrders : 0;
   const pendingOrders = await prisma.order.count({ where: { status: "PENDING" } });
 
+  // CRM: New customers in period
+  const newCustomers = await prisma.customer.count({
+    where: { createdAt: { gte: startDate } }
+  });
+
   return {
     salesByDay,
     revenueByDay,
@@ -117,5 +164,6 @@ export const getAnalyticsStats = async (query?: any) => {
     topSellingProducts,
     ticketMedio,
     pendingOrders,
+    newCustomers, // NEW
   };
 };

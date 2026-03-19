@@ -88,6 +88,16 @@ const AdminDashboard: React.FC = () => {
       link: "/admin/orders",
     },
     {
+      title: "Novos Clientes",
+      value: fmtNum(data?.customers?.total ?? 0),
+      sub: `${data?.customers?.active ?? 0} ativos`,
+      icon: Users,
+      color: "bg-cyan-500",
+      textColor: "text-cyan-600",
+      bg: "bg-cyan-50",
+      link: "/admin/customers",
+    },
+    {
       title: "Mensagens Novas",
       value: fmtNum(data?.stats?.new ?? 0),
       sub: `${data?.stats?.today ?? 0} hoje`,
@@ -100,21 +110,12 @@ const AdminDashboard: React.FC = () => {
     {
       title: "Estoque Crítico",
       value: fmtNum(analytics?.lowStockProducts?.length ?? 0),
-      sub: "produtos ≤ 5 unidades",
+      sub: "produtos ≤ 3 unidades",
       icon: AlertTriangle,
       color: "bg-red-500",
       textColor: "text-red-600",
       bg: "bg-red-50",
       link: "/admin/executive/inventory",
-    },
-    {
-      title: "Usuários Admin",
-      value: fmtNum(data?.users ?? 0),
-      icon: Users,
-      color: "bg-cyan-500",
-      textColor: "text-cyan-600",
-      bg: "bg-cyan-50",
-      link: "/admin/users",
     },
   ];
 
@@ -164,7 +165,7 @@ const AdminDashboard: React.FC = () => {
         ) : (
           <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
               {kpiCards.map((card) => (
                 <Link
                   key={card.title}
@@ -278,6 +279,78 @@ const AdminDashboard: React.FC = () => {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Recent Orders */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-gray-900">Pedidos Recentes</h2>
+                  <Link to="/admin/orders" className="text-xs text-[#222998] font-semibold hover:underline">Ver todos →</Link>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase font-semibold">
+                      <tr>
+                        <th className="px-6 py-3">Cliente</th>
+                        <th className="px-6 py-3">Valor</th>
+                        <th className="px-6 py-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {data?.recentOrders?.map((order) => (
+                        <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">{order.customerName}</p>
+                            <p className="text-[10px] text-gray-400">{new Date(order.createdAt).toLocaleDateString("pt-BR")}</p>
+                          </td>
+                          <td className="px-6 py-4 text-sm font-semibold text-gray-700">{fmt(order.total)}</td>
+                          <td className="px-6 py-4">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              order.status === "PAID" ? "bg-emerald-100 text-emerald-700" :
+                              order.status === "PENDING" ? "bg-amber-100 text-amber-700" :
+                              "bg-gray-100 text-gray-600"
+                            }`}>
+                              {order.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Recent Customers */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-gray-900">Novos Clientes</h2>
+                  <Link to="/admin/customers" className="text-xs text-[#222998] font-semibold hover:underline">Gerenciar →</Link>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {data?.recentCustomers?.map((customer) => (
+                    <div key={customer.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-bold shrink-0">
+                          {customer.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 truncate max-w-[140px]">{customer.name}</p>
+                          <p className="text-xs text-gray-500 truncate max-w-[140px]">{customer.email || "Sem e-mail"}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-gray-400 mb-1">{new Date(customer.createdAt).toLocaleDateString("pt-BR")}</p>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                          customer.active ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                        }`}>
+                          {customer.active ? "Ativo" : "Inativo"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 

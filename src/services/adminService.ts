@@ -11,7 +11,25 @@ export interface DashboardData {
     total: number;
     pending: number;
   };
+  customers: {
+    total: number;
+    active: number;
+  };
   users: number;
+  recentOrders: {
+    id: string;
+    customerName: string;
+    total: number;
+    status: string;
+    createdAt: string;
+  }[];
+  recentCustomers: {
+    id: string;
+    name: string;
+    email: string | null;
+    active: boolean;
+    createdAt: string;
+  }[];
 }
 
 export interface ApiResponse<T> {
@@ -181,6 +199,7 @@ export const adminService = {
     }[];
     ticketMedio: number;
     pendingOrders: number;
+    newCustomers: number;
   }> => {
     const response = await apiClient.get<any, ApiResponse<any>>(
       `/admin/dashboard/analytics?days=${days}`,
