@@ -44,6 +44,8 @@ const AdminIntegrations = lazy(() => import("./pages/admin/AdminIntegrations"));
 const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
 const AdminProductForm = lazy(() => import("./pages/admin/AdminProductForm"));
 const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
+const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
+const AdminCustomerDetail = lazy(() => import("./pages/admin/AdminCustomerDetail"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminOrderDetail = lazy(() => import("./pages/admin/AdminOrderDetail"));
 const NewOrderPage = lazy(() => import("./pages/admin/Orders/NewOrderPage"));
@@ -153,6 +155,30 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminCategories />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/customers"
+                element={
+                  <ProtectedRoute>
+                    <AdminCustomers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/customers/new"
+                element={
+                  <ProtectedRoute>
+                    <AdminCustomerDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/customers/:id"
+                element={
+                  <ProtectedRoute>
+                    <AdminCustomerDetail />
                   </ProtectedRoute>
                 }
               />

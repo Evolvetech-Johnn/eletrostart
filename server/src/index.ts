@@ -12,6 +12,7 @@ import { prisma } from "./lib/prisma";
 import authRoutes from "./routes/auth.routes";
 import messageRoutes from "./routes/message.routes";
 import adminRoutes from "./routes/admin.routes";
+import customerRoutes from "./routes/customer.routes"; // [NEW] Módulo de Clientes
 import ecommerceRoutes from "./routes/ecommerce.routes";
 import executiveRoutes from "./modules/executive/routes";
 import paymentRoutes from "./routes/payment.routes";
@@ -125,6 +126,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 // Admin and Executive routes require CSRF validation on mutations
 app.use("/api/admin", verifyCsrfToken, adminRoutes);
+app.use("/api/admin/customers", verifyCsrfToken, customerRoutes);
 app.use("/api/ecommerce", ecommerceRoutes);
 app.use("/api/executive", verifyCsrfToken, executiveRoutes);
 app.use("/api/logistics", logisticsRoutes);

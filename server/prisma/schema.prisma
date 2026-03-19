@@ -99,16 +99,21 @@ model AuditLog {
 
 // --- Executive / Analytics Models ---
 
-// Normalização de Cliente
 model Customer {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String
   phone     String
   email     String?
+  document  String?
+  active    Boolean  @default(true)
+  notes     String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([phone])
   @@index([email])
+  @@index([document])
+  @@index([active])
   @@map("customers")
 }
 
