@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
 import * as productController from '../product.controller';
-import { prisma } from '../../lib/prisma';
-import { importExportService } from '../../services/importExport.service';
-import { googleSheetsService } from '../../services/googleSheets.service';
-import { logAction } from '../../services/audit.service';
+import { prisma } from '../../../../lib/prisma';
+import { importExportService } from '../../../../services/importExport.service';
+import { googleSheetsService } from '../../../../services/googleSheets.service';
+import { logAction } from '../../../../services/audit.service';
 
 // Mocks
-jest.mock('../../lib/prisma', () => ({
+jest.mock('../../../../lib/prisma', () => ({
   prisma: {
     product: {
       findFirst: jest.fn(),
@@ -21,9 +21,9 @@ jest.mock('../../lib/prisma', () => ({
   },
 }));
 
-jest.mock('../../services/importExport.service');
-jest.mock('../../services/googleSheets.service');
-jest.mock('../../services/audit.service');
+jest.mock('../../../../services/importExport.service');
+jest.mock('../../../../services/googleSheets.service');
+jest.mock('../../../../services/audit.service');
 
 describe('ProductController', () => {
   let req: Partial<Request>;

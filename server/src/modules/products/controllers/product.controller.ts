@@ -2,25 +2,37 @@ import { Request, Response } from "express";
 import {
   createProductSchema,
   updateProductSchema,
-} from "../schemas/product.schema";
+} from "../../../schemas/product.schema";
 import * as productService from "../services/product.service";
 import { CATEGORY_MIN_PRICE_BY_SLUG } from "../services/product.service";
-import { prisma } from "../lib/prisma";
+import { prisma } from "../../../lib/prisma";
+import { productRepository } from "../repositories/product.repository";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import fs from "fs";
 import ExcelJS from "exceljs";
+import { cacheService } from "../../../services/redis.service";
+import { uploadImageToStore } from "../../../services/cloudinary.service";
 
 // --- Products ---
 
 export const getProducts = async (req: Request, res: Response) => {
   try {
+    const cacheKey = `products:list:${JSON.stringify(req.query)}`;
+    const cached = await cacheService.get<any>(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const result = await productService.listProducts(req.query);
-    res.json({
+    const responseData = {
       success: true,
       data: result.products,
       pagination: result.pagination,
-    });
+    };
+
+    await cacheService.set(cacheKey, responseData, 300); // 5 minutos de cache
+    res.json(responseData);
   } catch (error) {
     console.error("Error fetching products:", error);
     res
@@ -53,6 +65,7 @@ export const createProduct = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id || "unknown";
 
     const product = await productService.createProduct(validatedData, userId);
+    await cacheService.invalidate("products:*");
 
     res.status(201).json({ success: true, data: product });
   } catch (error: any) {
@@ -87,6 +100,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       validatedData,
       userId,
     );
+    await cacheService.invalidate("products:*");
 
     res.json({ success: true, data: product });
   } catch (error: any) {
@@ -118,6 +132,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id || "unknown";
 
     const result = await productService.deleteProduct(id as string, userId);
+    await cacheService.invalidate("products:*");
 
     res.json({ success: true, message: result.message });
   } catch (error: any) {
@@ -135,10 +150,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
 export const getProductVariants = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const variants = await (prisma as any).productVariant.findMany({
-      where: { productId: id },
-      orderBy: { createdAt: "asc" },
-    });
+    const variants = await productRepository.getVariants(id);
     res.json({ success: true, data: variants });
   } catch (error) {
     res
@@ -151,15 +163,14 @@ export const createProductVariant = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const { name, price, stock, sku } = req.body;
-    const variant = await (prisma as any).productVariant.create({
-      data: {
-        productId: id,
-        name,
-        price,
-        stock,
-        sku,
-      },
+    const variant = await productRepository.createVariant({
+      productId: id,
+      name,
+      price,
+      stock,
+      sku,
     });
+    await cacheService.invalidate("products:*");
     res.status(201).json({ success: true, data: variant });
   } catch (error) {
     res.status(500).json({ success: false, message: "Erro ao criar variante" });
@@ -171,16 +182,14 @@ export const updateProductVariant = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const variantId = req.params.variantId as string;
     const { name, price, stock, sku } = req.body;
-    const variant = await (prisma as any).productVariant.update({
-      where: { id: variantId },
-      data: {
-        name,
-        price,
-        stock,
-        sku,
-        productId: id,
-      },
+    const variant = await productRepository.updateVariant(variantId, {
+      name,
+      price,
+      stock,
+      sku,
+      productId: id,
     });
+    await cacheService.invalidate("products:*");
     res.json({ success: true, data: variant });
   } catch (error: any) {
     if (error.code === "P2025") {
@@ -197,9 +206,8 @@ export const updateProductVariant = async (req: Request, res: Response) => {
 export const deleteProductVariant = async (req: Request, res: Response) => {
   try {
     const variantId = req.params.variantId as string;
-    await (prisma as any).productVariant.delete({
-      where: { id: variantId },
-    });
+    await productRepository.deleteVariant(variantId);
+    await cacheService.invalidate("products:*");
     res.json({ success: true, message: "Variante removida" });
   } catch (error: any) {
     if (error.code === "P2025") {
@@ -216,10 +224,7 @@ export const deleteProductVariant = async (req: Request, res: Response) => {
 export const getProductImages = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const images = await (prisma as any).productImage.findMany({
-      where: { productId: id },
-      orderBy: { order: "asc" },
-    });
+    const images = await productRepository.getImages(id);
     res.json({ success: true, data: images });
   } catch (error) {
     res.status(500).json({ success: false, message: "Erro ao buscar imagens" });
@@ -232,20 +237,16 @@ export const createProductImage = async (req: Request, res: Response) => {
     const { url, isPrimary, order } = req.body;
 
     if (isPrimary) {
-      await (prisma as any).productImage.updateMany({
-        where: { productId: id },
-        data: { isPrimary: false },
-      });
+      await productRepository.clearPrimaryFlags(id);
     }
 
-    const image = await (prisma as any).productImage.create({
-      data: {
-        productId: id,
-        url,
-        isPrimary: Boolean(isPrimary),
-        order: typeof order === "number" ? order : 0,
-      },
+    const image = await productRepository.createImage({
+      productId: id,
+      url,
+      isPrimary: Boolean(isPrimary),
+      order: typeof order === "number" ? order : 0,
     });
+    await cacheService.invalidate("products:*");
     res.status(201).json({ success: true, data: image });
   } catch (error) {
     res
@@ -261,20 +262,15 @@ export const updateProductImage = async (req: Request, res: Response) => {
     const { url, isPrimary, order } = req.body;
 
     if (isPrimary) {
-      await (prisma as any).productImage.updateMany({
-        where: { productId: id },
-        data: { isPrimary: false },
-      });
+      await productRepository.clearPrimaryFlags(id);
     }
 
-    const image = await (prisma as any).productImage.update({
-      where: { id: imageId },
-      data: {
-        url,
-        isPrimary: isPrimary !== undefined ? Boolean(isPrimary) : undefined,
-        order: typeof order === "number" ? order : undefined,
-      },
+    const image = await productRepository.updateImage(imageId, {
+      url,
+      isPrimary: isPrimary !== undefined ? Boolean(isPrimary) : undefined,
+      order: typeof order === "number" ? order : undefined,
     });
+    await cacheService.invalidate("products:*");
     res.json({ success: true, data: image });
   } catch (error: any) {
     if (error.code === "P2025") {
@@ -291,9 +287,8 @@ export const updateProductImage = async (req: Request, res: Response) => {
 export const deleteProductImage = async (req: Request, res: Response) => {
   try {
     const imageId = req.params.imageId as string;
-    await (prisma as any).productImage.delete({
-      where: { id: imageId },
-    });
+    await productRepository.deleteImage(imageId);
+    await cacheService.invalidate("products:*");
     res.json({ success: true, message: "Imagem removida" });
   } catch (error: any) {
     if (error.code === "P2025") {
@@ -315,44 +310,25 @@ export const uploadProductImages = async (req: Request, res: Response) => {
         .json({ success: false, message: "Nenhuma imagem enviada" });
     }
 
-    const baseDir = path.resolve(
-      process.cwd(),
-      "public",
-      "img",
-      "produtos",
-      id,
-    );
-    fs.mkdirSync(baseDir, { recursive: true });
-
     const created: any[] = [];
     for (const file of files) {
-      const ext = file.mimetype.includes("jpeg")
-        ? ".jpg"
-        : file.mimetype.includes("png")
-          ? ".png"
-          : file.mimetype.includes("webp")
-            ? ".webp"
-            : "";
+      if (!file.mimetype.startsWith("image/")) continue;
 
-      if (!ext) continue;
-      const filename = `${uuidv4()}${ext}`;
-      const filepath = path.join(baseDir, filename);
-      fs.writeFileSync(filepath, file.buffer);
+      const publicUrl = await uploadImageToStore(file.buffer, file.originalname, `eletrostart/produtos/${id}`);
 
-      const publicUrl = `/img/produtos/${id}/${filename}`;
-      const image = await (prisma as any).productImage.create({
-        data: {
-          productId: id,
-          url: publicUrl,
-          isPrimary: false,
-          order: 0,
-        },
+      const image = await productRepository.createImage({
+        productId: id,
+        url: publicUrl,
+        isPrimary: false,
+        order: 0,
       });
       created.push(image);
     }
+    await cacheService.invalidate("products:*");
 
     res.status(201).json({ success: true, data: created });
   } catch (error: any) {
+    console.error("Error uploading images:", error);
     res.status(500).json({ success: false, message: "Erro ao enviar imagens" });
   }
 };
@@ -371,6 +347,7 @@ export const bulkUpdateProducts = async (req: Request, res: Response) => {
     }
 
     const count = await productService.bulkUpdate(ids, data, userId);
+    await cacheService.invalidate("products:*");
 
     res.json({
       success: true,
@@ -397,6 +374,7 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
     }
 
     const result = await productService.bulkDelete(ids, userId);
+    await cacheService.invalidate("products:*");
 
     res.json({
       success: true,
@@ -659,8 +637,8 @@ export const getStockMovements = async (req: Request, res: Response) => {
       if (to) where.createdAt.lte = new Date(to as string);
     }
 
-    const total = await (prisma as any).stockMovement.count({ where });
-    const movements = await (prisma as any).stockMovement.findMany({
+    const total = await productRepository.countStockMovements(where);
+    const movements = await productRepository.findStockMovements({
       where,
       orderBy: { createdAt: "desc" },
       skip: (pageNum - 1) * limitNum,
@@ -735,7 +713,7 @@ export const exportStockMovements = async (req: Request, res: Response) => {
       if (to) where.createdAt.lte = new Date(to as string);
     }
 
-    const movements = await (prisma as any).stockMovement.findMany({
+    const movements = await productRepository.findStockMovements({
       where,
       orderBy: { createdAt: "desc" },
       take: 10000,
@@ -894,7 +872,7 @@ export const exportStockMovementsXlsx = async (req: Request, res: Response) => {
       if (to) where.createdAt.lte = new Date(to as string);
     }
 
-    const movements = await (prisma as any).stockMovement.findMany({
+    const movements = await productRepository.findStockMovements({
       where,
       orderBy: { createdAt: "desc" },
       take: 10000,
@@ -999,8 +977,8 @@ export const getProductStockMovements = async (req: Request, res: Response) => {
     const limitNum = parseInt(limit as string, 10);
 
     const where = { productId: id as string };
-    const total = await (prisma as any).stockMovement.count({ where });
-    const movements = await (prisma as any).stockMovement.findMany({
+    const total = await productRepository.countStockMovements(where);
+    const movements = await productRepository.findStockMovements({
       where,
       orderBy: { createdAt: "desc" },
       skip: (pageNum - 1) * limitNum,
@@ -1064,7 +1042,7 @@ export const getEmptySkuStockMovementsCount = async (
       OR: [{ sku: null }, { sku: "" }],
     };
 
-    const count = await (prisma as any).stockMovement.count({ where });
+    const count = await productRepository.countStockMovements(where);
     res.json({ success: true, count });
   } catch (error) {
     res

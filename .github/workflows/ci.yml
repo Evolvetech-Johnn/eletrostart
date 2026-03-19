@@ -1,0 +1,57 @@
+name: CI - Build & Test
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+
+jobs:
+  build-and-test:
+    name: Build Frontend & Test Backend
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
+
+      # --- FRONTEND ---
+      - name: Install Frontend Dependencies
+        run: npm ci
+
+      - name: Build Frontend
+        run: npm run build
+        env:
+          CI: true
+
+      # --- BACKEND ---
+      - name: Install Backend Dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: Generate Prisma Client
+        run: |
+          cd server
+          npx prisma generate
+
+      - name: Run Backend Tests
+        run: |
+          cd server
+          npm test
+        env:
+          CI: true
+          # Define mock env vars for testing if needed
+          DATABASE_URL: "mongodb://mock-url"
+          JWT_SECRET: "test-secret"

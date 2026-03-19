@@ -1,5 +1,6 @@
 import express from "express";
 import { authenticate, requireAdmin } from "../middlewares/auth.middleware";
+import rateLimit from "express-rate-limit";
 import {
   getMessages,
   getMessage,
@@ -72,6 +73,19 @@ router.post("/users", createUser);
 router.put("/users/:id", updateUser);
 router.patch("/users/:id/role", updateUserRole);
 router.patch("/users/:id/status", updateUserStatus);
-router.post("/users/reset-password", resetPassword);
+
+const resetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Limit each IP to 3 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: true,
+    code: "RATE_LIMIT_RESET",
+    message: "Muitas tentativas de reset de senha. Aguarde 1 hora e tente novamente.",
+  },
+});
+
+router.post("/users/reset-password", resetLimiter, resetPassword);
 
 export default router;

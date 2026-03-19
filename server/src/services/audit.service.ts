@@ -10,7 +10,11 @@ export type AuditAction =
   | "IMPORT"
   | "EXPORT"
   | "BULK_UPDATE"
-  | "BULK_DELETE";
+  | "BULK_DELETE"
+  | "PAYMENT_INITIATED"
+  | "PAYMENT_CONFIRMED"
+  | "INVOICE_EMITTED"
+  | "INVOICE_FAILED";
 
 export type AuditTargetType = "PRODUCT" | "CATEGORY" | "ORDER" | "MESSAGE" | "USER" | "SYSTEM";
 

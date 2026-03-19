@@ -10,7 +10,7 @@ export interface User {
 
 export interface LoginResponse {
   user: User;
-  token: string;
+  token?: string; // mantido para retrocompatibilidade — o cookie httpOnly é emitido pelo servidor
 }
 
 export const authService = {
@@ -29,9 +29,10 @@ export const authService = {
     return response.data.user;
   },
 
-  logout: () => {
-    // Client-side cleanup is handled by removing token,
-    // but if there's a server-side logout endpoint, call it here.
-    // For now, assuming just token removal which is done in AuthContext/apiClient helper.
+  /**
+   * Logout — chama o endpoint do servidor para limpar o Cookie httpOnly
+   */
+  logout: async (): Promise<void> => {
+    await apiClient.post("/auth/logout");
   },
 };

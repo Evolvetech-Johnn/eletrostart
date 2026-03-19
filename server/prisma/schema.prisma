@@ -13,52 +13,44 @@ datasource db {
 
 // Modelo de Mensagem de Contato
 model ContactMessage {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  source           String   @default("contact_form")
-  name             String?
-  email            String?
-  phone            String?
-  subject          String?
-  message          String
-  
-  // Discord Sync Metadata
-  discordSent      Boolean  @default(false)
-  discordMessageId String?
-  discordChannel   String?
-  sentAt           DateTime?
-  syncError        String?
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  source   String  @default("contact_form")
+  name     String?
+  email    String?
+  phone    String?
+  subject  String?
+  message  String
+  status   String  @default("NEW") // NEW, READ, REPLIED, ARCHIVED
+  priority String  @default("MEDIUM") // LOW, MEDIUM, HIGH
 
-  status           String   @default("NEW") // NEW, READ, REPLIED, ARCHIVED
-  priority         String   @default("MEDIUM") // LOW, MEDIUM, HIGH
-  
   // Internal Management
-  notes            String?  // Notas internas (texto livre)
-  assignedToId     String?  @db.ObjectId
-  assignedTo       AdminUser? @relation(fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-  tagIds           String[] @db.ObjectId
-  tags             Tag[]    @relation(fields: [tagIds], references: [id])
-  auditLogs        AuditLog[]
+  notes        String? // Notas internas (texto livre)
+  assignedToId String?    @db.ObjectId
+  assignedTo   AdminUser? @relation(fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  tagIds    String[]   @db.ObjectId
+  tags      Tag[]      @relation(fields: [tagIds], references: [id])
+  auditLogs AuditLog[]
 
-  @@map("contact_messages")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([email])
   @@index([status])
   @@index([createdAt])
+  @@map("contact_messages")
 }
 
 // Modelo de Usuário Administrativo
 model AdminUser {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  email     String    @unique
   password  String
   name      String?
-  role      String   @default("ADMIN") // SUPER_ADMIN, ADMIN, VIEWER
-  active    Boolean  @default(true)
+  role      String    @default("ADMIN") // SUPER_ADMIN, ADMIN, VIEWER
+  active    Boolean   @default(true)
   lastLogin DateTime?
-  
+
   assignedMessages ContactMessage[]
   auditLogs        AuditLog[]
   statusChanges    OrderStatusHistory[]
@@ -84,36 +76,25 @@ model Tag {
 
 // Log de Auditoria
 model AuditLog {
-  id          String         @id @default(auto()) @map("_id") @db.ObjectId
-  action      String         // VIEW, UPDATE, DELETE, LOGIN, SYNC, etc.
-  details     String?        // JSON string ou texto
-  
-  userId      String?        @db.ObjectId
-  user        AdminUser?     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-  targetId    String?        // ID do objeto alvo
-  targetType  String?        // MESSAGE, USER, SYSTEM
-  
-  messageId   String?        @db.ObjectId
-  message     ContactMessage? @relation(fields: [messageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-  createdAt   DateTime       @default(now())
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  action  String // VIEW, UPDATE, DELETE, LOGIN, SYNC, etc.
+  details String? // JSON string ou texto
 
-  @@map("audit_logs")
+  userId String?    @db.ObjectId
+  user   AdminUser? @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  targetId   String? // ID do objeto alvo
+  targetType String? // MESSAGE, USER, SYSTEM
+
+  messageId String?         @db.ObjectId
+  message   ContactMessage? @relation(fields: [messageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime @default(now())
+
   @@index([createdAt])
   @@index([userId])
   @@index([action])
-}
-
-// Log de Integração (Discord, etc)
-model IntegrationLog {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  service   String   @default("DISCORD")
-  status    String   // SUCCESS, ERROR
-  details   String?
-  createdAt DateTime @default(now())
-
-  @@map("integration_logs")
+  @@map("audit_logs")
 }
 
 // --- Executive / Analytics Models ---
@@ -126,16 +107,16 @@ model Customer {
   email     String?
   createdAt DateTime @default(now())
 
-  @@map("customers")
   @@index([phone])
   @@index([email])
+  @@map("customers")
 }
 
 // Snapshot Analítico (gerado por cron)
 model AnalyticsSnapshot {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  periodType  String   // "daily" | "monthly"
-  periodRef   String   // "2025-01-27" | "2025-01"
+  periodType  String // "daily" | "monthly"
+  periodRef   String // "2025-01-27" | "2025-01"
   revenue     Float
   cost        Float
   grossProfit Float
@@ -143,8 +124,8 @@ model AnalyticsSnapshot {
   avgTicket   Float
   createdAt   DateTime @default(now())
 
-  @@map("analytics_snapshots")
   @@index([periodType, periodRef])
+  @@map("analytics_snapshots")
 }
 
 // --- E-commerce Models ---
@@ -157,56 +138,58 @@ model Category {
   description String?
   image       String?
   products    Product[]
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("categories")
 }
 
 // Produtos
 model Product {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   description String?
-  price       Float     @default(0.0)
-  stock       Int       @default(0)
-  sku         String?   // @unique removido para permitir múltiplos nulos (produtos sem código)
-  code        String?   // Código original da tabela
-  image       String?   // URL da imagem principal
-  unit        String?   @default("un") // un, kg, m, etc.
-  
-  categoryId  String?   @db.ObjectId
-  category    Category? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-  subcategory String?
-  variants    Json?     // Native JSON support in MongoDB
-  features    Json?     // Native JSON support in MongoDB
-  specifications Json?  // Native JSON support in MongoDB
-  images      Json?     // Native JSON support in MongoDB
-  variantItems ProductVariant[]
-  imageItems   ProductImage[]
-  orderItems  OrderItem[]
+  price       Float   @default(0.0)
+  stock       Int     @default(0)
+  sku         String? // @unique removido para permitir múltiplos nulos (produtos sem código)
+  code        String? // Código original da tabela
+  image       String? // URL da imagem principal
+  unit        String? @default("un") // un, kg, m, etc.
+
+  stockReserved  Int     @default(0)   // Estoque reservado durante checkout (liberado se não finalizar)
+
+  categoryId String?   @db.ObjectId
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  subcategory    String?
+  variants       Json? // Native JSON support in MongoDB
+  features       Json? // Native JSON support in MongoDB
+  specifications Json? // Native JSON support in MongoDB
+  images         Json? // Native JSON support in MongoDB
+  variantItems   ProductVariant[]
+  imageItems     ProductImage[]
+  orderItems     OrderItem[]
   stockMovements StockMovement[]
-  
-  active      Boolean   @default(true)
-  featured    Boolean   @default(false)
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  active   Boolean @default(true)
+  featured Boolean @default(false)
 
-  @@map("products")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([name])
   @@index([categoryId])
   @@index([active])
-  @@index([featured])
-  @@index([price])
+  @@index([sku])
+  @@index([categoryId, active])
+  @@map("products")
 }
 
 model ProductVariant {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
-  productId String  @db.ObjectId
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId String   @db.ObjectId
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   name      String
   price     Float
   stock     Int
@@ -214,37 +197,37 @@ model ProductVariant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("product_variants")
   @@index([productId])
   @@index([sku])
+  @@map("product_variants")
 }
 
 model ProductImage {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
-  productId String  @db.ObjectId
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId String   @db.ObjectId
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   url       String
-  isPrimary Boolean @default(false)
-  order     Int     @default(0)
+  isPrimary Boolean  @default(false)
+  order     Int      @default(0)
   createdAt DateTime @default(now())
 
-  @@map("product_images")
   @@index([productId])
+  @@map("product_images")
 }
 
 // Pedidos
 model Order {
-  id            String      @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Vínculo analítico com Customer (opcional, sem relation formal para não quebrar dados antigos)
-  customerId    String?     @db.ObjectId
+  customerId String? @db.ObjectId
 
   // Informações do Cliente (Simplificado por enquanto)
   customerName  String
   customerEmail String
   customerPhone String?
-  customerDoc   String?     // CPF/CNPJ
-  
+  customerDoc   String? // CPF/CNPJ
+
   // Endereço de Entrega
   addressZip    String?
   addressStreet String?
@@ -252,71 +235,71 @@ model Order {
   addressComp   String?
   addressCity   String?
   addressState  String?
-  
+
   // Totais
-  subtotal      Float       @default(0.0)
-  shippingCost  Float       @default(0.0)
-  discount      Float       @default(0.0)
-  total         Float       @default(0.0)
-  
+  subtotal     Float @default(0.0)
+  shippingCost Float @default(0.0)
+  discount     Float @default(0.0)
+  total        Float @default(0.0)
+
   // Status, Fulfillment e Pagamento
-  fulfillmentType String    @default("delivery") // pickup, delivery
-  status        String      @default("PENDING") // PENDING, PAID, SHIPPED, DELIVERED, CANCELED
-  paymentMethod String?     // CREDIT_CARD, PIX, BOLETO
-  paymentStatus String      @default("PENDING") // PENDING, PAID, FAILED
-  trackingCode  String?
-  
+  fulfillmentType String  @default("delivery") // pickup, delivery
+  status          String  @default("PENDING") // PENDING, PAID, SHIPPED, DELIVERED, CANCELED
+  paymentMethod   String? // CREDIT_CARD, PIX, BOLETO
+  paymentStatus   String  @default("PENDING") // PENDING, PAID, FAILED
+  trackingCode    String?
+
   items          OrderItem[]
   statusHistory  OrderStatusHistory[]
   stockMovements StockMovement[]
-  
-  notes         String?     // Observações do cliente ou admin
-  
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
 
-  @@map("orders")
+  notes String? // Observações do cliente ou admin
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([customerId])
   @@index([customerEmail])
   @@index([status])
   @@index([createdAt])
   @@index([paymentStatus])
+  @@map("orders")
 }
 
 model OrderStatusHistory {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  orderId     String    @db.ObjectId
-  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  orderId     String     @db.ObjectId
+  order       Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
   status      String
-  changedById String?   @db.ObjectId
+  changedById String?    @db.ObjectId
   changedBy   AdminUser? @relation(fields: [changedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   notes       String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime   @default(now())
 
-  @@map("order_status_history")
   @@index([orderId])
   @@index([createdAt])
+  @@map("order_status_history")
 }
 
 // Itens do Pedido
 model OrderItem {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
-  
-  orderId   String  @db.ObjectId
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  productId String? @db.ObjectId
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  orderId String @db.ObjectId
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String?  @db.ObjectId
   product   Product? @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-  productName  String   // Salva nome histórico caso produto seja deletado
-  quantity     Int
-  unitPrice    Float
-  totalPrice   Float
-  
+
+  productName String // Salva nome histórico caso produto seja deletado
+  quantity    Int
+  unitPrice   Float
+  totalPrice  Float
+
   createdAt DateTime @default(now())
 
-  @@map("order_items")
   @@index([productId])
+  @@map("order_items")
 }
 
 model StockMovement {
@@ -334,7 +317,7 @@ model StockMovement {
   createdBy     AdminUser? @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   createdAt     DateTime   @default(now())
 
-  @@map("stock_movements")
   @@index([productId])
   @@index([createdAt])
+  @@map("stock_movements")
 }

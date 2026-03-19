@@ -8,6 +8,7 @@ export interface CartVariant {
   name: string;
   value?: string;
   image?: string;
+  stock?: number;
 }
 
 export interface CartItem {
@@ -76,12 +77,12 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       // Validação de segurança: garante que é um array e filtra itens inválidos
       if (!Array.isArray(parsedCart)) return [];
       
-      return parsedCart.filter((item: any) => 
+      return parsedCart.filter((item) => 
         item && 
         item.id && 
         typeof item.price === 'number' && 
         !isNaN(item.price)
-      );
+      ) as CartItem[];
     } catch (error) {
       console.error("Erro ao recuperar carrinho:", error);
       // Se der erro no parse, limpa o carrinho para evitar crash
@@ -131,16 +132,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
     // Tenta a imagem da variante padrão
     if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
-      // Assuming variants is an array of objects with id and image
-      const variants = product.variants as any[];
-      // We don't have defaultVariant in Product interface strictly typed as string, but assuming it exists
-      // If defaultVariant is not on Product, we might need to extend it or check runtime
-      // Looking at productService, Product doesn't have defaultVariant explicitly defined in interface but it was used in JS
-      // I'll add 'any' cast or extend if needed. Let's cast for now as product might have extra fields from backend
-      const p = product as any;
       const defaultVariant =
-        variants.find((v: any) => v.id === p.defaultVariant) ||
-        variants[0];
+        product.variants.find((v) => v.id === product.defaultVariant) ||
+        product.variants[0];
       if (defaultVariant && defaultVariant.image) {
         return defaultVariant.image;
       }
@@ -176,7 +170,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
     // Resolve maxStock: variant stock or product stock (undefined = no limit)
     const stockSource = variant
-      ? (variant as any).stock
+      ? variant.stock
       : (product.stock ?? undefined);
     const maxStock: number | undefined =
       typeof stockSource === "number" ? stockSource : undefined;

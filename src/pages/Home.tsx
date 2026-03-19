@@ -239,7 +239,11 @@ const Home = () => {
                 key={product.id}
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-xl transition-all flex flex-col"
               >
-                <div className="relative aspect-[4/3] overflow-hidden bg-white border-b border-gray-100">
+                <Link
+                  to={`/product/${product.id}`}
+                  className="relative aspect-[4/3] overflow-hidden bg-white border-b border-gray-100 block"
+                  aria-label={`Ver detalhes de ${product.name}`}
+                >
                   <img
                     src={getProductImage(product)}
                     alt={product.name}
@@ -250,10 +254,12 @@ const Home = () => {
                       (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
                     }}
                   />
-                  <div className="absolute top-4 right-4 bg-secondary text-white text-[10px] font-bold px-2 py-1 rounded italic">
-                    OFERTA
-                  </div>
-                </div>
+                  {product.featured && (
+                    <div className="absolute top-4 right-4 bg-secondary text-white text-[10px] font-bold px-2 py-1 rounded italic">
+                      OFERTA
+                    </div>
+                  )}
+                </Link>
                 <div className="p-6 flex flex-col flex-grow">
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">
                     {getCategoryName(product)}
@@ -270,9 +276,6 @@ const Home = () => {
                   )}
                   <div className="mt-auto">
                     <div className="flex items-baseline space-x-2">
-                      <span className="text-gray-400 line-through text-xs font-medium">
-                        R$ {(product.price * 1.2).toFixed(2)}
-                      </span>
                       <span className="text-2xl font-black text-primary">
                         R$ {product.price.toFixed(2)}
                       </span>

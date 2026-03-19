@@ -6,3 +6,35 @@ services:
     buildCommand: npm install && npx prisma generate && npm run build
     startCommand: node dist/index.js
     autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: FRONTEND_URL
+        value: https://eletrostart.com.br
+      - key: BACKEND_URL
+        value: https://eletrostartbackend-api.onrender.com
+      # ⚠️ Variáveis secretas — configure com os valores reais no Dashboard do Render
+      # Dashboard → eletrostartbackend-api → Environment
+      - key: DATABASE_URL
+        sync: false   # valor gerenciado via Dashboard (não exposto aqui)
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: MP_ACCESS_TOKEN
+        sync: false
+      - key: MP_PUBLIC_KEY
+        sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false
+      # Opcionais
+      - key: REDIS_URL
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

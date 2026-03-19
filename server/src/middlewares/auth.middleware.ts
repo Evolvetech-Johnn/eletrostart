@@ -2,16 +2,28 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
 
+const AUTH_COOKIE = "auth_token";
+
 // Middleware de autenticação JWT
+// Lê o token do Cookie httpOnly (preferencial) ou do header Authorization (retrocompat.)
 export const authenticate = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const authHeader = req.headers.authorization;
+    // 1. Tentar ler do cookie httpOnly
+    let token = req.cookies?.[AUTH_COOKIE] as string | undefined;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // 2. Fallback: Authorization header (Bearer token — mantido para retrocompatibilidade)
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.split(" ")[1];
+      }
+    }
+
+    if (!token) {
       console.log("🔒 [AUTH] Token ausente na requisição a", req.originalUrl);
       return res.status(401).json({
         error: true,
@@ -19,8 +31,6 @@ export const authenticate = async (
         message: "Token de autenticação não fornecido",
       });
     }
-
-    const token = authHeader.split(" ")[1];
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
       userId: string;
@@ -44,7 +54,7 @@ export const authenticate = async (
     req.user = {
       id: user.id,
       email: user.email,
-      name: user.name || "", // Handle potential null name
+      name: user.name || "",
       role: (user.role || "").toUpperCase(),
     };
 
@@ -78,7 +88,7 @@ export const requireAdmin = (
 ) => {
   const role = (req.user?.role || "").toUpperCase();
   if (!req.user || (role !== "ADMIN" && role !== "SUPER_ADMIN")) {
-      console.log(`🔒 [AUTH] Acesso negado por ROLE. Role atual: ${role}, Usuário ID: ${req.user?.id}, Rota: ${req.originalUrl}`);
+    console.log(`🔒 [AUTH] Acesso negado por ROLE. Role atual: ${role}, Usuário ID: ${req.user?.id}, Rota: ${req.originalUrl}`);
     return res.status(403).json({
       error: true,
       code: "NOT_ADMIN",

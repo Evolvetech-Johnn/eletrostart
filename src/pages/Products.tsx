@@ -8,7 +8,6 @@ import SEO from "../components/SEO";
 import { productService, Product, Category } from "../services/productService";
 import { getCategoryIcon, CATEGORY_METADATA } from "../utils/categoryData";
 import { useCart } from "../context/CartContext";
-import { toast } from "react-hot-toast";
 
 interface CategoryWithMeta extends Category {
   icon: React.ElementType;
@@ -25,55 +24,109 @@ const Products = () => {
 
   // Data States
   const [products, setProducts] = useState<Product[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [categories, setCategories] = useState<CategoryWithMeta[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Pagination State
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1
+  });
 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const { addToCart } = useCart();
 
-  // Load Data
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        // Fetch products (limit 1000 to get all for now) and categories
-        const [productsData, categoriesData] = await Promise.all([
-          productService.getProducts({ limit: 1000 }),
-          productService.getCategories(),
-        ]);
+  // Function to load products based on current filters and page
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      
+      const filterParam = searchParams.get("filter");
+      let activeParam = true; // default active
+      let limitParam = 20;
+      
+      if (filterParam === "outlet") {
+         limitParam = 6;
+      }
+      
+      const paramsToApi: any = {
+        page: pagination.page,
+        limit: limitParam,
+        active: activeParam,
+      };
 
+      if (selectedCategory && selectedCategory !== "all") {
+        paramsToApi.category = selectedCategory;
+      }
+      if (selectedSubcategory) {
+        paramsToApi.subcategory = selectedSubcategory;
+      }
+      if (searchQuery) {
+        paramsToApi.search = searchQuery;
+      }
+      
+      // We pass the sortBy as sort parameter if backend supports it. For now frontend backend uses just 'orderBy' in some places, 
+      // but lets pass sort if we need, or let backend do default sorting. The original code sorted locally.
+      
+      const res = await productService.getProductsPaginated(paramsToApi);
+      
+      if (res && res.data) {
+        let sortedData = [...res.data];
+        
+        // As a fallback in case backend sorting is not fully implemented for all fields, we can still sort the returned page locally, 
+        // though full backend sorting is ideal. Let's do local sorting on the page for now to maintain previous sort behaviors.
+        if (sortBy === "price-asc") {
+          sortedData.sort((a, b) => a.price - b.price);
+        } else if (sortBy === "price-desc") {
+          sortedData.sort((a, b) => b.price - a.price);
+        } else if (sortBy === "name-asc") {
+          sortedData.sort((a, b) => a.name.localeCompare(b.name));
+        } else if (sortBy === "name-desc") {
+          sortedData.sort((a, b) => b.name.localeCompare(a.name));
+        }
+        
+        setProducts(sortedData);
+        if (res.pagination) {
+          setPagination(res.pagination);
+        }
+      } else {
+        setProducts([]);
+      }
+    } catch (err) {
+      console.error("Error loading products:", err);
+      setError("Não foi possível carregar os produtos.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load Categories ONCE
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categoriesData = await productService.getCategories();
         if (categoriesData) {
-          // Merge API categories with local metadata (icons, subcategories)
           const mergedCategories = categoriesData.map((cat) => ({
             ...cat,
-            // Try looking up by slug first, then fallback to ID, then default
             icon: getCategoryIcon(cat.slug || ""),
             subcategories: CATEGORY_METADATA[cat.id]?.subcategories || [],
           }));
           setCategories(mergedCategories);
         }
-
-        if (productsData && Array.isArray(productsData)) {
-          setProducts(productsData);
-          setFilteredProducts(productsData);
-        } else {
-          // Fallback/log if success but data is not array
-          console.warn("Products data is not an array:", productsData);
-          setProducts([]);
-          setFilteredProducts([]);
-        }
       } catch (err) {
-        console.error("Error loading products:", err);
-        setError("Não foi possível carregar os produtos.");
-      } finally {
-        setLoading(false);
+        console.error("Error loading categories:", err);
       }
     };
-    loadData();
+    loadCategories();
   }, []);
+
+  // Reload products whenever filters or page change
+  useEffect(() => {
+    loadProducts();
+  }, [selectedCategory, selectedSubcategory, searchQuery, sortBy, pagination.page, searchParams]);
 
   // Sync state with URL params
   useEffect(() => {
@@ -102,76 +155,7 @@ const Products = () => {
     }
   }, [searchParams]);
 
-  // Filter products
-  useEffect(() => {
-    if (loading) return;
-
-    let result = (Array.isArray(products) ? products : []).filter(
-      (p) => p != null,
-    );
-    const filterParam = searchParams.get("filter");
-
-    if (selectedCategory !== "all") {
-      // Filter by Category Slug OR ID
-      // We assume selectedCategory matches either categoryId or category.slug
-      result = result.filter((product) => {
-        if (!product) return false;
-        // Check exact ID match
-        if (product.categoryId === selectedCategory) return true;
-        // Check Slug match (if category object is present)
-        if (product.category && product.category.slug === selectedCategory)
-          return true;
-        return false;
-      });
-    }
-
-    if (selectedSubcategory) {
-      result = result.filter(
-        (product) => product && product.subcategory === selectedSubcategory,
-      );
-    }
-
-    if (filterParam === "outlet") {
-      // Simulate outlet: first 6 products
-      result = result.slice(0, 6);
-    } else if (filterParam === "offers") {
-      // Simulate offers: products with price < 100
-      result = result.filter((p) => p && p.price < 100);
-    }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (product) =>
-          product &&
-          ((product.name && product.name.toLowerCase().includes(query)) ||
-            (product.description &&
-              product.description.toLowerCase().includes(query)) ||
-            (product.sku && product.sku.toLowerCase().includes(query))),
-      );
-    }
-
-    // Sort products
-    if (sortBy === "price-asc") {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sortBy === "price-desc") {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sortBy === "name-asc") {
-      result.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortBy === "name-desc") {
-      result.sort((a, b) => b.name.localeCompare(a.name));
-    }
-
-    setFilteredProducts(result);
-  }, [
-    selectedCategory,
-    selectedSubcategory,
-    searchQuery,
-    sortBy,
-    searchParams,
-    products,
-    loading,
-  ]);
+  // Removido filterEffects locais pesados. A API já se encarrega disso.
 
   // Handle ESC key to close quick view modal - Removed as quickViewProduct is unused
 
@@ -320,27 +304,60 @@ const Products = () => {
       </div>
 
       <div className="layout-container py-8">
-        {/* Render filtered products */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCardWithVariants 
-              key={product.id} 
-              product={product} 
-              onAddToCart={(p, variant) => {
-                addToCart(p, 1, variant);
-                toast.success(`Adicionado ao carrinho!`);
-              }}
-            />
-          ))}
-        </div>
-
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-gray-500 text-lg">
-              Nenhum produto encontrado com os filtros selecionados.
-            </p>
+        {/* Product Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+            {products.map((product) => (
+              <ProductCardWithVariants
+                key={product.id}
+                product={product}
+                onAddToCart={(p, v) => addToCart(p, 1, v)}
+              />
+            ))}
           </div>
-        )}
+
+          {/* Empty State */}
+          {products.length === 0 && !loading && (
+            <div className="text-center py-24 bg-white rounded-3xl border border-gray-100 shadow-sm mt-6">
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Search className="text-gray-400" size={32} />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 mb-2">
+                Nenhum produto encontrado
+              </h3>
+              <p className="text-gray-500 max-w-sm mx-auto">
+                Tente ajustar os filtros ou buscar por outros termos.
+              </p>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {pagination.totalPages > 1 && (
+            <div className="flex justify-center items-center mt-12 gap-2">
+              <button
+                disabled={pagination.page <= 1}
+                onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
+                className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                aria-label="Página Anterior"
+              >
+                Anterior
+              </button>
+              
+              <div className="flex items-center gap-1 mx-4">
+                <span className="text-sm font-medium text-gray-700">Página</span>
+                <span className="text-sm font-black text-primary">{pagination.page}</span>
+                <span className="text-sm font-medium text-gray-500">de {pagination.totalPages}</span>
+              </div>
+
+              <button
+                disabled={pagination.page >= pagination.totalPages}
+                onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
+                className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                aria-label="Próxima Página"
+              >
+                Próxima
+              </button>
+            </div>
+          )}
       </div>
 
       {/* Mobile Filters Modal */}

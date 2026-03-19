@@ -88,7 +88,6 @@ async function main() {
         message:
           "Vocês trabalham com painéis solares? Qual a potência disponível?",
         status: "READ",
-        discordSent: true,
       },
       {
         name: "Pedro Oliveira",
@@ -97,7 +96,6 @@ async function main() {
         subject: "Parceria",
         message: "Tenho interesse em ser revendedor. Como funciona?",
         status: "REPLIED",
-        discordSent: true,
       },
     ];
 

@@ -1,10 +1,11 @@
 import express from "express";
 import { authenticate, requireAdmin } from "../middlewares/auth.middleware";
-import * as productController from "../controllers/product.controller";
-import * as categoryController from "../controllers/category.controller";
-
-import * as orderController from "../controllers/order.controller";
-import { upload, uploadImages } from "../middlewares/upload.middleware";
+import { verifyCsrfToken } from "../middlewares/csrf.middleware";
+import * as productController from "../modules/products/controllers/product.controller";
+import * as categoryController from "../modules/products/controllers/category.controller";
+import * as orderController from "../modules/orders/controllers/order.controller";
+import { upload, uploadImages, validateMagicNumbers } from "../middlewares/upload.middleware";
+import { reserveStock, releaseSessionReservations } from "../services/reservation.service";
 
 const router = express.Router();
 
@@ -16,14 +17,39 @@ const router = express.Router();
 router.get("/products", productController.getProducts);
 router.get("/products/:id", productController.getProduct);
 
-// --- Categories ---
+// Categories
 router.get("/categories", categoryController.getCategories);
 router.get("/categories/:slug", categoryController.getCategoryBySlug);
 
-// Orders (Checkout - public for customers)
-router.post("/orders", orderController.createOrder);
+// Orders (Checkout - public)
+router.post("/orders", verifyCsrfToken, orderController.createOrder);
 
-// Stats (public - basic info)
+// Stock Reservation — protege contra race conditions no checkout
+router.post("/cart/reserve", verifyCsrfToken, async (req, res) => {
+  const { sessionId, items } = req.body;
+  if (!sessionId || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: true, message: "sessionId e items são obrigatórios" });
+  }
+  const result = await reserveStock(sessionId, items);
+  if (!result.success) {
+    return res.status(409).json({
+      error: true,
+      code: "STOCK_INSUFFICIENT",
+      message: result.failedProductName
+        ? `Estoque insuficiente para "${result.failedProductName}"`
+        : "Estoque insuficiente para um ou mais produtos",
+      productId: result.failedProductId,
+    });
+  }
+  res.json({ success: true, message: "Estoque reservado por 15 minutos" });
+});
+
+router.delete("/cart/reserve/:sessionId", async (req, res) => {
+  await releaseSessionReservations(req.params.sessionId);
+  res.json({ success: true, message: "Reserva liberada" });
+});
+
+// Stats (public)
 router.get("/products/stats/overview", productController.getProductStats);
 router.get("/products/min-price-config", productController.getMinPriceConfig);
 
@@ -155,6 +181,7 @@ router.post(
   authenticate,
   requireAdmin,
   uploadImages.array("files", 10),
+  validateMagicNumbers,
   productController.uploadProductImages,
 );
 
@@ -178,6 +205,7 @@ router.post(
   authenticate,
   requireAdmin,
   upload.single("file"),
+  validateMagicNumbers,
   productController.importProducts,
 );
 router.get(

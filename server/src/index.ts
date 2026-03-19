@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
+import { issueCsrfToken, verifyCsrfToken } from "./middlewares/csrf.middleware";
 import { env } from "./config/env";
 import { errorHandler } from "./middlewares/error.middleware";
 import { prisma } from "./lib/prisma";
@@ -12,6 +14,8 @@ import messageRoutes from "./routes/message.routes";
 import adminRoutes from "./routes/admin.routes";
 import ecommerceRoutes from "./routes/ecommerce.routes";
 import executiveRoutes from "./modules/executive/routes";
+import paymentRoutes from "./routes/payment.routes";
+import { logisticsRoutes } from "./modules/logistics/routes";
 import { initAnalyticsCron } from "./cron/analytics.cron";
 
 // Validate Database URL on Startup
@@ -91,10 +95,13 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token"],
   }),
 );
 app.use(express.json());
+app.use(cookieParser());
+// Issue CSRF token to all clients (cookie legível por JS)
+app.use(issueCsrfToken);
 
 // Health check
 app.get("/api/health", (req: Request, res: Response) => {
@@ -116,9 +123,13 @@ app.get("/api/health-db", async (req: Request, res: Response) => {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
-app.use("/api/admin", adminRoutes);
+// Admin and Executive routes require CSRF validation on mutations
+app.use("/api/admin", verifyCsrfToken, adminRoutes);
 app.use("/api/ecommerce", ecommerceRoutes);
-app.use("/api/executive", executiveRoutes);
+app.use("/api/executive", verifyCsrfToken, executiveRoutes);
+app.use("/api/logistics", logisticsRoutes);
+// Payment routes — sem CSRF para permitir webhooks externos do MercadoPago
+app.use("/api/payments", paymentRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

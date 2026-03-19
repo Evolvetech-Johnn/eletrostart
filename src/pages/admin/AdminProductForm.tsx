@@ -24,6 +24,7 @@ import { toast } from "react-hot-toast";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { useAuth } from "../../context/AuthContext";
+import apiClient from "../../services/apiClient";
 
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
@@ -120,11 +121,8 @@ const AdminProductForm: React.FC = () => {
     queryKey: ["product-images", id],
     queryFn: async () => {
       if (!isEdit) return [];
-      const res = await fetch(`/api/ecommerce/products/${id}/images`, {
-        headers: { "Content-Type": "application/json" },
-      });
-      const json = await res.json();
-      return json.data || [];
+      const res = await apiClient.get<{ data: any[] }>(`/ecommerce/products/${id}/images`);
+      return res.data?.data || res.data || [];
     },
     enabled: isEdit && !loading && isAuthenticated,
   });
@@ -133,11 +131,8 @@ const AdminProductForm: React.FC = () => {
     queryKey: ["product-variants", id],
     queryFn: async () => {
       if (!isEdit) return [];
-      const res = await fetch(`/api/ecommerce/products/${id}/variants`, {
-        headers: { "Content-Type": "application/json" },
-      });
-      const json = await res.json();
-      return json.data || [];
+      const res = await apiClient.get<{ data: any[] }>(`/ecommerce/products/${id}/variants`);
+      return res.data?.data || res.data || [];
     },
     enabled: isEdit && !loading && isAuthenticated,
   });
@@ -222,16 +217,22 @@ const AdminProductForm: React.FC = () => {
     if (!files || !isEdit) return;
     const formData = new FormData();
     Array.from(files).forEach((f) => formData.append("files", f));
-    const res = await fetch(`/api/ecommerce/products/${id}/images/upload`, {
-      method: "POST",
-      body: formData,
-    });
-    const json = await res.json();
-    if (json.success) {
-      toast.success("Imagens enviadas");
-      refetchImages();
-    } else {
-      toast.error(json.message || "Erro ao enviar imagens");
+    try {
+      const data: any = await apiClient.post(
+        `/ecommerce/products/${id}/images/upload`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      if (data.success !== false) {
+        toast.success("Imagens enviadas");
+        refetchImages();
+      } else {
+        toast.error(data.message || "Erro ao enviar imagens");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar imagens");
     }
   };
 
@@ -239,80 +240,62 @@ const AdminProductForm: React.FC = () => {
     if (!isEdit) return;
     const image = images.find((i: any) => i.id === imageId);
     if (!image) return;
-    const res = await fetch(`/api/ecommerce/products/${id}/images/${imageId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isPrimary: true }),
-    });
-    const json = await res.json();
-    if (json.success) {
+    try {
+      await apiClient.put(
+        `/ecommerce/products/${id}/images/${imageId}`,
+        { isPrimary: true }
+      );
       toast.success("Imagem principal definida");
       refetchImages();
-    } else {
-      toast.error(json.message || "Erro ao definir imagem principal");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao definir imagem principal");
     }
   };
 
   const reorderImage = async (imageId: string, newOrder: number) => {
-    const res = await fetch(`/api/ecommerce/products/${id}/images/${imageId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ order: Math.max(0, newOrder) }),
-    });
-    const json = await res.json();
-    if (json.success) {
+    try {
+      await apiClient.put(`/ecommerce/products/${id}/images/${imageId}`, {
+        order: Math.max(0, newOrder),
+      });
       refetchImages();
-    } else {
-      toast.error(json.message || "Erro ao reordenar imagem");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao reordenar imagem");
     }
   };
 
   const deleteImage = async (imageId: string) => {
-    const res = await fetch(`/api/ecommerce/products/${id}/images/${imageId}`, {
-      method: "DELETE",
-    });
-    const json = await res.json();
-    if (json.success) {
+    try {
+      await apiClient.delete(`/ecommerce/products/${id}/images/${imageId}`);
       toast.success("Imagem removida");
       refetchImages();
-    } else {
-      toast.error(json.message || "Erro ao remover imagem");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao remover imagem");
     }
   };
 
   const addVariant = async () => {
-    const res = await fetch(`/api/ecommerce/products/${id}/variants`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await apiClient.post(`/ecommerce/products/${id}/variants`, {
         name: "Variante",
         price: product?.price || 0,
         stock: 0,
         sku: "",
-      }),
-    });
-    const json = await res.json();
-    if (json.success) {
+      });
       refetchVariants();
-    } else {
-      toast.error(json.message || "Erro ao criar variante");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao criar variante");
     }
   };
 
   const updateVariant = async (variantId: string, patch: any) => {
-    const res = await fetch(
-      `/api/ecommerce/products/${id}/variants/${variantId}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      },
-    );
-    const json = await res.json();
-    if (json.success) {
+    try {
+      await apiClient.put(
+        `/ecommerce/products/${id}/variants/${variantId}`,
+        patch
+      );
       refetchVariants();
-    } else {
-      toast.error(json.message || "Erro ao atualizar variante");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar variante");
     }
   };
 
@@ -350,15 +333,11 @@ const AdminProductForm: React.FC = () => {
   };
 
   const deleteVariant = async (variantId: string) => {
-    const res = await fetch(
-      `/api/ecommerce/products/${id}/variants/${variantId}`,
-      { method: "DELETE" },
-    );
-    const json = await res.json();
-    if (json.success) {
+    try {
+      await apiClient.delete(`/ecommerce/products/${id}/variants/${variantId}`);
       refetchVariants();
-    } else {
-      toast.error(json.message || "Erro ao remover variante");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao remover variante");
     }
   };
 

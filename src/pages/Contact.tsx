@@ -12,6 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatPhone } from "../utils/formatters";
+import apiClient from "../services/apiClient";
 
 interface ContactFormData {
   nome: string;
@@ -55,17 +56,14 @@ const Contact = () => {
     [],
   );
 
-  // Novo método: enviar para API (que salva no banco e envia ao Discord)
+  // Novo método: enviar para API (que salva no banco)
   const sendToAPI = async (data: ContactFormData) => {
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
-
-    const response = await fetch(`${API_URL}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-
-    return response.ok;
+    try {
+      await apiClient.post("/messages", data);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

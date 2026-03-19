@@ -1,41 +1,154 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 
-const storage = multer.memoryStorage();
+// ─────────────────────────────────────────────
+//  Allowed MIME types (explicit whitelist)
+// ─────────────────────────────────────────────
+const ALLOWED_SPREADSHEET_MIMES = new Set([
+  "text/csv",
+  "text/plain",                                           // some CSVs arrive as text/plain
+  "application/vnd.ms-excel",                             // .xls
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+]);
 
+const ALLOWED_IMAGE_MIMES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
+const ALLOWED_CV_MIMES = new Set([
+  "application/pdf",
+  "application/msword",                                   // .doc
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+]);
+
+// ─────────────────────────────────────────────
+//  Multer: CSV / Excel import (products)
+// ─────────────────────────────────────────────
 export const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 5 * 1024 * 1024, // 5 MB
+    files: 1,                   // apenas 1 arquivo por vez
   },
-  fileFilter: (req, file, cb) => {
-    if (
-      file.mimetype.includes("csv") ||
-      file.mimetype.includes("excel") ||
-      file.mimetype.includes("spreadsheetml") ||
-      file.mimetype.includes("text/plain") // sometimes CSVs are text/plain
-    ) {
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_SPREADSHEET_MIMES.has(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Formato de arquivo inválido. Apenas CSV e Excel são permitidos."));
+      cb(new Error(
+        `Formato de arquivo inválido: "${file.mimetype}". ` +
+        "Apenas CSV e Excel (.xlsx, .xls) são permitidos."
+      ));
     }
   },
 });
 
-// Image upload (memory -> filesystem saved in controller)
-const imageStorage = multer.memoryStorage();
-
+// ─────────────────────────────────────────────
+//  Multer: Imagens de produto
+// ─────────────────────────────────────────────
 export const uploadImages = multer({
-  storage: imageStorage,
+  storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB per image
+    fileSize: 5 * 1024 * 1024, // 5 MB por imagem (reduzido de 10 MB)
+    files: 10,                  // máximo 10 imagens por requisição
   },
-  fileFilter: (req, file, cb) => {
-    const isImage =
-      file.mimetype.startsWith("image/") &&
-      !file.mimetype.includes("svg"); // avoid svg for security
-    if (isImage) cb(null, true);
-    else cb(new Error("Apenas imagens são permitidas (jpg, png, webp)."));
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_IMAGE_MIMES.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(
+        `Formato de imagem inválido: "${file.mimetype}". ` +
+        "Formatos aceitos: JPEG, PNG, WebP, GIF."
+      ));
+    }
   },
 });
+
+// ─────────────────────────────────────────────
+//  Multer: Currículo (Trabalhe Conosco)
+// ─────────────────────────────────────────────
+export const uploadCV = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 3 * 1024 * 1024, // 3 MB
+    files: 1,
+  },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_CV_MIMES.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(
+        `Tipo inválido: "${file.mimetype}". ` +
+        "Envie apenas PDF, DOC ou DOCX."
+      ));
+    }
+  },
+});
+
+// ─────────────────────────────────────────────
+//  Magic Number Validation (MIME Sniffing)
+// ─────────────────────────────────────────────
+
+import { Request, Response, NextFunction } from "express";
+
+/**
+ * Middleware para validar o conteúdo binário real do arquivo (Magic Numbers),
+ * evitando renomear arquivo malicioso como `.jpg` e passar pelo multer.
+ */
+export const validateMagicNumbers = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const files: Express.Multer.File[] = [];
+  if (req.file) files.push(req.file);
+  else if (Array.isArray(req.files)) files.push(...req.files);
+  else if (req.files && typeof req.files === "object") {
+    Object.values(req.files).forEach((val) => {
+      files.push(...(Array.isArray(val) ? val : [val]));
+    });
+  }
+
+  if (files.length === 0) return next();
+
+  for (const file of files) {
+    if (!file.buffer || file.buffer.length < 4) continue;
+
+    const hex = file.buffer.toString("hex", 0, 4).toUpperCase();
+    let isSafe = false;
+
+    if (ALLOWED_IMAGE_MIMES.has(file.mimetype)) {
+      if (hex.startsWith("FFD8FF")) isSafe = true; // JPEG
+      else if (hex === "89504E47") isSafe = true; // PNG
+      else if (hex === "47494638") isSafe = true; // GIF
+      else if (hex === "52494646") { // WEBP/RIFF
+        const format = file.buffer.toString("ascii", 8, 12);
+        if (format === "WEBP") isSafe = true;
+      }
+    } 
+    else if (ALLOWED_CV_MIMES.has(file.mimetype)) {
+      if (hex === "25504446") isSafe = true; // PDF
+      else if (hex === "D0CF11E0") isSafe = true; // .doc
+      else if (hex === "504B0304") isSafe = true; // .docx
+    }
+    else if (ALLOWED_SPREADSHEET_MIMES.has(file.mimetype)) {
+      if (hex === "504B0304") isSafe = true; // .xlsx
+      else if (hex === "D0CF11E0") isSafe = true; // .xls
+      else if (file.mimetype === "text/csv" || file.mimetype === "text/plain") {
+        isSafe = true; // Csv files dont have magic numbers consistently
+      }
+    }
+
+    if (!isSafe) {
+      console.warn(`🚨 [SECURITY] Arquivo bloqueado por Magic Number mismatch: ${file.originalname} | Mimetype: ${file.mimetype} | Hex: ${hex}`);
+      return res.status(400).json({
+        success: false,
+        message: `Conteúdo de arquivo suspeito detectado para o tipo ${file.mimetype}. O arquivo foi rejeitado por segurança.`,
+      });
+    }
+  }
+
+  next();
+};

@@ -154,7 +154,11 @@ const ProductCardWithVariants: React.FC<ProductCardProps> = ({
           <div className="mt-auto">
             <div className="flex items-baseline space-x-2 mb-4">
               <span className="text-2xl font-black text-gray-900">
-                {product.price.toLocaleString("pt-BR", {
+                {(
+                  (selectedVariant?.price && selectedVariant.price > 0)
+                    ? selectedVariant.price
+                    : product.price || 0
+                ).toLocaleString("pt-BR", {
                   style: "currency",
                   currency: "BRL",
                 })}

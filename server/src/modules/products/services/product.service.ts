@@ -1,8 +1,9 @@
-import { prisma } from "../lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import { Prisma } from "@prisma/client";
-import { logAction } from "./audit.service";
-import { importExportService } from "./importExport.service";
-import { googleSheetsService } from "./googleSheets.service";
+import { logAction } from "../../../services/audit.service";
+import { importExportService } from "../../../services/importExport.service";
+import { googleSheetsService } from "../../../services/googleSheets.service";
+import { productRepository } from "../repositories/product.repository";
 
 export const CATEGORY_MIN_PRICE_BY_SLUG: Record<string, number> = {
   iluminacao: 9.9,

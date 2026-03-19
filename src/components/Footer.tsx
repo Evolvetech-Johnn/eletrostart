@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import {
   Phone,
   Mail,
@@ -107,28 +108,28 @@ const Footer: React.FC = () => {
             <h4 className="font-bold text-lg mb-6 text-white">Institucional</h4>
             <ul className="space-y-4 text-sm text-gray-400">
               <li>
-                <a
-                  href="/about"
+                <Link
+                  to="/about"
                   className="hover:text-primary transition-colors"
                 >
                   Quem Somos
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="/contact"
+                <Link
+                  to="/contact"
                   className="hover:text-primary transition-colors"
                 >
                   Fale Conosco
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="/work-with-us"
+                <Link
+                  to="/work-with-us"
                   className="hover:text-primary transition-colors"
                 >
                   Trabalhe Conosco
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -137,25 +138,25 @@ const Footer: React.FC = () => {
             <h4 className="font-bold text-lg mb-6 text-white">Ajuda</h4>
             <ul className="space-y-4 text-sm text-gray-400">
               <li>
-                <a
-                  href="/shipping"
+                <Link
+                  to="/shipping"
                   className="hover:text-primary transition-colors"
                 >
                   Fretes e Entregas
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="/returns"
+                <Link
+                  to="/returns"
                   className="hover:text-primary transition-colors"
                 >
                   Trocas e Devoluções
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/faq" className="hover:text-primary transition-colors">
+                <Link to="/faq" className="hover:text-primary transition-colors">
                   Perguntas Frequentes
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -164,28 +165,28 @@ const Footer: React.FC = () => {
             <h4 className="font-bold text-lg mb-6 text-white">Legal</h4>
             <ul className="space-y-4 text-sm text-gray-400">
               <li>
-                <a
-                  href="/privacy"
+                <Link
+                  to="/privacy"
                   className="hover:text-primary transition-colors"
                 >
                   Política de Privacidade
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="/terms"
+                <Link
+                  to="/terms"
                   className="hover:text-primary transition-colors"
                 >
                   Termos de Uso
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="/cookies"
+                <Link
+                  to="/cookies"
                   className="hover:text-primary transition-colors"
                 >
                   Política de Cookies
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

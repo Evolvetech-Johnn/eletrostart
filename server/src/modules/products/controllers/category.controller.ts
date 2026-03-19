@@ -1,9 +1,18 @@
 import { Request, Response } from "express";
-import * as categoryService from "../services/category.service";
+import * as categoryService from "../../../services/category.service";
+import { cacheService } from "../../../services/redis.service";
 
 export const getCategories = async (req: Request, res: Response) => {
   try {
+    const cacheKey = "categories:list";
+    const cached = await cacheService.get<any>(cacheKey);
+    if (cached) {
+      return res.json({ success: true, data: cached });
+    }
+
     const categories = await categoryService.listCategories();
+    await cacheService.set(cacheKey, categories, 3600); // 1 hora de cache
+
     res.json({ success: true, data: categories });
   } catch (error: any) {
     console.error("Error fetching categories:", error);
@@ -42,6 +51,8 @@ export const createCategory = async (req: Request, res: Response) => {
       description,
       image,
     });
+
+    await cacheService.invalidate("categories:*");
     res.status(201).json({ success: true, data: category });
   } catch (error: any) {
     if (error.code === "P2002") {
@@ -65,6 +76,8 @@ export const updateCategory = async (req: Request, res: Response) => {
       description,
       image,
     });
+
+    await cacheService.invalidate("categories:*");
     res.json({ success: true, data: category });
   } catch (error) {
     res
@@ -77,6 +90,8 @@ export const deleteCategory = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     await categoryService.deleteCategory(id as string);
+
+    await cacheService.invalidate("categories:*");
     res.json({ success: true, message: "Categoria excluída" });
   } catch (error: any) {
     if (error.message.includes("produtos vinculados")) {

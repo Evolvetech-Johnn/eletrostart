@@ -120,7 +120,8 @@ const Header: React.FC = () => {
               <input
                 type="text"
                 name="search"
-                placeholder="O que você está procurando?"
+                aria-label="O que você está procurando?"
+              placeholder="O que você está procurando?"
                 className="w-full bg-gray-100 border border-transparent focus:border-primary focus:bg-white px-4 py-2.5 rounded-md outline-none transition-all pr-12 text-sm"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2 text-gray-400">
@@ -179,9 +180,12 @@ const Header: React.FC = () => {
 
             {/* Mobile Menu Button */}
             <button
-              className="lg:hidden text-gray-700 p-2"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
+            className="lg:hidden text-gray-700 p-2"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? "Fechar menu" : "Abrir menu"}
+            aria-expanded={isMenuOpen}
+            aria-controls="mobile-nav"
+          >
               {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
           </div>
@@ -199,7 +203,13 @@ const Header: React.FC = () => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-white pt-36 px-4 pb-4 overflow-y-auto">
+        <div
+          id="mobile-nav"
+          role="dialog"
+          aria-label="Menu de navegação"
+          aria-modal="true"
+          className="lg:hidden fixed inset-0 z-40 bg-white pt-36 px-4 pb-4 overflow-y-auto"
+        >
           <nav className="flex flex-col space-y-4">
             <div className="font-bold text-lg text-gray-800 border-b pb-2">
               Departamentos

@@ -1,58 +1,155 @@
-# Guia do Painel Administrativo - Eletrostart
+# Guia do Painel Administrativo — Eletrostart
 
-Este guia descreve as novas funcionalidades implementadas no Painel Administrativo para gestão avançada de produtos e preços.
+## Acesso e Perfis de Usuário
 
-## 1. Gestão de Produtos
+| Role | O que pode fazer |
+|---|---|
+| `SUPER_ADMIN` | Acesso total, incluindo Módulo Executivo e gestão de usuários |
+| `ADMIN` | Produtos, Pedidos, Mensagens, Categorias, Estoque, Analytics |
+| `VIEWER` | Somente leitura |
 
-### 1.1 Edição Rápida (Inline Editing)
-Na tabela de produtos, você pode editar **Preço** e **Estoque** diretamente, sem abrir a página de edição do produto.
-- Clique no valor que deseja alterar.
-- Digite o novo valor.
-- Clique fora ou pressione Enter.
-- O sistema salvará automaticamente (uma notificação de sucesso aparecerá).
+---
+
+## 1. Produtos
+
+### 1.1 Edição Rápida (Inline)
+Na tabela de produtos, você pode editar **Preço** e **Estoque** diretamente:
+1. Clique no campo numérico desejado.
+2. Digite o novo valor.
+3. Pressione **Enter** ou clique fora do campo.
+4. O sistema salva automaticamente e exibe uma notificação.
 
 ### 1.2 Ações em Massa (Bulk Actions)
-Para aplicar ações a vários produtos de uma vez:
-1. Selecione os produtos usando as caixas de seleção na primeira coluna.
-2. Uma barra de ações aparecerá na parte inferior da tela.
-3. Escolha uma ação:
-   - **Excluir Selecionados**: Remove permanentemente (ou desativa se tiverem pedidos) os produtos selecionados.
-   - **Atualizar Preço**: Aumente ou diminua o preço de todos os selecionados por uma porcentagem (ex: +10% ou -5%).
+1. Marque os produtos com as caixas de seleção.
+2. Uma barra de ações aparece no topo da listagem.
+3. Opções disponíveis:
+   - **Reajuste de Preço (%)** — ex: +10% ou -5% sobre o preço atual
+   - **Ativar / Desativar em Massa**
+   - **Excluir Selecionados** (produtos com pedidos são desativados, não deletados)
 
-## 2. Importação e Exportação
+### 1.3 Exportar Catálogo
+1. Clique em **"Exportar"** no topo da tela.
+2. Um arquivo `.xlsx` é baixado com todos os produtos ativos.
 
-### 2.1 Exportar Base
-Para fazer um backup ou editar no Excel:
-1. Clique no botão **"Exportar Base"** no topo da tela.
-2. O sistema baixará um arquivo `produtos-eletrostart.xlsx` com todos os produtos.
+### 1.4 Importar Produtos
+1. Clique em **"Importar"**.
+2. Selecione um arquivo `.xlsx` ou `.csv`.
+3. Colunas suportadas: `SKU`, `Nome`, `Preço`, `Estoque`, `Ativo` (Sim/Não), `Imagem`, `Descrição`.
+4. Comportamento:
+   - **SKU existente** → Atualiza preço, estoque, status e descrição.
+   - **SKU novo** → Cria o produto.
 
-### 2.2 Importar Produtos
-Para adicionar novos produtos ou atualizar existentes em massa:
-1. Clique no botão **"Importar CSV/Excel"**.
-2. Baixe o modelo se necessário (use o arquivo exportado como base).
-3. Selecione seu arquivo `.xlsx` ou `.csv`.
-4. O sistema processará o arquivo:
-   - **SKU existente**: Atualiza preço, estoque, status, etc.
-   - **Novo SKU**: Cria um novo produto.
+### 1.5 Sincronizar via Google Sheets
+1. Clique em **"Sync"**.
+2. Informe a URL pública da planilha (Google Sheets → *Arquivo > Publicar na Web > CSV*).
+3. O sistema sincroniza dados de preço e estoque automaticamente.
 
-**Colunas Obrigatórias**: `SKU` (ou `Código`).
-**Outras Colunas**: `Nome`, `Preço`, `Estoque`, `Ativo` (Sim/Não), `Imagem` (Link), `Categoria` (Nome), `Descrição`.
+### 1.6 Estoque Crítico
+Um painel lateral na tela de Produtos exibe todos os produtos abaixo do limite configurável de estoque. O limite padrão é **5 unidades** e pode ser ajustado no campo "Limite" do painel.
 
-## 3. Sincronização Google Sheets
+---
 
-Para sincronizar preços automaticamente de uma planilha pública do Google:
-1. Clique em **"Sincronizar Planilha"**.
-2. Insira a URL pública da sua planilha do Google Sheets.
-   - A planilha deve seguir o layout padrão (colunas SKU, Preço, etc.).
-   - Para publicar: No Google Sheets, vá em *Arquivo > Compartilhar > Publicar na Web* e escolha formato *CSV*.
-3. Clique em Confirmar.
+## 2. Pedidos
 
-## 4. Auditoria (Audit Logs)
+- Visualize e atualize o status: `PENDING → PAID → SHIPPED → DELIVERED / CANCELED`
+- Cada mudança de status fica registrada no histórico do pedido (com responsável e notas)
+- Crie pedidos manuais em **Pedidos > Novo Pedido**
 
-Todas as ações críticas são registradas para segurança:
-- Quem alterou (Usuário/Email).
-- O que foi alterado (Criação, Edição, Exclusão, Importação).
-- Quando ocorreu.
-- Detalhes (Valores antigos e novos).
+---
 
-*Os logs podem ser consultados pela equipe técnica no banco de dados para rastreabilidade.*
+## 3. Mensagens de Contato
+
+- Mensagens chegam com status `NOVO`
+- É possível atribuir uma mensagem a um administrador, adicionar **tags**, escrever **notas internas** e alterar prioridade
+- O histórico de quem visualizou é registrado automaticamente
+
+---
+
+## 4. Categorias
+
+CRUD completo com nome, slug (URL amigável) e imagem de capa. O slug é usado nos filtros da loja pública.
+
+---
+
+## 5. Analytics (Dashboard Operacional)
+
+Gráficos de desempenho com:
+- Receita por período
+- Número de pedidos
+- Ticket médio
+- Produtos mais vendidos
+
+> Acessa via menu **Analytics** no painel.
+
+---
+
+## 6. Movimentações de Estoque
+
+Histórico auditável de todas as entradas e saídas de estoque com:
+- Data e hora
+- Produto
+- Tipo (entrada manual, saída por venda, ajuste)
+- Motivo
+- Responsável pelo ajuste
+
+---
+
+## 7. Logs de Auditoria
+
+Todas as ações críticas são registradas:
+- Quem realizou (usuário/email)
+- O que foi feito (criação, atualização, exclusão, import, login)
+- Quando (data/hora)
+- Detalhes da mudança
+
+---
+
+## 8. Módulo Executivo (`SUPER_ADMIN`)
+
+> Disponível apenas para usuários com role **SUPER_ADMIN**.  
+> Acesse pelo menu lateral em **Executivo**.
+
+### 8.1 Overview Executivo
+Painel de KPIs em tempo real:
+- Receita total acumulada
+- Volume de pedidos
+- Ticket médio de venda
+- Margem bruta estimada
+
+### 8.2 Análise Financeira
+- Evolução temporal de receita e lucro
+- Comparativo entre períodos (mês atual vs. anterior)
+- Gráficos de linha e barra
+
+### 8.3 Análise de Inventário
+- Valor total do estoque em R$
+- Produtos sem estoque ou estoque crítico
+- Giro de produto (velocidade de saída)
+- Distribuição de valor por categoria
+
+### 8.4 Análise de Clientes
+- Total de clientes únicos
+- LTV médio (Lifetime Value)
+- Frequência de recompra
+- Perfil de compra (produtos mais pedidos por segmento)
+
+### 8.5 Lucratividade
+- Margem bruta por categoria
+- Ranking de produtos mais rentáveis
+- Produtos com margem negativa ou baixa (sinalizados em vermelho)
+
+> **Nota Técnica:** Os dados do Módulo Executivo são gerados a partir de `AnalyticsSnapshot`, criados automaticamente por um **cron job** diário/mensal para garantir que consultas complexas não afetem a performance da loja.
+
+---
+
+## 9. Gestão de Usuários
+
+> Apenas ADMIN e SUPER_ADMIN podem criar/editar usuários.
+
+- Criar novo usuário com email, senha e role
+- Desativar acesso sem deletar o histórico
+- Roles disponíveis: `SUPER_ADMIN`, `ADMIN`, `VIEWER`
+
+---
+
+_Para documentação técnica completa, consulte `SYSTEM_DOCS.md`._

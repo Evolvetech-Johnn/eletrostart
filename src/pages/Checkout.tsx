@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ShoppingBag, ChevronRight, User, MapPin, CreditCard, QrCode,
@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { orderService } from "../services/orderService";
+import PixPayment from "../components/PixPayment";
 import { PLACEHOLDER_IMAGE } from "../utils/productHelpers";
 import {
   formatCEP, formatPhone, fetchAddressByCEP, isValidCEP, isValidPhone,
@@ -92,6 +93,21 @@ const Checkout: React.FC = () => {
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">(() => {
     return (localStorage.getItem("eletrostart_checkout_delivery_type") as "delivery" | "pickup") || "delivery";
   });
+
+  // Estado do pagamento PIX inline
+  const [pixOrder, setPixOrder] = useState<{
+    orderId: string; total: number; customerName: string; customerEmail: string;
+  } | null>(null);
+  const [pixConfirmed, setPixConfirmed] = useState(false);
+
+  // sessionId persistente para reserva de estoque
+  const sessionId = useMemo(() => {
+    const stored = localStorage.getItem("eletrostart_session_id");
+    if (stored) return stored;
+    const id = `sess_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    localStorage.setItem("eletrostart_session_id", id);
+    return id;
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("eletrostart_checkout_delivery_type", deliveryType);
@@ -221,9 +237,7 @@ const Checkout: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const deliveryNote = deliveryType === "pickup"
-        ? "[RETIRADA NA LOJA]"
-        : "";
+      const deliveryNote = deliveryType === "pickup" ? "[RETIRADA NA LOJA]" : "";
       const notes = [deliveryNote, formData.observacoes].filter(Boolean).join(" | ");
 
       const orderData = {
@@ -245,12 +259,12 @@ const Checkout: React.FC = () => {
         items: cart.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
-          // Variante incluída nos dados da mensagem; backend usa productId para baixar estoque
         })),
         paymentMethod,
         notes,
       };
 
+      // Criar pedido no backend
       let orderId: string | null = null;
       try {
         const order = await orderService.createOrder(orderData);
@@ -259,6 +273,19 @@ const Checkout: React.FC = () => {
         console.error("Erro ao salvar pedido no backend:", err);
       }
 
+      // ── PIX: exibir QR Code inline em vez de redirecionar ao WhatsApp
+      if (paymentMethod === "pix" && orderId) {
+        setPixOrder({
+          orderId,
+          total: finalTotal,
+          customerName: formData.nome,
+          customerEmail: formData.email,
+        });
+        clearCart();
+        return;  // Não abre WhatsApp para PIX
+      }
+
+      // ── Outros métodos: fluxo WhatsApp original
       const message = generateOrderMessage(orderId);
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank");
 
@@ -286,6 +313,63 @@ const Checkout: React.FC = () => {
     localStorage.removeItem(LAST_ORDER_KEY);
     navigate("/");
   };
+
+  // ── PIX: tela de pagamento inline
+  if (pixOrder) {
+    if (pixConfirmed) {
+      return (
+        <div className="min-h-screen bg-gray-50 py-20">
+          <div className="container mx-auto px-4">
+            <div className="max-w-lg mx-auto text-center bg-white rounded-3xl p-12 shadow-xl">
+              <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle size={48} className="text-green-600" />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 mb-2">Pagamento Confirmado!</h2>
+              <p className="text-sm font-mono text-gray-500 mb-4">#{pixOrder.orderId.slice(0, 8)}</p>
+              <p className="text-gray-500 mb-8">
+                Seu PIX foi aprovado. Você receberá a confirmação por e-mail.
+              </p>
+              <div className="flex flex-col gap-3">
+                <Link
+                  to={`/meu-pedido/${pixOrder.orderId}`}
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-primary text-primary font-bold hover:bg-primary hover:text-white transition-all"
+                >
+                  <Clock size={16} /> Acompanhar Pedido
+                </Link>
+                <button onClick={() => navigate("/")}
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-800 transition-colors">
+                  Voltar para a Loja
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-gray-50 py-20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-lg mx-auto bg-white rounded-3xl p-8 shadow-xl">
+            <h2 className="text-xl font-black text-gray-900 mb-6 text-center">Pagar com PIX</h2>
+            <PixPayment
+              orderId={pixOrder.orderId}
+              amount={pixOrder.total}
+              sessionId={sessionId}
+              onPaymentConfirmed={() => setPixConfirmed(true)}
+            />
+            <p className="text-center text-xs text-gray-400 mt-6">
+              Prefere outro método?{" "}
+              <Link to="/checkout" className="text-primary font-bold hover:underline"
+                onClick={() => setPixOrder(null)}>
+                Voltar ao checkout
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Empty cart
   if (cart.length === 0 && !orderPlaced) {
