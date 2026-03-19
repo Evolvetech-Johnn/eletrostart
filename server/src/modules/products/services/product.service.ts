@@ -39,6 +39,7 @@ const formatProduct = (product: any) => {
     specifications: product.specifications || {},
     images: product.images || [],
     price: parseFloat(product.price),
+    costPrice: product.costPrice ? parseFloat(product.costPrice) : null,
   };
 };
 
@@ -271,6 +272,7 @@ export const bulkUpdate = async (
   const updateData: Prisma.ProductUpdateManyMutationInput = {};
   if (data.active !== undefined) updateData.active = data.active;
   if (data.featured !== undefined) updateData.featured = data.featured;
+  if (data.costPrice !== undefined) updateData.costPrice = typeof data.costPrice === 'number' ? data.costPrice : parseFloat(data.costPrice);
   if (data.price !== undefined) {
     const idsWithCategory = await prisma.product.findMany({
       where: { id: { in: ids } },

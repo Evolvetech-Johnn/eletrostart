@@ -66,6 +66,7 @@ export class ExecutiveRepository {
           select: {
             quantity: true,
             unitPrice: true,
+            costPrice: true,
             totalPrice: true,
           },
         },
@@ -137,6 +138,14 @@ export class ExecutiveRepository {
     });
   }
 
+  async getNewCustomersCountForPeriod(startDate: Date, endDate: Date): Promise<number> {
+    return prisma.customer.count({
+      where: {
+        createdAt: { gte: startDate, lte: endDate },
+      },
+    });
+  }
+
   // ─── Profitability ────────────────────────────────────────────────────────────
 
   async getOrderItemsWithDetails(filter: PeriodFilter) {
@@ -154,6 +163,7 @@ export class ExecutiveRepository {
         productName: true,
         quantity: true,
         unitPrice: true,
+        costPrice: true,
         totalPrice: true,
       },
     });

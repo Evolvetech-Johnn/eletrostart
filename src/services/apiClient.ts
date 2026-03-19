@@ -70,8 +70,35 @@ apiClient.interceptors.request.use(
 // ─── Response interceptor ────────────────────────────────────────────────────────
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response.data,
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
+    const originalRequest = error.config as any;
+
     if (error.response) {
+      // 403: Forbidden (inclui CSRF failures)
+      if (error.response.status === 403) {
+        const data = error.response.data as any;
+        
+        // Se o erro for CSRF_MISSING ou CSRF_INVALID e for a primeira tentativa
+        if ((data.code === "CSRF_MISSING" || data.code === "CSRF_INVALID") && !originalRequest._retry) {
+          originalRequest._retry = true;
+          
+          try {
+            // Buscar novo token via endpoint dedicado
+            const csrfRes = await axios.get(`${API_BASE_URL}/auth/csrf`, { withCredentials: true });
+            const newToken = csrfRes.data?.token;
+            
+            if (newToken) {
+              originalRequest.headers["X-CSRF-Token"] = newToken;
+              return apiClient(originalRequest);
+            }
+          } catch (csrfErr) {
+            console.error("❌ Falha crítica ao recuperar CSRF token:", csrfErr);
+          }
+        }
+        
+        console.error("🚫 Acesso Negado (403):", error.response.data);
+      }
+
       // 401: Sessão expirada
       if (error.response.status === 401) {
         console.warn("🔐 Sessão Expirada ou Token em falta.", error.response.data);
@@ -80,11 +107,6 @@ apiClient.interceptors.response.use(
           window.location.href = "/admin/login";
         }
         return Promise.reject(new Error("Sessão expirada. Faça login novamente."));
-      }
-
-      // 403: Forbidden (inclui CSRF failures)
-      if (error.response.status === 403) {
-        console.error("🚫 Acesso Negado (403):", error.response.data);
       }
 
       // 500: Server Error

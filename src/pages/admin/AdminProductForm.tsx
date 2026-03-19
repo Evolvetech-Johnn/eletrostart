@@ -40,6 +40,7 @@ const productSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   description: z.string().optional(),
   price: z.number().min(0, "Preço deve ser positivo"),
+  costPrice: z.number().min(0, "Custo deve ser positivo").optional().nullable(),
   stock: z
     .number()
     .int("Estoque deve ser inteiro")
@@ -87,6 +88,7 @@ const AdminProductForm: React.FC = () => {
       name: "",
       description: "",
       price: 0,
+      costPrice: 0,
       stock: 0,
       sku: "",
       code: "",
@@ -154,6 +156,7 @@ const AdminProductForm: React.FC = () => {
         name: product.name,
         description: product.description || "",
         price: product.price,
+        costPrice: product.costPrice || 0,
         stock: product.stock,
         sku: product.sku || "",
         code: product.code || "",
@@ -469,6 +472,19 @@ const AdminProductForm: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <Input
+                  label="Preço de Custo (R$)"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...register("costPrice", { valueAsNumber: true })}
+                  error={errors.costPrice?.message}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Estoque *

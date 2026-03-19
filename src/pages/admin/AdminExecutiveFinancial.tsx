@@ -164,7 +164,7 @@ const AdminExecutiveFinancial: React.FC = () => {
                 textColor="text-blue-600"
               />
               <StatCard
-                label="Custo Total (Est.)"
+                label="Custo Total"
                 value={fmt(kpi.totalCost)}
                 icon={BarChart2}
                 bgColor="bg-orange-50"
@@ -188,7 +188,8 @@ const AdminExecutiveFinancial: React.FC = () => {
               {kpi.revenueByDay.length === 0 ? (
                 <p className="text-gray-400 text-center py-12">Nenhuma receita neste período</p>
               ) : (
-                <ResponsiveContainer width="100%" height={260}>
+                <div style={{ width: '100%', height: 260, minHeight: 260 }}>
+                  <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={kpi.revenueByDay} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
@@ -206,7 +207,8 @@ const AdminExecutiveFinancial: React.FC = () => {
                     <Area type="monotone" dataKey="value" stroke="#222998" strokeWidth={2.5} fill="url(#revGrad)" />
                   </AreaChart>
                 </ResponsiveContainer>
-              )}
+              </div>
+            )}
             </div>
 
             {/* ComposedChart — Receita × Lucro */}
@@ -218,7 +220,8 @@ const AdminExecutiveFinancial: React.FC = () => {
               {composedData.length === 0 ? (
                 <p className="text-gray-400 text-center py-12">Nenhum dado disponível</p>
               ) : (
-                <ResponsiveContainer width="100%" height={280}>
+                <div style={{ width: '100%', height: 280, minHeight: 280 }}>
+                  <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={composedData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
@@ -260,7 +263,8 @@ const AdminExecutiveFinancial: React.FC = () => {
                       strokeDasharray="5 3"
                     />
                   </ComposedChart>
-                </ResponsiveContainer>
+                  </ResponsiveContainer>
+                </div>
               )}
             </div>
 

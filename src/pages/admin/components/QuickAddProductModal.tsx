@@ -24,6 +24,7 @@ export const QuickAddProductModal: React.FC<QuickAddProductModalProps> = ({
 }) => {
   const [name, setName] = useState("");
   const [price, setPrice] = useState<string>("");
+  const [costPrice, setCostPrice] = useState<string>("");
   const [stock, setStock] = useState<string>("");
   const [sku, setSku] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
@@ -52,6 +53,7 @@ export const QuickAddProductModal: React.FC<QuickAddProductModalProps> = ({
       productService.createProduct({
         name: name.trim(),
         price: Number(price),
+        costPrice: costPrice ? Number(costPrice) : undefined,
         stock: stock ? Number(stock) : 0,
         sku: sku.trim() || undefined,
         categoryId: categoryId || undefined,
@@ -64,6 +66,7 @@ export const QuickAddProductModal: React.FC<QuickAddProductModalProps> = ({
       onSuccess(p);
       setName("");
       setPrice("");
+      setCostPrice("");
       setStock("");
       setSku("");
       setCategoryId("");
@@ -107,7 +110,7 @@ export const QuickAddProductModal: React.FC<QuickAddProductModalProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">
                 Preço (R$)
@@ -118,6 +121,19 @@ export const QuickAddProductModal: React.FC<QuickAddProductModalProps> = ({
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">
+                Custo (R$)
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={costPrice}
+                onChange={(e) => setCostPrice(e.target.value)}
                 placeholder="0,00"
               />
             </div>

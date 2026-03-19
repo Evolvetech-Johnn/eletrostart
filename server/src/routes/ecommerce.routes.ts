@@ -14,7 +14,9 @@ const router = express.Router();
 // ============================================
 
 // Products
+router.get("/products/min-price-config", productController.getMinPriceConfig);
 router.get("/products", productController.getProducts);
+router.get("/products/stats/overview", productController.getProductStats);
 router.get("/products/:id", productController.getProduct);
 
 // Categories
@@ -50,8 +52,7 @@ router.delete("/cart/reserve/:sessionId", async (req, res) => {
 });
 
 // Stats (public)
-router.get("/products/stats/overview", productController.getProductStats);
-router.get("/products/min-price-config", productController.getMinPriceConfig);
+
 
 // ============================================
 // ADMIN ROUTES (Authentication required)

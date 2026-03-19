@@ -1,5 +1,6 @@
 import { prisma } from "../../../lib/prisma";
 import { Prisma } from "@prisma/client";
+import { sequenceService } from "../../../services/sequence.service";
 import { orderRepository } from "../repositories/order.repository";
 import { logAction } from "../../../services/audit.service";
 import {
@@ -54,12 +55,16 @@ export class OrderService {
           productName: product.name,
           quantity: qty,
           unitPrice: price,
+          costPrice: product.costPrice || null,
           totalPrice: total,
         });
       }
 
       const shippingCost = 0;
       const total = subtotal + shippingCost;
+
+      const orderSeq = await sequenceService.getNextSequence("order");
+      const orderNumber = sequenceService.formatOrderNumber(orderSeq);
 
       const createdOrder = await orderRepository.create({
         customerName: customer.name,
@@ -79,6 +84,7 @@ export class OrderService {
         total,
         paymentMethod: data.paymentMethod,
         notes,
+        orderNumber,
         items: {
           create: orderItemsData,
         },
@@ -138,6 +144,7 @@ export class OrderService {
         { customerName: { contains: search as string } },
         { customerEmail: { contains: search as string } },
         { id: { contains: search as string } },
+        { orderNumber: { contains: search as string } },
       ];
     }
 

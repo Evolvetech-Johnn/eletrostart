@@ -73,10 +73,25 @@ export class ExecutiveService {
     const byDay: Record<string, number> = {};
     const byMonth: Record<string, number> = {};
     let totalRevenue = 0;
+    let totalCost = 0;
+    const FALLBACK_COST_RATIO = 0.60;
 
-    for (const order of orders) {
+    for (const order of (orders as any[])) {
       const rev = Number(order.total ?? 0);
       totalRevenue += rev;
+
+      // Calcular custo real deste pedido
+      let orderCost = 0;
+      for (const item of (order.items as any[])) {
+        const qty = Number(item.quantity || 0);
+        const price = Number(item.unitPrice || 0);
+        const cost = item.costPrice !== null && item.costPrice !== undefined
+          ? Number(item.costPrice)
+          : price * FALLBACK_COST_RATIO;
+        
+        orderCost += cost * qty;
+      }
+      totalCost += orderCost;
 
       const dayKey = (order.createdAt as Date).toISOString().split('T')[0];
       const monthKey = dayKey.substring(0, 7);
@@ -85,10 +100,6 @@ export class ExecutiveService {
       byMonth[monthKey] = (byMonth[monthKey] || 0) + rev;
     }
 
-    // Custo estimado: sem campo de custo no produto, usamos 60% do preço como proxy (configurável)
-    // Em produção real, adicionar campo `costPrice` ao Product
-    const COST_RATIO = 0.60;
-    const totalCost = totalRevenue * COST_RATIO;
     const grossProfit = totalRevenue - totalCost;
     const grossMarginPct = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
     const avgTicket = orders.length > 0 ? totalRevenue / orders.length : 0;
@@ -182,9 +193,16 @@ export class ExecutiveService {
     const customers = Object.values(customerMap);
     const totalCustomers = customers.length;
 
-    // Novos no período: customers que aparecem apenas com orders after startDate
-    // (proxy: contamos distintos no período)
-    const newCustomersThisPeriod = totalCustomers;
+    // Novos no período: contagem real da tabela Customer
+    let newCustomersThisPeriod = 0;
+    if (filter.startDate && filter.endDate) {
+      newCustomersThisPeriod = await executiveRepository.getNewCustomersCountForPeriod(
+        filter.startDate,
+        filter.endDate
+      );
+    } else {
+      newCustomersThisPeriod = totalCustomers; // fallback
+    }
 
     const avgOrdersPerCustomer =
       totalCustomers > 0

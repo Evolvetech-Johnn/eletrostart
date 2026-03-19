@@ -213,37 +213,39 @@ const AdminDashboard: React.FC = () => {
                     <p>Nenhuma receita neste período</p>
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={analytics?.revenueByDay ?? []} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="dashRevGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#222998" stopOpacity={0.25} />
-                          <stop offset="95%" stopColor="#222998" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fontSize: 10, fill: "#9ca3af" }}
-                        tickFormatter={(v) => v.slice(5)}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 10, fill: "#9ca3af" }}
-                        tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
-                      />
-                      <Tooltip
-                        formatter={(v: number | undefined) => [fmt(v ?? 0), "Receita"]}
-                        contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 12 }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#222998"
-                        strokeWidth={2.5}
-                        fill="url(#dashRevGrad)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <div style={{ width: '100%', height: 220, minHeight: 220 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={analytics?.revenueByDay ?? []} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="dashRevGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#222998" stopOpacity={0.25} />
+                            <stop offset="95%" stopColor="#222998" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 10, fill: "#9ca3af" }}
+                          tickFormatter={(v) => v.slice(5)}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 10, fill: "#9ca3af" }}
+                          tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip
+                          formatter={(v: number | undefined) => [fmt(v ?? 0), "Receita"]}
+                          contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 12 }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#222998"
+                          strokeWidth={2.5}
+                          fill="url(#dashRevGrad)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
                 )}
               </div>
 

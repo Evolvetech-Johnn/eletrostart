@@ -27,6 +27,7 @@ export interface Product {
   name: string;
   description?: string;
   price: number;
+  costPrice?: number;
   stock: number;
   sku?: string;
   code?: string;
@@ -73,6 +74,7 @@ export interface CreateProductParams {
   name: string;
   description?: string;
   price: number;
+  costPrice?: number;
   stock: number;
   sku?: string;
   code?: string;

@@ -44,6 +44,7 @@ export interface Order {
   notes?: string;
   items: OrderItem[];
   statusHistory?: OrderStatusHistoryEntry[];
+  orderNumber?: string;
   createdAt: string;
   updatedAt: string;
 }

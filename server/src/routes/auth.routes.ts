@@ -1,6 +1,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { login, me, createAdmin, logout } from '../controllers/auth.controller';
+import { login, me, createAdmin, logout, getCsrfToken } from '../controllers/auth.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 
 const router = express.Router();
@@ -21,6 +21,9 @@ const loginLimiter = rateLimit({
 
 // POST /api/auth/login — com rate limit específico
 router.post('/login', loginLimiter, login);
+
+// GET /api/auth/csrf — Obter token CSRF para o frontend (útil se o cookie for bloqueado)
+router.get('/csrf', loginLimiter, getCsrfToken);
 
 // POST /api/auth/logout — limpa o cookie httpOnly
 router.post('/logout', logout);

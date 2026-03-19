@@ -161,6 +161,7 @@ model Product {
   code        String? // Código original da tabela
   image       String? // URL da imagem principal
   unit        String? @default("un") // un, kg, m, etc.
+  costPrice   Float?  @default(0.0) // Preço de custo para cálculo de lucro real
 
   stockReserved  Int     @default(0)   // Estoque reservado durante checkout (liberado se não finalizar)
 
@@ -259,7 +260,8 @@ model Order {
   stockMovements StockMovement[]
 
   notes String? // Observações do cliente ou admin
-
+  orderNumber String? @unique // Ex: PN000000000001
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -299,6 +301,7 @@ model OrderItem {
   productName String // Salva nome histórico caso produto seja deletado
   quantity    Int
   unitPrice   Float
+  costPrice   Float?   // [NEW] Custo no momento da compra para lucro histórico
   totalPrice  Float
 
   createdAt DateTime @default(now())
@@ -325,4 +328,12 @@ model StockMovement {
   @@index([productId])
   @@index([createdAt])
   @@map("stock_movements")
+}
+
+model Sequence {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  key   String @unique
+  value Int    @default(0)
+
+  @@map("sequences")
 }

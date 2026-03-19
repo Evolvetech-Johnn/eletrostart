@@ -65,7 +65,7 @@ export const orderToMessageDetails = (
   codesByProductId?: Record<string, string | undefined>,
 ): MessageDetails => {
   return {
-    id: order.id,
+    id: order.orderNumber || order.id.slice(0, 8),
     customerName: order.customerName,
     customerPhone: order.customerPhone,
     customerEmail: order.customerEmail,

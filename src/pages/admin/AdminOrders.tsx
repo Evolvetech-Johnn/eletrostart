@@ -85,7 +85,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ order, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white px-6 pt-6 pb-4 border-b flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Editar Pedido #{order.id.slice(0, 8)}</h2>
+          <h2 className="text-xl font-bold text-gray-900">Editar Pedido #{order.orderNumber || order.id.slice(0, 8)}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(form); }} className="p-6 space-y-3">
@@ -161,7 +161,7 @@ const AdminOrders: React.FC = () => {
 
   const handleDelete = (order: Order) => {
     if (!window.confirm(
-      `Excluir pedido #${order.id.slice(0, 8)} de ${order.customerName}?\n\nO estoque será restaurado automaticamente.`
+      `Excluir pedido #${order.orderNumber || order.id.slice(0, 8)} de ${order.customerName}?\n\nO estoque será restaurado automaticamente.`
     )) return;
     deleteMutation.mutate(order.id);
   };
@@ -268,7 +268,7 @@ const AdminOrders: React.FC = () => {
                     orders.map((order: Order) => (
                       <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-5 py-4 font-mono text-gray-500 text-xs">
-                          #{order.id.slice(0, 8)}
+                          #{order.orderNumber || order.id.slice(0, 8)}
                         </td>
                         <td className="px-5 py-4">
                           <p className="font-semibold text-gray-900">{order.customerName}</p>

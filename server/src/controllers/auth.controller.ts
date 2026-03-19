@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
+import * as crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
 
@@ -200,4 +201,28 @@ export const createAdmin = async (
   } catch (error) {
     next(error);
   }
+};
+
+/**
+ * Retorna o token CSRF atual ou gera um novo
+ */
+export const getCsrfToken = async (req: Request, res: Response) => {
+  const CSRF_COOKIE = "csrf_token";
+  const CSRF_TOKEN_LENGTH = 32;
+  const isProduction = process.env.NODE_ENV === "production";
+
+  let token = req.cookies?.[CSRF_COOKIE];
+
+  if (!token) {
+    token = crypto.randomBytes(CSRF_TOKEN_LENGTH).toString("hex");
+    res.cookie(CSRF_COOKIE, token, {
+      httpOnly: false,
+      secure: true,
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+  }
+
+  res.json({ success: true, token });
 };

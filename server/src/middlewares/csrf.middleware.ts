@@ -38,8 +38,8 @@ export const issueCsrfToken = (req: Request, res: Response, next: NextFunction) 
 
   res.cookie(CSRF_COOKIE, token, {
     httpOnly: false,    // DEVE ser false para o JS poder ler e reenviar no header
-    secure: isProduction,
-    sameSite: isProduction ? "strict" : "lax",
+    secure: true,       // Sempre true em produção para sameSite: 'none' operar
+    sameSite: isProduction ? "none" : "lax",
     maxAge: CSRF_COOKIE_MAX_AGE,
     path: "/",
   });
