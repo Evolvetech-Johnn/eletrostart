@@ -96,7 +96,7 @@ export const login = async (
     res.cookie(AUTH_COOKIE, token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? "strict" : "lax",
+      sameSite: isProduction ? "none" : "lax", // 'none' permite cross-site cookie
       maxAge: getMaxAgeMs(),
       path: "/",
     });
@@ -136,7 +136,12 @@ export const me = async (req: Request, res: Response) => {
  * Logout — limpa o cookie de autenticação
  */
 export const logout = async (req: Request, res: Response) => {
-  res.clearCookie(AUTH_COOKIE, { path: "/" });
+  const isProduction = process.env.NODE_ENV === "production";
+  res.clearCookie(AUTH_COOKIE, { 
+    path: "/",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax"
+  });
   res.json({ success: true, message: "Logout realizado com sucesso" });
 };
 
