@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -94,13 +94,14 @@ const AdminProductForm: React.FC = () => {
       code: "",
       unit: "un",
       categoryId: "",
-      image: "",
       active: true,
       featured: false,
     },
   });
 
-  const imageUrl = watch("image");
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -162,17 +163,21 @@ const AdminProductForm: React.FC = () => {
         code: product.code || "",
         unit: product.unit || "un",
         categoryId: product.categoryId || "",
-        image: product.image || "",
         active: product.active,
         featured: product.featured,
       });
     }
   }, [product, reset]);
 
-  // Mutations
   const createProductMutation = useMutation({
-    mutationFn: productService.createProduct,
-    onSuccess: () => {
+    mutationFn: (data: any) => productService.createProduct(data),
+    onSuccess: async (res: any) => {
+      const newProductId = res.data?.id || res.id;
+      if (pendingFiles.length > 0 && newProductId) {
+        toast.loading("Enviando imagens...", { id: "upload-status" });
+        await handleUploadImages(pendingFiles as unknown as FileList, newProductId);
+        toast.success("Imagens enviadas!", { id: "upload-status" });
+      }
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Produto criado com sucesso!");
       navigate("/admin/products");
@@ -185,7 +190,7 @@ const AdminProductForm: React.FC = () => {
   });
 
   const updateProductMutation = useMutation({
-    mutationFn: (data: ProductFormData) =>
+    mutationFn: (data: any) =>
       productService.updateProduct(id!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -201,12 +206,13 @@ const AdminProductForm: React.FC = () => {
   });
 
   const onSubmit = (data: ProductFormData) => {
-    const cleanedData = {
+    const cleanedData: any = {
       ...data,
       sku: data.sku === "" ? undefined : data.sku,
       code: data.code === "" ? undefined : data.code,
       categoryId: data.categoryId === "" ? undefined : data.categoryId,
       image: data.image === "" ? undefined : data.image,
+      costPrice: data.costPrice === null ? undefined : data.costPrice,
     };
 
     if (isEdit) {
@@ -216,27 +222,60 @@ const AdminProductForm: React.FC = () => {
     }
   };
 
-  const handleUploadImages = async (files: FileList | null) => {
-    if (!files || !isEdit) return;
+  const handleUploadImages = async (files: FileList | null | File[], targetId?: string) => {
+    const uploadId = targetId || id;
+    if (!files || !uploadId) return;
+
     const formData = new FormData();
-    Array.from(files).forEach((f) => formData.append("files", f));
+    if (files instanceof FileList) {
+      Array.from(files).forEach((f) => formData.append("files", f));
+    } else {
+      files.forEach((f) => formData.append("files", f));
+    }
+
     try {
       const data: any = await apiClient.post(
-        `/ecommerce/products/${id}/images/upload`,
+        `/ecommerce/products/${uploadId}/images/upload`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
         }
       );
       if (data.success !== false) {
-        toast.success("Imagens enviadas");
-        refetchImages();
+        if (!targetId) {
+          toast.success("Imagens enviadas");
+          refetchImages();
+        }
+        return true;
       } else {
         toast.error(data.message || "Erro ao enviar imagens");
+        return false;
       }
     } catch (err: any) {
       toast.error(err.message || "Erro ao enviar imagens");
+      return false;
     }
+  };
+
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files);
+
+    if (isEdit) {
+      handleUploadImages(files);
+    } else {
+      setPendingFiles((prev: File[]) => [...prev, ...newFiles]);
+      const newPreviews = newFiles.map(f => URL.createObjectURL(f));
+      setPreviews((prev: string[]) => [...prev, ...newPreviews]);
+    }
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles((prev: File[]) => prev.filter((_, i) => i !== index));
+    setPreviews((prev: string[]) => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const setPrimaryImage = async (imageId: string) => {
@@ -396,283 +435,292 @@ const AdminProductForm: React.FC = () => {
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="max-w-4xl bg-white rounded-lg shadow p-6"
+        className="max-w-5xl space-y-8"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Basic Info */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">
-              Informações Básicas
-            </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* Main Info Column */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-lg shadow p-6 space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">
+                Informações Básicas
+              </h3>
 
-            <div>
-              <Input
-                label="Nome do Produto *"
-                {...register("name")}
-                error={errors.name?.message}
-              />
+              <div>
+                <Input
+                  label="Nome do Produto *"
+                  {...register("name")}
+                  error={errors.name?.message}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Código Oficial"
+                  {...register("code")}
+                  placeholder="Ex: LSH0275"
+                />
+                <Input label="SKU" {...register("sku")} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categoria
+                </label>
+                <select
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none bg-white"
+                  {...register("categoryId")}
+                >
+                  <option value="">Selecione...</option>
+                  {categories.map((cat: Category) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descrição
+                </label>
+                <textarea
+                  rows={4}
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
+                  {...register("description")}
+                />
+              </div>
             </div>
 
-            <div>
-              <Input
-                label="Código Oficial (Tabela)"
-                {...register("code")}
-                placeholder="Ex: LSH0275"
-              />
-            </div>
+            {/* Imagens (Moved Up) */}
+            <div className="bg-white rounded-lg shadow p-6 space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
+                <ImageIcon size={20} /> Imagens do Produto
+              </h3>
 
-            <div>
-              <Input label="SKU (Identificador Único)" {...register("sku")} />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoria
-              </label>
-              <select
-                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none bg-white"
-                {...register("categoryId")}
+              <div
+                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all border-gray-300 hover:border-primary hover:bg-primary/5 focus-within:ring-2 focus-within:ring-primary-500 outline-none"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleFileSelect(e.dataTransfer.files);
+                }}
+                onClick={() => document.getElementById("file-input")?.click()}
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && document.getElementById("file-input")?.click()}
               >
-                <option value="">Selecione...</option>
-                {categories.map((cat: Category) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <div className="flex flex-col items-center">
+                  <div className="p-4 bg-gray-50 rounded-full mb-3 group-hover:bg-primary/10 transition-colors">
+                    <ImageIcon size={48} className="text-gray-400 group-hover:text-primary transition-colors" />
+                  </div>
+                  <p className="text-base font-semibold text-gray-900">
+                    {isEdit ? "Adicionar fotos à galeria" : "Enviar fotos do produto"}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto">
+                    Arraste imagens aqui ou clique para selecionar. Você pode enviar várias fotos de uma vez.
+                  </p>
+                </div>
+                <input
+                  id="file-input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleFileSelect(e.target.files)}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descrição
-              </label>
-              <textarea
-                rows={4}
-                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                {...register("description")}
-              />
+              {/* Pending Upload Previews */}
+              {previews.length > 0 && !isEdit && (
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-amber-600 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                    Fotos pendentes (serão salvas com o produto)
+                  </p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {previews.map((preview: string, idx: number) => (
+                      <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-amber-100 bg-gray-50 shadow-sm">
+                        <img src={preview} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt="" />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removePendingFile(idx); }}
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 size={20} className="text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Existing Gallery Images */}
+              {isEdit && images.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Galeria Atual (Arraste para reordenar)</p>
+                  <DndContext
+                    collisionDetection={closestCenter}
+                    onDragEnd={async (event) => {
+                      const { active, over } = event;
+                      if (!over || active.id === over.id) return;
+                      const currentIndex = images.findIndex((img: any) => img.id === active.id);
+                      const newIndex = images.findIndex((img: any) => img.id === over.id);
+                      if (currentIndex === -1 || newIndex === -1) return;
+                      const ordered = arrayMove(images, currentIndex, newIndex);
+                      for (let index = 0; index < ordered.length; index++) {
+                        const img = ordered[index] as any;
+                        await reorderImage(img.id, index);
+                      }
+                      refetchImages();
+                    }}
+                  >
+                    <SortableContext items={images.map((img: any) => img.id)} strategy={verticalListSortingStrategy}>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {images.map((img: any) => {
+                          const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: img.id });
+                          const style = { transform: CSS.Transform.toString(transform), transition };
+                          return (
+                            <div key={img.id} ref={setNodeRef} style={style} {...attributes} {...listeners} className="relative group aspect-square rounded-lg overflow-hidden border bg-gray-50 shadow-sm cursor-grab active:cursor-grabbing">
+                              <img src={img.url} className="w-full h-full object-cover" alt="" />
+                              <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setPrimaryImage(img.id); }}
+                                  className={`p-1.5 rounded-full shadow-lg transition-colors ${img.isPrimary ? 'bg-yellow-400 text-white' : 'bg-white text-gray-400 hover:text-yellow-500'}`}
+                                  title="Marcar como Principal"
+                                >
+                                  <Star size={14} fill={img.isPrimary ? "currentColor" : "none"} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); deleteImage(img.id); }}
+                                  className="p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600"
+                                  title="Excluir Imagem"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] py-1 text-center opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                                {img.isPrimary && <Star size={10} fill="currentColor" className="text-yellow-400" />}
+                                Ordem: {img.order}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Price & Stock & Image */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">
-              Preço e Estoque
-            </h3>
+          {/* Price and Visibility Column */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow p-6 space-y-6">
+              <h3 className="text-lg font-semibold border-b pb-2">Preço e Estoque</h3>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-4">
                 <Input
-                  label="Preço (R$) *"
+                  label="Preço de Venda (R$)"
                   type="number"
                   step="0.01"
                   min="0"
                   {...register("price", { valueAsNumber: true })}
                   error={errors.price?.message}
+                  className="text-lg font-bold text-primary"
                 />
-              </div>
 
-              <div>
                 <Input
-                  label="Preço de Custo (R$)"
+                  label="Preço de Custo (Opcional)"
                   type="number"
                   step="0.01"
                   min="0"
                   {...register("costPrice", { valueAsNumber: true })}
                   error={errors.costPrice?.message}
                 />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Estoque *
-                </label>
-                <div className="flex gap-2">
-                  <div className="flex-1">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-2">
                     <Input
+                      label="Estoque Inicial"
                       type="number"
                       min="0"
                       {...register("stock", { valueAsNumber: true })}
                       error={errors.stock?.message}
                     />
                   </div>
-
-                  <div className="w-24">
-                    <Input type="text" placeholder="Un" {...register("unit")} />
+                  <div>
+                    <Input label="Unid." placeholder="ex: un" {...register("unit")} />
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div>
-              <Input
-                label="URL da Imagem"
-                {...register("image")}
-                placeholder="https://..."
-                error={errors.image?.message}
-              />
+              <div className="pt-4 border-t space-y-4">
+                <p className="text-sm font-semibold text-gray-900">Configurações</p>
 
-              {imageUrl && (
-                <div className="mt-2 w-full h-40 bg-gray-100 rounded-lg overflow-hidden border flex items-center justify-center">
-                  <img
-                    src={imageUrl}
-                    alt="Preview"
-                    className="h-full object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = ""; // Clear broken image
-                    }}
-                  />
+                <div className="space-y-4">
+                  <label className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer group">
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Produto Ativo</span>
+                    <div className={`w-12 h-6 rounded-full p-1 transition-colors ${watch("active") ? "bg-green-500" : "bg-gray-200"}`}>
+                      <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-all ${watch("active") ? "translate-x-6" : "translate-x-0"}`} />
+                    </div>
+                    <input type="checkbox" className="hidden" {...register("active")} />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer group">
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Destaque na Home</span>
+                    <div className={`w-12 h-6 rounded-full p-1 transition-colors ${watch("featured") ? "bg-amber-500" : "bg-gray-200"}`}>
+                      <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-all ${watch("featured") ? "translate-x-6" : "translate-x-0"}`} />
+                    </div>
+                    <input type="checkbox" className="hidden" {...register("featured")} />
+                  </label>
                 </div>
-              )}
+              </div>
+
+              <div className="pt-6">
+                <Button type="submit" size="lg" className="w-full py-6 text-lg" isLoading={isSaving}>
+                  {!isSaving && <Save size={20} className="mr-2" />}
+                  {isEdit ? "Atualizar Produto" : "Criar Produto"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full mt-2 text-gray-500"
+                  onClick={() => navigate("/admin/products")}
+                  disabled={isSaving}
+                >
+                  Cancelar e Sair
+                </Button>
+              </div>
             </div>
 
-            <div className="pt-4 space-y-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-5 h-5 text-primary rounded focus:ring-primary-500"
-                  {...register("active")}
-                />
-                <span className="text-gray-700">
-                  Produto Ativo (visível na loja)
-                </span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-5 h-5 text-primary rounded focus:ring-primary-500"
-                  {...register("featured")}
-                />
-                <span className="text-gray-700">Produto em Destaque</span>
-              </label>
-            </div>
+            {/* Variants Link or Warning if not saving yet */}
+            {isEdit && (
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
+                  💡 Dica do Sistema
+                </h4>
+                <p className="text-xs text-blue-800 leading-relaxed">
+                  Você pode configurar variações (como cores, tamanhos ou materiais) e cada uma pode ter seu próprio estoque e preço individual na aba de variantes abaixo.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate("/admin/products")}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" isLoading={isSaving}>
-            {!isSaving && <Save size={20} className="mr-2" />}
-            Salvar Produto
-          </Button>
-        </div>
-
+        {/* Variants Section Moved to Bottom Separate Area */}
         {isEdit && (
-          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
-                <ImageIcon size={20} /> Imagens do Produto
-              </h3>
-
-              <div
-                className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const files = e.dataTransfer.files;
-                  handleUploadImages(files);
-                }}
-              >
-                <p className="text-sm text-gray-600">
-                  Arraste e solte imagens aqui ou selecione arquivos
-                </p>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="mt-3"
-                  onChange={(e) => handleUploadImages(e.target.files)}
-                />
+          <div className="bg-white rounded-lg shadow p-6 space-y-6">
+            <div className="flex justify-between items-center border-b pb-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Variantes do Produto</h3>
+                <p className="text-sm text-gray-500">Gerencie diferentes versões deste mesmo item</p>
               </div>
-
-              <DndContext
-                collisionDetection={closestCenter}
-                onDragEnd={async (event) => {
-                  const { active, over } = event;
-                  if (!over || active.id === over.id) return;
-                  const currentIndex = images.findIndex(
-                    (img: any) => img.id === active.id,
-                  );
-                  const newIndex = images.findIndex(
-                    (img: any) => img.id === over.id,
-                  );
-                  if (currentIndex === -1 || newIndex === -1) return;
-                  const ordered = arrayMove(images, currentIndex, newIndex);
-                  for (let index = 0; index < ordered.length; index++) {
-                    const img = ordered[index] as any;
-                    await reorderImage(img.id, index);
-                  }
-                  refetchImages();
-                }}
-              >
-                <SortableContext
-                  items={images.map((img: any) => img.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {images.map((img: any) => {
-                      const {
-                        attributes,
-                        listeners,
-                        setNodeRef,
-                        transform,
-                        transition,
-                      } = useSortable({ id: img.id });
-                      const style = {
-                        transform: CSS.Transform.toString(transform),
-                        transition,
-                      };
-
-                      return (
-                        <div
-                          key={img.id}
-                          ref={setNodeRef}
-                          style={style}
-                          {...attributes}
-                          {...listeners}
-                          className="border rounded-lg overflow-hidden bg-white cursor-move"
-                        >
-                          <img
-                            src={img.url}
-                            alt=""
-                            className="w-full h-28 object-cover"
-                          />
-                          <div className="p-2 flex items-center justify-between gap-2">
-                            <button
-                              className={`text-xs px-2 py-1 rounded ${
-                                img.isPrimary
-                                  ? "bg-yellow-100 text-yellow-700"
-                                  : "bg-gray-100 text-gray-700"
-                              }`}
-                              onClick={() => setPrimaryImage(img.id)}
-                              title="Definir como principal"
-                            >
-                              <Star size={14} />
-                            </button>
-                            <button
-                              className="text-xs px-2 py-1 rounded bg-red-100 text-red-700"
-                              onClick={() => deleteImage(img.id)}
-                              title="Excluir imagem"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </SortableContext>
-              </DndContext>
+              <Button onClick={addVariant} variant="outline" size="sm">
+                <Plus size={16} className="mr-2" /> Nova Variante
+              </Button>
             </div>
+
 
             <div className="space-y-4">
               <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
@@ -828,15 +876,15 @@ const AdminProductForm: React.FC = () => {
                       })}
                       {(stockMovements.data as StockMovement[]).length ===
                         0 && (
-                        <tr>
-                          <td
-                            colSpan={7}
-                            className="px-3 py-4 text-center text-gray-500"
-                          >
-                            Nenhuma movimentação recente
-                          </td>
-                        </tr>
-                      )}
+                          <tr>
+                            <td
+                              colSpan={7}
+                              className="px-3 py-4 text-center text-gray-500"
+                            >
+                              Nenhuma movimentação recente
+                            </td>
+                          </tr>
+                        )}
                     </tbody>
                   </table>
                 </div>

@@ -24,6 +24,7 @@ export const createOrderSchema = z.object({
   ).min(1, "O pedido deve ter pelo menos um item"),
   paymentMethod: z.string().optional(),
   notes: z.string().optional(),
+  sessionId: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.fulfillmentType === "delivery" || !data.fulfillmentType) {
     const minAddrError = (field: string) => {

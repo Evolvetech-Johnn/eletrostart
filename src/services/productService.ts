@@ -63,7 +63,7 @@ export interface GetProductsParams {
   category?: string;
   subcategory?: string;
   featured?: boolean;
-  active?: boolean;
+  active?: boolean | string;
   minPrice?: number;
   maxPrice?: number;
   sort?: string;

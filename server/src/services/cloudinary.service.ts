@@ -19,6 +19,7 @@ import streamifier from "streamifier";
 import path from "path";
 import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
+import * as Sentry from "@sentry/node";
 
 const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
 
@@ -50,13 +51,20 @@ export const uploadImageToStore = async (
         {
           folder,
           format: "webp", // Força WebP
+          tags: ["eletrostart", folder.split("/").pop() || "general"],
           transformation: [{ quality: "auto" }, { fetch_format: "auto" }] // Otimiza peso visualmente
         },
         (error, result) => {
           if (result) {
             resolve(result.secure_url);
           } else {
-            console.error("Cloudinary Upload Error:", error);
+            const errorMsg = `[Cloudinary] Erro no upload: ${error?.message || "Erro desconhecido"}`;
+            console.error(errorMsg, error);
+            
+            Sentry.captureException(error, {
+              extra: { folder, originalName }
+            });
+            
             reject(new Error("Erro ao fazer upload para CDN."));
           }
         }

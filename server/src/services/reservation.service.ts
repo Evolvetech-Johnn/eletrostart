@@ -78,22 +78,32 @@ export async function reserveStock(
 /**
  * Libera as reservas de uma sessão específica (checkout cancelado ou finalizado)
  */
-export async function releaseSessionReservations(sessionId: string): Promise<void> {
-  const reservations = await (prisma as any).cartReservation.findMany({
+export async function releaseSessionReservations(
+  sessionId: string,
+  tx?: any
+): Promise<void> {
+  const client = tx || prisma;
+  const reservations = await (client as any).cartReservation.findMany({
     where: { sessionId },
   });
 
   if (reservations.length === 0) return;
 
-  await prisma.$transaction(async (tx) => {
+  const execute = async (t: any) => {
     for (const res of reservations) {
-      await (tx as any).product.update({
+      await (t as any).product.update({
         where: { id: res.productId },
         data: { stockReserved: { decrement: res.quantity } },
       });
     }
-    await (tx as any).cartReservation.deleteMany({ where: { sessionId } });
-  });
+    await (t as any).cartReservation.deleteMany({ where: { sessionId } });
+  };
+
+  if (tx) {
+    await execute(tx);
+  } else {
+    await prisma.$transaction(execute);
+  }
 }
 
 /**

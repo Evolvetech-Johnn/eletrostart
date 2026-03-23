@@ -148,10 +148,10 @@ export const createProduct = async (data: any, userId: string = "unknown") => {
   const product = await prisma.product.create({
     data: {
       ...data,
-      variants: data.variants || Prisma.JsonNull,
-      features: data.features || Prisma.JsonNull,
-      specifications: data.specifications || Prisma.JsonNull,
-      images: data.images || Prisma.JsonNull,
+      variants: data.variants || null,
+      features: data.features || null,
+      specifications: data.specifications || null,
+      images: data.images || null,
     },
   });
 

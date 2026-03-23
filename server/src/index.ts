@@ -18,6 +18,18 @@ import executiveRoutes from "./modules/executive/routes";
 import paymentRoutes from "./routes/payment.routes";
 import { logisticsRoutes } from "./modules/logistics/routes";
 import { initAnalyticsCron } from "./cron/analytics.cron";
+import { initReservationCron } from "./cron/reservation.cron";
+import * as Sentry from "@sentry/node";
+
+// Sentry Initialization
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || "development",
+    tracesSampleRate: 1.0,
+  });
+  console.log("🛡️ Sentry iniciado no Backend");
+}
 
 // Validate Database URL on Startup
 if (!env.databaseUrl) {
@@ -123,13 +135,16 @@ app.get("/api/health-db", async (req: Request, res: Response) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/messages", messageRoutes);
-// Admin and Executive routes require CSRF validation on mutations
+
+// Proteção CSRF global para todas as outras rotas /api (exceto payments que recebe webhooks)
+// O verifyCsrfToken já ignora métodos seguros (GET, HEAD, OPTIONS)
+app.use("/api/messages", verifyCsrfToken, messageRoutes);
 app.use("/api/admin", verifyCsrfToken, adminRoutes);
 app.use("/api/admin/customers", verifyCsrfToken, customerRoutes);
-app.use("/api/ecommerce", ecommerceRoutes);
+app.use("/api/ecommerce", verifyCsrfToken, ecommerceRoutes);
 app.use("/api/executive", verifyCsrfToken, executiveRoutes);
-app.use("/api/logistics", logisticsRoutes);
+app.use("/api/logistics", verifyCsrfToken, logisticsRoutes);
+
 // Payment routes — sem CSRF para permitir webhooks externos do MercadoPago
 app.use("/api/payments", paymentRoutes);
 
@@ -140,4 +155,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`🌍 Frontend URL: ${env.frontendUrl}`);
   initAnalyticsCron();
+  initReservationCron();
 });

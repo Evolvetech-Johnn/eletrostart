@@ -5,7 +5,6 @@ import {
   productService,
   StockMovement,
   Product,
-  StockMovementsResponse,
 } from "../../services/productService";
 import { adminService, AdminUser } from "../../services/adminService";
 import { Input } from "../../components/ui/Input";

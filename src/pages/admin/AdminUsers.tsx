@@ -8,7 +8,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import AdminLayout from "./components/AdminLayout";
-import { adminService, AdminUser } from "../../services/adminService";
+import { adminService } from "../../services/adminService";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Select } from "../../components/ui/Select";

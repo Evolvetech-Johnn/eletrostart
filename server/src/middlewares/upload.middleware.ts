@@ -1,4 +1,5 @@
 import multer from "multer";
+import path from "path";
 
 // ─────────────────────────────────────────────
 //  Allowed MIME types (explicit whitelist)
@@ -92,6 +93,26 @@ export const uploadCV = multer({
 // ─────────────────────────────────────────────
 
 import { Request, Response, NextFunction } from "express";
+import * as Sentry from "@sentry/node";
+
+/**
+ * Sanitiza o nome do arquivo para evitar caracteres especiais, espaços e extensões duplas.
+ */
+export const sanitizeFilename = (filename: string): string => {
+  const ext = path.extname(filename);
+  const base = path.basename(filename, ext);
+  
+  // Remove tudo que não for letra, número, hífen ou underline
+  const safeBase = base
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/[^a-z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+    
+  return `${safeBase}${ext.toLowerCase()}`;
+};
 
 /**
  * Middleware para validar o conteúdo binário real do arquivo (Magic Numbers),
@@ -114,6 +135,9 @@ export const validateMagicNumbers = (
   if (files.length === 0) return next();
 
   for (const file of files) {
+    // Sanitização preventiva do nome original
+    file.originalname = sanitizeFilename(file.originalname);
+
     if (!file.buffer || file.buffer.length < 4) continue;
 
     const hex = file.buffer.toString("hex", 0, 4).toUpperCase();
@@ -142,7 +166,19 @@ export const validateMagicNumbers = (
     }
 
     if (!isSafe) {
-      console.warn(`🚨 [SECURITY] Arquivo bloqueado por Magic Number mismatch: ${file.originalname} | Mimetype: ${file.mimetype} | Hex: ${hex}`);
+      const errorMsg = `🚨 [SECURITY] Magic Number mismatch: ${file.originalname} | Mimetype: ${file.mimetype} | Hex: ${hex}`;
+      console.warn(errorMsg);
+      
+      Sentry.captureMessage(errorMsg, {
+        level: "warning",
+        extra: {
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          hex,
+          size: file.size,
+        },
+      });
+
       return res.status(400).json({
         success: false,
         message: `Conteúdo de arquivo suspeito detectado para o tipo ${file.mimetype}. O arquivo foi rejeitado por segurança.`,

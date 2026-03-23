@@ -71,6 +71,7 @@ export interface CreateOrderParams {
   }[];
   paymentMethod: string;
   notes?: string;
+  sessionId?: string;
 }
 
 export interface GetOrdersParams {
@@ -104,6 +105,13 @@ export const orderService = {
       data,
     );
     return response.data;
+  },
+
+  reserveStock: async (sessionId: string, items: { productId: string; quantity: number }[]): Promise<void> => {
+    await apiClient.post("/ecommerce/cart/reserve", {
+      sessionId,
+      items,
+    });
   },
 
   // Admin

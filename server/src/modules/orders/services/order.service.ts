@@ -10,6 +10,8 @@ import {
 } from "../../../services/emailTemplates.service";
 import { ALLOWED_TRANSITIONS, STOCK_DEBITED_STATUSES, OrderStatus } from "../../../constants/orderStatus";
 
+import { releaseSessionReservations } from "../../../services/reservation.service";
+
 export class OrderService {
   /**
    * Complex business logic for order creation inside an atomic transaction.
@@ -18,8 +20,14 @@ export class OrderService {
   async createOrder(data: any, customer: any, address: any, items: any[], notes: string) {
     let subtotal = 0;
     const orderItemsData: any[] = [];
+    const sessionId = data.sessionId;
 
     const order = await prisma.$transaction(async (tx) => {
+      // 1. Libera reservas se houver uma sessão
+      if (sessionId) {
+        await releaseSessionReservations(sessionId, tx);
+      }
+
       const stockMovements: any[] = [];
       
       for (const item of items) {

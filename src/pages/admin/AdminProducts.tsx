@@ -41,6 +41,7 @@ const AdminProducts: React.FC = () => {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const search = searchParams.get("search") || "";
   const category = searchParams.get("category") || "";
+  const activeSort = searchParams.get("active") || "all";
 
   // Local state for search input to avoid debounce issues for now
   const [searchInput, setSearchInput] = useState(search);
@@ -69,13 +70,13 @@ const AdminProducts: React.FC = () => {
     isLoading: isLoadingProducts,
     error: productsError,
   } = useQuery({
-    queryKey: ["products", { page, search, category }],
+    queryKey: ["products", { page, search, category, active: activeSort }],
     queryFn: () =>
       productService.getProducts({
         page,
         search,
         category,
-        all: true,
+        active: activeSort,
       }),
     enabled: !loading && isAuthenticated,
   });
@@ -108,12 +109,28 @@ const AdminProducts: React.FC = () => {
   const updateProductMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) =>
       productService.updateProduct(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast.success("Produto atualizado");
+    onMutate: async (newProduct) => {
+      await queryClient.cancelQueries({ queryKey: ["products"] });
+      const queryKey = ["products", { page, search, category, active: activeSort }];
+      const previousProducts = queryClient.getQueryData(queryKey);
+      
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) return old;
+        return old.map((p: Product) => 
+          p.id === newProduct.id ? { ...p, ...newProduct.data } : p
+        );
+      });
+
+      return { previousProducts };
     },
-    onError: (err: any) => {
+    onError: (err: any, _newProduct, context) => {
+      if (context?.previousProducts) {
+        queryClient.setQueryData(["products", { page, search, category, active: activeSort }], context.previousProducts);
+      }
       toast.error("Erro ao atualizar: " + (err.message || "Erro desconhecido"));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
@@ -371,6 +388,22 @@ const AdminProducts: React.FC = () => {
                 >
                   <RefreshCw size={18} className="mr-2" /> Sync
                 </Button>
+
+                {/* Filtro de Status conforme solicitado */}
+                <select
+                  className="border rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-primary-500 font-medium text-gray-700"
+                  value={activeSort}
+                  onChange={(e) => {
+                    const next = new URLSearchParams(searchParams);
+                    next.set("active", e.target.value);
+                    next.set("page", "1");
+                    setSearchParams(next);
+                  }}
+                >
+                  <option value="all">Todos (Ativos/Inativos)</option>
+                  <option value="true">Apenas Ativos</option>
+                  <option value="false">Apenas Inativos</option>
+                </select>
 
                 <select
                   className="border rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-primary-500"
@@ -651,7 +684,7 @@ const AdminProducts: React.FC = () => {
                             <span className="text-xs text-gray-400">R$</span>
                             <Input
                               type="number"
-                              className="w-24 h-8 text-right"
+                              className="w-32 h-8 text-right font-semibold"
                               value={
                                 editingValues[product.id]?.price !== undefined
                                   ? editingValues[product.id].price
@@ -687,7 +720,7 @@ const AdminProducts: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <Input
                               type="number"
-                              className="w-20 h-8 text-right"
+                              className="w-24 h-8 text-right font-semibold"
                               value={
                                 editingValues[product.id]?.stock !== undefined
                                   ? editingValues[product.id].stock
@@ -711,15 +744,24 @@ const AdminProducts: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-bold ${
-                              product.active
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateProductMutation.mutate({ 
+                                id: product.id, 
+                                data: { active: !product.active } 
+                              });
+                            }}
+                            className="group flex items-center gap-2"
+                            title={product.active ? "Desativar produto" : "Ativar produto"}
                           >
-                            {product.active ? "Ativo" : "Inativo"}
-                          </span>
+                            <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${product.active ? "bg-green-500" : "bg-gray-300"}`}>
+                              <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${product.active ? "translate-x-4" : "translate-x-0"}`} />
+                            </div>
+                            <span className={`text-xs font-bold transition-colors ${product.active ? "text-green-700" : "text-gray-500"}`}>
+                              {product.active ? "Ativo" : "Inativo"}
+                            </span>
+                          </button>
                         </td>
                         <td className="px-6 py-4 text-right whitespace-nowrap">
                           <div className="flex justify-end gap-2">

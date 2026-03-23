@@ -344,7 +344,7 @@ export const createUser = async (
         email: data.email,
         password: hashed,
         name: data.name,
-        role: data.role,
+        role: data.role.toUpperCase(),
         active: data.active ?? true,
       },
       select: { id: true, name: true, email: true, role: true, active: true },
@@ -384,7 +384,7 @@ export const updateUser = async (
     const updates: any = {};
     if (data.name !== undefined) updates.name = data.name;
     if (data.email !== undefined) updates.email = data.email;
-    if (data.role !== undefined) updates.role = data.role;
+    if (data.role !== undefined) updates.role = data.role.toUpperCase();
     if (data.active !== undefined) updates.active = data.active;
     if (data.password !== undefined) {
       updates.password = await bcrypt.hash(data.password, 10);
@@ -435,7 +435,7 @@ export const updateUserRole = async (
 
     const user = await prisma.adminUser.update({
       where: { id },
-      data: { role },
+      data: { role: role.toUpperCase() },
       select: { id: true, name: true, email: true, role: true },
     });
 

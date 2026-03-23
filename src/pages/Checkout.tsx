@@ -112,6 +112,20 @@ const Checkout: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("eletrostart_checkout_delivery_type", deliveryType);
   }, [deliveryType]);
+
+  // Reserva de estoque automática ao mudar o carrinho no checkout
+  useEffect(() => {
+    if (cart.length > 0) {
+      const items = cart.map((item) => ({
+        productId: item.id,
+        quantity: item.quantity,
+      }));
+      orderService.reserveStock(sessionId, items).catch((err) => {
+        console.error("Erro ao reservar estoque:", err);
+      });
+    }
+  }, [cart, sessionId]);
+
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -262,6 +276,7 @@ const Checkout: React.FC = () => {
         })),
         paymentMethod,
         notes,
+        sessionId,
       };
 
       // Criar pedido no backend

@@ -29,7 +29,7 @@ const AdminAuditLogs: React.FC = () => {
     enabled: !loading && isAuthenticated,
   });
 
-  const { data, isLoading, isError, refetch, isFetching } =
+  const { data, isLoading, isError, isFetching } =
     useQuery<AuditLogsData>({
     queryKey: [
       "audit-logs",

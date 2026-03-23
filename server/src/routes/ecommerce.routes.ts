@@ -24,10 +24,10 @@ router.get("/categories", categoryController.getCategories);
 router.get("/categories/:slug", categoryController.getCategoryBySlug);
 
 // Orders (Checkout - public)
-router.post("/orders", verifyCsrfToken, orderController.createOrder);
+router.post("/orders", orderController.createOrder);
 
 // Stock Reservation — protege contra race conditions no checkout
-router.post("/cart/reserve", verifyCsrfToken, async (req, res) => {
+router.post("/cart/reserve", async (req, res) => {
   const { sessionId, items } = req.body;
   if (!sessionId || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: true, message: "sessionId e items são obrigatórios" });

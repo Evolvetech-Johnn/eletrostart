@@ -1,6 +1,18 @@
 import { CATEGORY_METADATA } from "../utils/categoryData";
 
-export const products = [
+export interface StaticProduct {
+  id: string;
+  name: string;
+  category: string;
+  categoryId: string;
+  subcategory: string;
+  price: number;
+  unit: string;
+  description: string;
+  image: string;
+}
+
+export const products: StaticProduct[] = [
   // --- ILUMINAÇÃO ---
   {
     id: "lampada-bulbo-9w-6500k",
@@ -456,6 +468,7 @@ export const products = [
     image: "/img/Categorias/BROCAS AÇO RAPIDO/BROCA AÇO RAPIDO.png",
   },
 ];
+
 export const categories = Object.entries(CATEGORY_METADATA).map(([id, data]) => ({
   id,
   ...data,

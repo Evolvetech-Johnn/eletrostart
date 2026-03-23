@@ -94,6 +94,7 @@ export const updateProduct = async (req: Request, res: Response) => {
 
     // Validate request body
     const validatedData = updateProductSchema.parse(req.body);
+    console.log(`[UpdateProduct] ID: ${id}, Payload:`, validatedData);
 
     const product = await productService.updateProduct(
       id as string,

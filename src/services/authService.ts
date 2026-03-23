@@ -10,7 +10,6 @@ export interface User {
 
 export interface LoginResponse {
   user: User;
-  token?: string; // mantido para retrocompatibilidade — o cookie httpOnly é emitido pelo servidor
 }
 
 export const authService = {

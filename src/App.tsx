@@ -62,10 +62,21 @@ const AdminExecutiveInventory = lazy(() => import("./pages/admin/AdminExecutiveI
 const AdminExecutiveCustomers = lazy(() => import("./pages/admin/AdminExecutiveCustomers"));
 const AdminExecutiveProfitability = lazy(() => import("./pages/admin/AdminExecutiveProfitability"));
 
-// Loading Component
+// Admin Loading Component (Full Screen)
 const AdminLoading = () => (
-  <div className="flex items-center justify-center h-screen bg-gray-50">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
+    <div className="relative">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
+      <div className="absolute top-0 left-0 animate-pulse h-16 w-16 rounded-full bg-primary/10"></div>
+    </div>
+    <p className="mt-4 text-slate-600 font-medium animate-pulse">Carregando painel...</p>
+  </div>
+);
+
+// Public Loading Component (Inside Layout)
+const PublicLoading = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
   </div>
 );
 
@@ -76,200 +87,209 @@ function App() {
         <Router>
           <Toaster position="top-right" />
           <ScrollToTop />
-          <Suspense fallback={<AdminLoading />}>
+          <Suspense fallback={null}>
             <Routes>
               {/* Admin Routes - Outside Layout (no header/footer) */}
               <Route
-                path="/admin"
-                element={<Navigate to="/admin/login" replace />}
-              />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route
-                path="/admin/dashboard"
+                path="/admin/*"
                 element={
-                  <ProtectedRoute>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/analytics"
-                element={
-                  <ProtectedRoute>
-                    <AdminAnalytics />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/messages"
-                element={
-                  <ProtectedRoute>
-                    <AdminMessages />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/messages/:id"
-                element={
-                  <ProtectedRoute>
-                    <AdminMessageDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/integrations"
-                element={
-                  <ProtectedRoute>
-                    <AdminIntegrations />
-                  </ProtectedRoute>
-                }
-              />
+                  <Suspense fallback={<AdminLoading />}>
+                    <Routes>
+                      <Route
+                        path="/"
+                        element={<Navigate to="/admin/login" replace />}
+                      />
+                      <Route path="/login" element={<AdminLogin />} />
+                      <Route
+                        path="/dashboard"
+                        element={
+                          <ProtectedRoute>
+                            <AdminDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/analytics"
+                        element={
+                          <ProtectedRoute>
+                            <AdminAnalytics />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/messages"
+                        element={
+                          <ProtectedRoute>
+                            <AdminMessages />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/messages/:id"
+                        element={
+                          <ProtectedRoute>
+                            <AdminMessageDetail />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/integrations"
+                        element={
+                          <ProtectedRoute>
+                            <AdminIntegrations />
+                          </ProtectedRoute>
+                        }
+                      />
 
-              {/* Admin Store Routes */}
-              <Route
-                path="/admin/products"
-                element={
-                  <ProtectedRoute>
-                    <AdminProducts />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/products/new"
-                element={
-                  <ProtectedRoute>
-                    <AdminProductForm />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/products/:id"
-                element={
-                  <ProtectedRoute>
-                    <AdminProductForm />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/categories"
-                element={
-                  <ProtectedRoute>
-                    <AdminCategories />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/customers"
-                element={
-                  <ProtectedRoute>
-                    <AdminCustomers />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/customers/new"
-                element={
-                  <ProtectedRoute>
-                    <AdminCustomerDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/customers/:id"
-                element={
-                  <ProtectedRoute>
-                    <AdminCustomerDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/orders"
-                element={
-                  <ProtectedRoute>
-                    <AdminOrders />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/orders/new"
-                element={
-                  <ProtectedRoute>
-                    <NewOrderPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/orders/:id"
-                element={
-                  <ProtectedRoute>
-                    <AdminOrderDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/users"
-                element={
-                  <ProtectedRoute>
-                    <AdminUsers />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/audit"
-                element={
-                  <ProtectedRoute>
-                    <AdminAuditLogs />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/stock-movements"
-                element={
-                  <ProtectedRoute>
-                    <AdminStockMovements />
-                  </ProtectedRoute>
-                }
-              />
+                      {/* Admin Store Routes */}
+                      <Route
+                        path="/products"
+                        element={
+                          <ProtectedRoute>
+                            <AdminProducts />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/products/new"
+                        element={
+                          <ProtectedRoute>
+                            <AdminProductForm />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/products/:id"
+                        element={
+                          <ProtectedRoute>
+                            <AdminProductForm />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/categories"
+                        element={
+                          <ProtectedRoute>
+                            <AdminCategories />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/customers"
+                        element={
+                          <ProtectedRoute>
+                            <AdminCustomers />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/customers/new"
+                        element={
+                          <ProtectedRoute>
+                            <AdminCustomerDetail />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/customers/:id"
+                        element={
+                          <ProtectedRoute>
+                            <AdminCustomerDetail />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/orders"
+                        element={
+                          <ProtectedRoute>
+                            <AdminOrders />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/orders/new"
+                        element={
+                          <ProtectedRoute>
+                            <NewOrderPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/orders/:id"
+                        element={
+                          <ProtectedRoute>
+                            <AdminOrderDetail />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/users"
+                        element={
+                          <ProtectedRoute>
+                            <AdminUsers />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/audit"
+                        element={
+                          <ProtectedRoute>
+                            <AdminAuditLogs />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/stock-movements"
+                        element={
+                          <ProtectedRoute>
+                            <AdminStockMovements />
+                          </ProtectedRoute>
+                        }
+                      />
 
-              {/* Executive Routes - SUPER_ADMIN only */}
-              <Route
-                path="/admin/executive"
-                element={
-                  <ProtectedRoute>
-                    <AdminExecutive />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/executive/financial"
-                element={
-                  <ProtectedRoute>
-                    <AdminExecutiveFinancial />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/executive/inventory"
-                element={
-                  <ProtectedRoute>
-                    <AdminExecutiveInventory />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/executive/customers"
-                element={
-                  <ProtectedRoute>
-                    <AdminExecutiveCustomers />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/executive/profitability"
-                element={
-                  <ProtectedRoute>
-                    <AdminExecutiveProfitability />
-                  </ProtectedRoute>
+                      {/* Executive Routes - SUPER_ADMIN only */}
+                      <Route
+                        path="/executive"
+                        element={
+                          <ProtectedRoute>
+                            <AdminExecutive />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/executive/financial"
+                        element={
+                          <ProtectedRoute>
+                            <AdminExecutiveFinancial />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/executive/inventory"
+                        element={
+                          <ProtectedRoute>
+                            <AdminExecutiveInventory />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/executive/customers"
+                        element={
+                          <ProtectedRoute>
+                            <AdminExecutiveCustomers />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/executive/profitability"
+                        element={
+                          <ProtectedRoute>
+                            <AdminExecutiveProfitability />
+                          </ProtectedRoute>
+                        }
+                      />
+                    </Routes>
+                  </Suspense>
                 }
               />
 
@@ -278,25 +298,33 @@ function App() {
                 path="/*"
                 element={
                   <Layout>
-                    <Routes>
-                      <Route path="/" element={<Home />} />
-                      <Route path="/services" element={<Services />} />
-                      <Route path="/about" element={<About />} />
-                      <Route path="/contact" element={<Contact />} />
-                      <Route path="/products" element={<Products />} />
-                      <Route path="/product/:id" element={<ProductDetail />} />
-                      <Route path="/account" element={<Account />} />
-                      <Route path="/privacy" element={<Privacy />} />
-                      <Route path="/terms" element={<Terms />} />
-                      <Route path="/work-with-us" element={<WorkWithUs />} />
-                      <Route path="/faq" element={<FAQ />} />
-                      <Route path="/shipping" element={<Shipping />} />
-                      <Route path="/returns" element={<Returns />} />
-                      <Route path="/cookies" element={<Cookies />} />
-                      <Route path="/checkout" element={<Checkout />} />
-                      <Route path="/meu-pedido/:id" element={<OrderStatus />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
+                    <Suspense fallback={<PublicLoading />}>
+                      <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/services" element={<Services />} />
+                        <Route path="/about" element={<About />} />
+                        <Route path="/contact" element={<Contact />} />
+                        <Route path="/products" element={<Products />} />
+                        <Route
+                          path="/product/:id"
+                          element={<ProductDetail />}
+                        />
+                        <Route path="/account" element={<Account />} />
+                        <Route path="/privacy" element={<Privacy />} />
+                        <Route path="/terms" element={<Terms />} />
+                        <Route path="/work-with-us" element={<WorkWithUs />} />
+                        <Route path="/faq" element={<FAQ />} />
+                        <Route path="/shipping" element={<Shipping />} />
+                        <Route path="/returns" element={<Returns />} />
+                        <Route path="/cookies" element={<Cookies />} />
+                        <Route path="/checkout" element={<Checkout />} />
+                        <Route
+                          path="/meu-pedido/:id"
+                          element={<OrderStatus />}
+                        />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Suspense>
                   </Layout>
                 }
               />

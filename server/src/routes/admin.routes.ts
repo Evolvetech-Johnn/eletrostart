@@ -75,14 +75,14 @@ router.patch("/users/:id/role", updateUserRole);
 router.patch("/users/:id/status", updateUserStatus);
 
 const resetLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // Limit each IP to 3 requests per windowMs
+  windowMs: 30 * 60 * 1000, // 30 minutos
+  max: 3,                   // 3 tentativas
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     error: true,
     code: "RATE_LIMIT_RESET",
-    message: "Muitas tentativas de reset de senha. Aguarde 1 hora e tente novamente.",
+    message: "Muitas tentativas de reset de senha. Por segurança, aguarde 30 minutos.",
   },
 });
 

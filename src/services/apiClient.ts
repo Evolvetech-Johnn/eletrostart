@@ -15,14 +15,6 @@ if (!API_BASE_URL && !import.meta.env.DEV) {
   );
 }
 
-// ─── Legacy localStorage helpers (mantido para compatibilidade transitória) ──────
-// O token JWT agora reside no httpOnly Cookie emitido pelo servidor.
-// Estas funções serão gradualmamente removidas conforme o fluxo de auth for atualizado.
-const TOKEN_KEY = "eletrostart_admin_token";
-export const getToken = () => localStorage.getItem(TOKEN_KEY);
-export const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
-export const removeToken = () => localStorage.removeItem(TOKEN_KEY);
-
 // ─── Helper: ler cookie por nome ─────────────────────────────────────────────────
 const getCookie = (name: string): string | undefined => {
   if (typeof document === "undefined") return undefined;
@@ -44,15 +36,9 @@ const apiClient = axios.create({
 // ─── Request interceptor ─────────────────────────────────────────────────────────
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // 1. Bearer token de localStorage (fallback transitório)
-    const token = getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    // 2. CSRF token — ler do cookie csrf_token e injetar no header X-CSRF-Token
-    //    O servidor emite o cookie csrf_token com httpOnly:false para que o JS possa ler.
-    //    Para métodos mutantes (não GET/HEAD/OPTIONS), enviamos o token no header.
+    // CSRF token — ler do cookie csrf_token e injetar no header X-CSRF-Token
+    // O servidor emite o cookie csrf_token com httpOnly:false para que o JS possa ler.
+    // Para métodos mutantes (não GET/HEAD/OPTIONS), enviamos o token no header.
     const safeMethods = new Set(["get", "head", "options"]);
     const method = (config.method || "get").toLowerCase();
     if (!safeMethods.has(method)) {
@@ -101,9 +87,7 @@ apiClient.interceptors.response.use(
 
       // 401: Sessão expirada
       if (error.response.status === 401) {
-        console.warn("🔐 Sessão Expirada ou Token em falta.", error.response.data);
-        removeToken();
-        // Redirecionamento removido daqui para evitar loops em rotas públicas.
+        console.warn("🔐 Sessão Expirada ou não autorizada.", error.response.data);
         // O ProtectedRoute ou o estado do AuthContext deve lidar com o acesso negado.
         return Promise.reject(new Error("Sessão expirada. Faça login novamente."));
       }
