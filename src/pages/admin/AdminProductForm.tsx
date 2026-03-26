@@ -584,7 +584,11 @@ const AdminProductForm: React.FC = () => {
                               <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   type="button"
-                                  onClick={(e) => { e.stopPropagation(); setPrimaryImage(img.id); }}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setPrimaryImage(img.id);
+                                  }}
                                   className={`p-1.5 rounded-full shadow-lg transition-colors ${img.isPrimary ? 'bg-yellow-400 text-white' : 'bg-white text-gray-400 hover:text-yellow-500'}`}
                                   title="Marcar como Principal"
                                 >
@@ -592,7 +596,11 @@ const AdminProductForm: React.FC = () => {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={(e) => { e.stopPropagation(); deleteImage(img.id); }}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    deleteImage(img.id);
+                                  }}
                                   className="p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600"
                                   title="Excluir Imagem"
                                 >
@@ -716,7 +724,15 @@ const AdminProductForm: React.FC = () => {
                 <h3 className="text-xl font-bold text-gray-900">Variantes do Produto</h3>
                 <p className="text-sm text-gray-500">Gerencie diferentes versões deste mesmo item</p>
               </div>
-              <Button onClick={addVariant} variant="outline" size="sm">
+              <Button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  addVariant();
+                }}
+                variant="outline"
+                size="sm"
+              >
                 <Plus size={16} className="mr-2" /> Nova Variante
               </Button>
             </div>
@@ -727,7 +743,13 @@ const AdminProductForm: React.FC = () => {
                 <Plus size={20} /> Variantes
               </h3>
               <div className="flex justify-end">
-                <Button onClick={addVariant}>
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    addVariant();
+                  }}
+                >
                   <Plus size={16} className="mr-2" /> Adicionar variante
                 </Button>
               </div>
@@ -788,8 +810,12 @@ const AdminProductForm: React.FC = () => {
                         </td>
                         <td className="px-3 py-2 text-right">
                           <Button
+                            type="button"
                             variant="outline"
-                            onClick={() => deleteVariant(v.id)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              deleteVariant(v.id);
+                            }}
                           >
                             <Trash2 size={16} />
                           </Button>

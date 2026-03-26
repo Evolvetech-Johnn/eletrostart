@@ -61,7 +61,12 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Capturar o token do header customizado exposto pelo backend
-    const tokenFromHeader = response.headers["x-csrf-token"];
+    // Axios normaliza para lowercase, mas checamos ambos por segurança
+    const tokenFromHeader = 
+      response.headers["x-csrf-token"] || 
+      response.headers["X-CSRF-Token"] ||
+      response.headers["X-Csrf-Token"];
+
     if (tokenFromHeader) {
       cachedCsrfToken = tokenFromHeader;
     }
@@ -88,7 +93,12 @@ apiClient.interceptors.response.use(
           try {
             // Buscar novo token via endpoint dedicado
             const csrfRes = await axios.get(`${API_BASE_URL}/auth/csrf`, { withCredentials: true });
-            const newToken = csrfRes.data?.token;
+            
+            // Tenta pegar do body ou do header da resposta de CSRF
+            const newToken = 
+              csrfRes.data?.token || 
+              csrfRes.headers["x-csrf-token"] || 
+              csrfRes.headers["X-CSRF-Token"];
             
             if (newToken) {
               cachedCsrfToken = newToken; // Atualiza cache global
