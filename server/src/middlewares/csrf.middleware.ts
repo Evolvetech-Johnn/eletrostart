@@ -28,21 +28,22 @@ const CSRF_COOKIE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 horas
  * ou como middleware global de estabelecimento de token.
  */
 export const issueCsrfToken = (req: Request, res: Response, next: NextFunction) => {
-  // Se já existe um token válido no cookie, não regenerar
-  if (req.cookies?.[CSRF_COOKIE]) {
-    return next();
-  }
-
-  const token = crypto.randomBytes(CSRF_TOKEN_LENGTH).toString("hex");
+  const token = req.cookies?.[CSRF_COOKIE] || crypto.randomBytes(CSRF_TOKEN_LENGTH).toString("hex");
   const isProduction = process.env.NODE_ENV === "production";
 
-  res.cookie(CSRF_COOKIE, token, {
-    httpOnly: false,    // DEVE ser false para o JS poder ler e reenviar no header
-    secure: true,       // Sempre true em produção para sameSite: 'none' operar
-    sameSite: isProduction ? "none" : "lax",
-    maxAge: CSRF_COOKIE_MAX_AGE,
-    path: "/",
-  });
+  // Se o cookie não existir, cria-o
+  if (!req.cookies?.[CSRF_COOKIE]) {
+    res.cookie(CSRF_COOKIE, token, {
+      httpOnly: false,    // DEVE ser false para o JS poder ler em domínios iguais
+      secure: true,       // Sempre true em produção para sameSite: 'none' operar
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: CSRF_COOKIE_MAX_AGE,
+      path: "/",
+    });
+  }
+
+  // SEMPRE envia no header para suportar cross-domain (onde o JS não lê o cookie)
+  res.set("X-CSRF-Token", token);
 
   next();
 };

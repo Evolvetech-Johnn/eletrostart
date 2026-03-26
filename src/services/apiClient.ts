@@ -15,6 +15,9 @@ if (!API_BASE_URL && !import.meta.env.DEV) {
   );
 }
 
+// ─── Variável em memória para o token (suporte cross-domain) ─────────────────
+let cachedCsrfToken: string | undefined = undefined;
+
 // ─── Helper: ler cookie por nome ─────────────────────────────────────────────────
 const getCookie = (name: string): string | undefined => {
   if (typeof document === "undefined") return undefined;
@@ -36,15 +39,16 @@ const apiClient = axios.create({
 // ─── Request interceptor ─────────────────────────────────────────────────────────
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // CSRF token — ler do cookie csrf_token e injetar no header X-CSRF-Token
-    // O servidor emite o cookie csrf_token com httpOnly:false para que o JS possa ler.
-    // Para métodos mutantes (não GET/HEAD/OPTIONS), enviamos o token no header.
+    // CSRF token — ler do cookie csrf_token OOU da variável em memória
+    // O JS não consegue ler cookies cross-domain (onrender.com vindo de eletrostart.com.br)
+    // Então preferimos o token em memória se o cookie não estiver acessível.
     const safeMethods = new Set(["get", "head", "options"]);
     const method = (config.method || "get").toLowerCase();
+    
     if (!safeMethods.has(method)) {
-      const csrfToken = getCookie("csrf_token");
-      if (csrfToken) {
-        config.headers["X-CSRF-Token"] = csrfToken;
+      const token = getCookie("csrf_token") || cachedCsrfToken;
+      if (token) {
+        config.headers["X-CSRF-Token"] = token;
       }
     }
 
@@ -55,11 +59,24 @@ apiClient.interceptors.request.use(
 
 // ─── Response interceptor ────────────────────────────────────────────────────────
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => response.data,
+  (response: AxiosResponse) => {
+    // Capturar o token do header customizado exposto pelo backend
+    const tokenFromHeader = response.headers["x-csrf-token"];
+    if (tokenFromHeader) {
+      cachedCsrfToken = tokenFromHeader;
+    }
+    return response.data;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
 
     if (error.response) {
+      // Capturar token mesmo em erros se disponível
+      const tokenFromHeader = error.response.headers["x-csrf-token"];
+      if (tokenFromHeader) {
+        cachedCsrfToken = tokenFromHeader;
+      }
+
       // 403: Forbidden (inclui CSRF failures)
       if (error.response.status === 403) {
         const data = error.response.data as any;
@@ -74,6 +91,7 @@ apiClient.interceptors.response.use(
             const newToken = csrfRes.data?.token;
             
             if (newToken) {
+              cachedCsrfToken = newToken; // Atualiza cache global
               originalRequest.headers["X-CSRF-Token"] = newToken;
               return apiClient(originalRequest);
             }
