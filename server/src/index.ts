@@ -49,6 +49,9 @@ if (!env.databaseUrl) {
 const app = express();
 const PORT = env.port;
 
+// Trust Proxy (Essential for secure cookies on Render)
+app.set("trust proxy", 1);
+
 // Security & CORS
 app.use(
   cors({

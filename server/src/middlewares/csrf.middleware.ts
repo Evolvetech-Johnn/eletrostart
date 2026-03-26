@@ -63,6 +63,7 @@ export const verifyCsrfToken = (req: Request, res: Response, next: NextFunction)
   const headerToken = req.headers[CSRF_HEADER] as string | undefined;
 
   if (!cookieToken || !headerToken) {
+    console.warn(`🛡️ [CSRF] Missing token. Cookie: ${!!cookieToken}, Header: ${!!headerToken}. Rota: ${req.originalUrl}`);
     return res.status(403).json({
       error: true,
       code: "CSRF_MISSING",
@@ -79,7 +80,7 @@ export const verifyCsrfToken = (req: Request, res: Response, next: NextFunction)
       cookieBuf.length !== headerBuf.length ||
       !crypto.timingSafeEqual(cookieBuf, headerBuf)
     ) {
-      console.warn(`🛡️ [CSRF] Token inválido. IP: ${req.ip}, Rota: ${req.originalUrl}`);
+      console.warn(`🛡️ [CSRF] Token mismatch. Cookie: ${cookieToken?.substring(0, 8)}..., Header: ${headerToken?.substring(0, 8)}...`);
       return res.status(403).json({
         error: true,
         code: "CSRF_INVALID",
