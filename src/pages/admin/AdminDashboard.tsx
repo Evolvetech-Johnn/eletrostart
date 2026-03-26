@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { orderService } from "../../services/orderService";
+import { Notification } from "../../services/notificationService";
+import { ORDER_STATUS_META } from "../../constants/orderStatus";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -16,6 +19,8 @@ import {
   AlertCircle,
   RefreshCw,
   ArrowUpRight,
+  CheckCircle,
+  Truck
 } from "lucide-react";
 import {
   AreaChart,
@@ -55,8 +60,15 @@ const AdminDashboard: React.FC = () => {
     refetchInterval: 5 * 60000,
   });
 
+  const { data: operationalSummary, isLoading: summaryLoading } = useQuery({
+    queryKey: ["orders-summary"],
+    queryFn: () => orderService.getOrdersSummary(),
+    refetchInterval: 30000,
+    enabled: !loading && isAuthenticated,
+  });
+
   const totalRevenue = analytics?.revenueByDay.reduce((acc, d) => acc + d.value, 0) ?? 0;
-  const isLoading = dashLoading || analyticsLoading;
+  const isLoading = dashLoading || analyticsLoading || summaryLoading;
 
   const kpiCards = [
     {
@@ -78,9 +90,9 @@ const AdminDashboard: React.FC = () => {
       link: "/admin/analytics",
     },
     {
-      title: "Pedidos",
+      title: "Pedidos (Total)",
       value: fmtNum(data?.orders?.total ?? 0),
-      sub: `${data?.orders?.pending ?? 0} pendentes`,
+      sub: `${operationalSummary?.summary?.aguardando ?? 0} aguardando`,
       icon: ShoppingBag,
       color: "bg-orange-500",
       textColor: "text-orange-600",
@@ -164,6 +176,32 @@ const AdminDashboard: React.FC = () => {
           </div>
         ) : (
           <>
+            {/* Operational Summary Cards */}
+            <div className="mb-8">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Acompanhamento Operacional</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { key: "aguardando", label: "Aguardando", icon: Clock },
+                  { key: "em_separacao", label: "Em Separação", icon: Package },
+                  { key: "pronto_para_retirada", label: "Pronto/Saiu", icon: CheckCircle },
+                  { key: "saiu_para_entrega", label: "Em Rota", icon: Truck },
+                ].map((item) => {
+                  const count = operationalSummary?.summary?.[item.key] || 0;
+                  return (
+                    <div key={item.key} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`p-2 rounded-lg ${(ORDER_STATUS_META as any)[item.key]?.bg || "bg-gray-50"}`}>
+                          <item.icon className={`w-4 h-4 ${(ORDER_STATUS_META as any)[item.key]?.color || "text-gray-600"}`} />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-500">{item.label}</span>
+                      </div>
+                      <p className="text-2xl font-black text-gray-900">{count}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
               {kpiCards.map((card) => (
@@ -324,34 +362,32 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Recent Customers */}
+              {/* Recent Notifications */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-                  <h2 className="text-lg font-bold text-gray-900">Novos Clientes</h2>
-                  <Link to="/admin/customers" className="text-xs text-[#222998] font-semibold hover:underline">Gerenciar →</Link>
+                  <h2 className="text-lg font-bold text-gray-900">Notificações Operacionais</h2>
+                  <Link to="/admin/notifications" className="text-xs text-[#222998] font-semibold hover:underline">Ver todas →</Link>
                 </div>
-                <div className="divide-y divide-gray-50">
-                  {data?.recentCustomers?.map((customer) => (
-                    <div key={customer.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-bold shrink-0">
-                          {customer.name.charAt(0).toUpperCase()}
+                <div className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
+                  {operationalSummary?.recentNotifications?.length === 0 ? (
+                    <div className="p-12 text-center text-gray-400">Nenhuma notificação recente.</div>
+                  ) : (
+                    operationalSummary?.recentNotifications?.map((notif: Notification) => (
+                      <div key={notif.id} className={`px-6 py-4 flex flex-col hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-blue-50/30' : ''}`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{notif.type}</span>
+                          <span className="text-[10px] text-gray-400">{new Date(notif.createdAt).toLocaleTimeString("pt-BR")}</span>
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900 truncate max-w-[140px]">{customer.name}</p>
-                          <p className="text-xs text-gray-500 truncate max-w-[140px]">{customer.email || "Sem e-mail"}</p>
-                        </div>
+                        <p className="text-sm font-bold text-gray-900">{notif.title}</p>
+                        <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
+                        {notif.orderId && (
+                          <Link to={`/admin/orders/${notif.orderId}`} className="text-[10px] text-[#222998] font-bold mt-2 hover:underline">
+                            VER PEDIDO →
+                          </Link>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-gray-400 mb-1">{new Date(customer.createdAt).toLocaleDateString("pt-BR")}</p>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                          customer.active ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
-                        }`}>
-                          {customer.active ? "Ativo" : "Inativo"}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>

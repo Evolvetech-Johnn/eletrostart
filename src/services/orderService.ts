@@ -38,9 +38,13 @@ export interface Order {
   shippingCost: number;
   total: number;
   paymentMethod?: string;
-  status: "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "CANCELLED";
-  fulfillmentType: "pickup" | "delivery";
+  status: "aguardando" | "em_separacao" | "pronto_para_retirada" | "saiu_para_entrega" | "entregue" | "cancelado";
+  deliveryMode: "retirada" | "entrega";
+  paymentStatus: "PENDING" | "PAID" | "FAILED";
   trackingCode?: string | null;
+  whatsappMessage?: string | null;
+  whatsappMessageGenerated?: boolean;
+  internalNotificationCreated?: boolean;
   notes?: string;
   items: OrderItem[];
   statusHistory?: OrderStatusHistoryEntry[];
@@ -64,7 +68,7 @@ export interface CreateOrderParams {
     city?: string;
     state?: string;
   };
-  fulfillmentType: "pickup" | "delivery";
+  deliveryMode: "retirada" | "entrega";
   items: {
     productId: string;
     quantity: number;
@@ -133,9 +137,11 @@ export const orderService = {
   updateOrderStatus: async (
     id: string,
     status: string,
+    note?: string,
     trackingCode?: string,
   ): Promise<Order> => {
     const body: any = { status };
+    if (note) body.note = note;
     if (trackingCode !== undefined) {
       body.trackingCode = trackingCode;
     }
@@ -144,6 +150,16 @@ export const orderService = {
       body,
     );
     return response.data;
+  },
+
+  getOrdersSummary: async () => {
+    const response = await apiClient.get<any, {
+      success: boolean;
+      summary: Record<string, number>;
+      recentOrders: any[];
+      recentNotifications: any[];
+    }>("/ecommerce/dashboard/orders-summary");
+    return response;
   },
 
   updateOrder: async (id: string, data: UpdateOrderParams): Promise<Order> => {

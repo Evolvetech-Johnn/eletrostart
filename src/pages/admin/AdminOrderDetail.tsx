@@ -11,11 +11,9 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderService } from "../../services/orderService";
-import { productService } from "../../services/productService";
-import {
-  buildWhatsappMessage,
-  orderToMessageDetails,
-} from "../../utils/orderMessage";
+import { OrderStatusSelect } from "./Orders/components/OrderStatusSelect";
+import { OrderTimeline } from "./Orders/components/OrderTimeline";
+import { OrderStatusBadge } from "./Orders/components/OrderStatusBadge";
 import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
@@ -47,47 +45,18 @@ const AdminOrderDetail: React.FC = () => {
     }
   }, [order?.trackingCode]);
 
-  const [productCodes, setProductCodes] = useState<
-    Record<string, string | undefined>
-  >({});
-  useEffect(() => {
-    const loadCodes = async () => {
-      try {
-        const ids = Array.from(
-          new Set((order?.items || []).map((i) => i.productId).filter(Boolean)),
-        );
-        const results = await Promise.all(
-          ids.map(async (pid) => {
-            try {
-              const p = await productService.getProduct(pid);
-              return { id: pid, code: p.code };
-            } catch {
-              return { id: pid, code: undefined };
-            }
-          }),
-        );
-        const map: Record<string, string | undefined> = {};
-        results.forEach((r) => (map[r.id] = r.code));
-        setProductCodes(map);
-      } catch {
-        // silencioso; códigos são opcionais na mensagem
-      }
-    };
-    if (order && order.items && order.items.length > 0) {
-      loadCodes();
-    }
-  }, [order?.id]);
-
   const updateStatusMutation = useMutation({
     mutationFn: ({
       id,
       status,
+      note,
       trackingCode,
     }: {
       id: string;
       status: string;
+      note?: string;
       trackingCode?: string;
-    }) => orderService.updateOrderStatus(id, status, trackingCode),
+    }) => orderService.updateOrderStatus(id, status, note, trackingCode),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order", orderId] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -98,44 +67,20 @@ const AdminOrderDetail: React.FC = () => {
     },
   });
 
-  const handleStatusChange = (newStatus: string) => {
-    if (!window.confirm(`Mudar status para ${newStatus}?`)) return;
+  const handleStatusChange = async (newStatus: string, note?: string) => {
     updateStatusMutation.mutate({
       id: orderId,
       status: newStatus,
+      note,
       trackingCode: trackingDraft,
     });
   };
 
-  const getStatusColor = (status: string) => {
-    const map: Record<string, string> = {
-      PENDING: "bg-yellow-100 text-yellow-800",
-      PAID: "bg-green-100 text-green-800",
-      SHIPPED: "bg-blue-100 text-blue-800",
-      DELIVERED: "bg-gray-100 text-gray-800",
-      CANCELLED: "bg-red-100 text-red-800",
-    };
-    return map[status] || "bg-gray-100 text-gray-800";
-  };
-
-  const buildMessageFromOrder = () => {
-    if (!order) return "";
-    const details = orderToMessageDetails(order, productCodes);
-    return buildWhatsappMessage(details);
-  };
-
-  const copyWhatsappMessage = () => {
-    const msg = buildMessageFromOrder();
-    if (!msg) return;
-    navigator.clipboard.writeText(msg).then(
-      () => toast.success("Mensagem copiada"),
-      () => toast.error("Não foi possível copiar a mensagem"),
-    );
-  };
-
   const openWhatsappWeb = () => {
-    const msg = buildMessageFromOrder();
-    const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    if (!order?.customerPhone || !order?.whatsappMessage) return;
+    const cleanPhone = order.customerPhone.replace(/\D/g, "");
+    const finalPhone = cleanPhone.length <= 11 ? `55${cleanPhone}` : cleanPhone;
+    const url = `https://wa.me/${finalPhone}?text=${encodeURIComponent(order.whatsappMessage)}`;
     window.open(url, "_blank");
   };
 
@@ -178,30 +123,18 @@ const AdminOrderDetail: React.FC = () => {
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
             <span className="text-sm text-gray-500">Mudar Status:</span>
-            <select
-              className="border rounded px-3 py-1 bg-white"
-              value={order.status}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              disabled={updateStatusMutation.isPending}
-            >
-              <option value="PENDING">Pendente</option>
-              <option value="PAID">Pago</option>
-              <option value="SHIPPED">Enviado</option>
-              <option value="DELIVERED">Entregue</option>
-              <option value="CANCELLED">Cancelado</option>
-            </select>
+            <div className="min-w-[200px]">
+              <OrderStatusSelect
+                currentStatus={order.status}
+                deliveryMode={order.deliveryMode}
+                onStatusChange={handleStatusChange}
+              />
+            </div>
             <button
               type="button"
-              className="px-3 py-1 rounded border text-sm hover:bg-gray-50"
-              onClick={copyWhatsappMessage}
-              title="Copiar mensagem de pedido para WhatsApp"
-            >
-              Copiar WhatsApp
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1 rounded bg-green-600 text-white text-sm hover:bg-green-700"
+              className="px-3 py-1 rounded bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50"
               onClick={openWhatsappWeb}
+              disabled={!order.whatsappMessage}
               title="Abrir WhatsApp Web com a mensagem"
             >
               Abrir WhatsApp
@@ -383,13 +316,7 @@ const AdminOrderDetail: React.FC = () => {
                   <p className="text-xs text-gray-500 uppercase mb-1">
                     Status do Pedido
                   </p>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(
-                      order.status,
-                    )}`}
-                  >
-                    {order.status}
-                  </span>
+                  <OrderStatusBadge status={order.status} />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase mb-1">Método</p>
@@ -402,7 +329,7 @@ const AdminOrderDetail: React.FC = () => {
                     Status Pagamento
                   </p>
                   <p className="font-medium">
-                    {order.status === "PAID" ? "Aprovado" : "Pendente"}
+                    {order.paymentStatus === "PAID" ? "Aprovado" : "Pendente"}
                   </p>
                 </div>
                 <div>
@@ -441,34 +368,9 @@ const AdminOrderDetail: React.FC = () => {
             {order.statusHistory && order.statusHistory.length > 0 && (
               <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="font-bold mb-4 text-gray-800">
-                  Linha do Tempo do Pedido
+                  Histórico de Movimentações (Timeline)
                 </h3>
-                <ol className="relative border-l border-gray-200">
-                  {order.statusHistory.map((entry) => (
-                    <li key={entry.id} className="mb-4 ml-4">
-                      <div className="absolute w-2 h-2 bg-primary rounded-full -left-1.5 mt-1" />
-                      <p className="text-xs text-gray-500">
-                        {new Date(entry.createdAt).toLocaleString()}
-                      </p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {entry.status}
-                      </p>
-                      {entry.changedBy && (
-                        <p className="text-xs text-gray-500">
-                          por{" "}
-                          {entry.changedBy.name ||
-                            entry.changedBy.email ||
-                            "Usuário"}
-                        </p>
-                      )}
-                      {entry.notes && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {entry.notes}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ol>
+                <OrderTimeline history={order.statusHistory} />
               </div>
             )}
           </div>

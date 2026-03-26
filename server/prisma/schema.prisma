@@ -230,7 +230,7 @@ model Order {
 
   // Informações do Cliente (Simplificado por enquanto)
   customerName  String
-  customerEmail String
+  customerEmail String?
   customerPhone String?
   customerDoc   String? // CPF/CNPJ
 
@@ -248,16 +248,21 @@ model Order {
   discount     Float @default(0.0)
   total        Float @default(0.0)
 
-  // Status, Fulfillment e Pagamento
-  fulfillmentType String  @default("delivery") // pickup, delivery
-  status          String  @default("PENDING") // PENDING, PAID, SHIPPED, DELIVERED, CANCELED
-  paymentMethod   String? // CREDIT_CARD, PIX, BOLETO
-  paymentStatus   String  @default("PENDING") // PENDING, PAID, FAILED
+  // Status, Fulfillment e Pagamento (Alinhado com PRD)
+  deliveryMode    String  @default("entrega")   // entrega, retirada
+  status          String  @default("aguardando") // aguardando, em_separacao, pronto_para_retirada, saiu_para_entrega, entregue, cancelado
+  paymentMethod   String? // CREDIT_CARD, PIX, BOLETO, WHATSAPP
+  paymentStatus   String  @default("PENDING")   // PENDING, PAID, FAILED
   trackingCode    String?
 
   items          OrderItem[]
   statusHistory  OrderStatusHistory[]
   stockMovements StockMovement[]
+
+  // Metadados Operacionais
+  internalNotificationCreated Boolean @default(false)
+  whatsappMessageGenerated    Boolean @default(false)
+  whatsappMessage             String?
 
   notes String? // Observações do cliente ou admin
   orderNumber String? @unique // Ex: PN000000000001
@@ -277,7 +282,8 @@ model OrderStatusHistory {
   id          String     @id @default(auto()) @map("_id") @db.ObjectId
   orderId     String     @db.ObjectId
   order       Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  status      String
+  fromStatus  String?    // Status anterior (para histórico completo)
+  status      String     // Novo status
   changedById String?    @db.ObjectId
   changedBy   AdminUser? @relation(fields: [changedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   notes       String?
@@ -336,4 +342,24 @@ model Sequence {
   value Int    @default(0)
 
   @@map("sequences")
+}
+
+// Notificações Internas para Dashboard e Central de Mensagens
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  type      String   // order_created, order_status_updated, low_stock
+  title     String
+  message   String
+  orderId   String?  @db.ObjectId
+  read      Boolean  @default(false)
+  priority  String   @default("medium") // low, medium, high
+  metadata  Json?    // Metadados flexíveis (orderNumber, status, etc)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([read])
+  @@index([type])
+  @@index([createdAt])
+  @@map("notifications")
 }

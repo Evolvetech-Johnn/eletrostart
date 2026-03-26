@@ -50,6 +50,7 @@ const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminOrderDetail = lazy(() => import("./pages/admin/AdminOrderDetail"));
 const NewOrderPage = lazy(() => import("./pages/admin/Orders/NewOrderPage"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminNotifications = lazy(() => import("./pages/admin/AdminNotifications"));
 const AdminAuditLogs = React.lazy(() => import("./pages/admin/AdminAuditLogs"));
 const AdminStockMovements = lazy(
   () => import("./pages/admin/AdminStockMovements"),
@@ -121,6 +122,14 @@ function App() {
                         element={
                           <ProtectedRoute>
                             <AdminMessages />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/notifications"
+                        element={
+                          <ProtectedRoute>
+                            <AdminNotifications />
                           </ProtectedRoute>
                         }
                       />

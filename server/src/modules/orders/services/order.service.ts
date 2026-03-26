@@ -8,8 +8,10 @@ import {
   orderToMessageDetails,
   sendEmail,
 } from "../../../services/emailTemplates.service";
-import { ALLOWED_TRANSITIONS, STOCK_DEBITED_STATUSES, OrderStatus } from "../../../constants/orderStatus";
-
+import { STOCK_DEBITED_STATUSES, OrderStatus, LEGACY_STATUS_MAP } from "../../../constants/orderStatus";
+import { isStatusAllowed } from "../../../utils/orderStatusRules";
+import { notificationService } from "./notification.service";
+import { whatsappService } from "./whatsapp.service";
 import { releaseSessionReservations } from "../../../services/reservation.service";
 
 export class OrderService {
@@ -79,8 +81,8 @@ export class OrderService {
         customerEmail: customer.email,
         customerPhone: customer.phone,
         customerDoc: customer.doc,
-        status: "CREATED",
-        fulfillmentType: data.fulfillmentType || "delivery",
+        status: "aguardando",
+        deliveryMode: data.deliveryMode || "entrega",
         addressZip: address?.zip,
         addressStreet: address?.street,
         addressNumber: address?.number,
@@ -98,9 +100,23 @@ export class OrderService {
         },
       }, tx);
 
+      const waMessage = whatsappService.generateOrderMessage({
+        orderNumber,
+        customerName: customer.name,
+        status: "aguardando",
+        total,
+        deliveryMode: data.deliveryMode || "entrega",
+      });
+
+      await orderRepository.update(createdOrder.id, {
+        whatsappMessage: waMessage,
+        whatsappMessageGenerated: true
+      }, tx);
+
       await orderRepository.addStatusHistory({
         orderId: createdOrder.id,
-        status: "CREATED",
+        status: "aguardando",
+        fromStatus: null,
         notes: "Pedido criado pelo cliente",
       }, tx);
 
@@ -123,20 +139,36 @@ export class OrderService {
       return createdOrder;
     });
 
-    const detailsForEmail = orderToMessageDetails(order);
-    const preview = buildOrderEmailTemplates(detailsForEmail);
-    console.log("EMAIL_PREVIEW_SUBJECT:", preview.subject);
+    await notificationService.createNotification({
+      type: "order_created",
+      title: "Novo pedido recebido",
+      message: `Pedido #${order.orderNumber} de ${order.customerName} no valor de ${order.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.`,
+      orderId: order.id,
+      priority: "medium",
+      metadata: {
+        orderNumber: order.orderNumber,
+        customerName: order.customerName,
+        total: order.total,
+        deliveryMode: order.deliveryMode,
+      }
+    });
+
+    const emailDetails = orderToMessageDetails(order);
+    const emailPreview = buildOrderEmailTemplates(emailDetails);
     
     try {
       await logAction({
         action: "EXPORT",
         targetType: "ORDER",
         targetId: order.id,
-        details: { emailSubject: preview.subject, emailTo: detailsForEmail.customerEmail },
+        details: { emailSubject: emailPreview.subject, emailTo: order.customerEmail },
       });
     } catch {}
     
-    await sendEmail(detailsForEmail);
+    // Marcar como notificado internamente
+    await orderRepository.update(order.id, { internalNotificationCreated: true });
+
+    await sendEmail(emailDetails);
     return order;
   }
 
@@ -144,15 +176,15 @@ export class OrderService {
    * Fetches paginated orders
    */
   async getOrders(query: any) {
-    const { status, search, page = "1", limit = "20" } = query;
+    const { status, deliveryMode, search, page = "1", limit = "20" } = query;
     const where: Prisma.OrderWhereInput = {};
     if (status) where.status = status as string;
+    if (deliveryMode) where.deliveryMode = deliveryMode as string;
     if (search) {
       where.OR = [
-        { customerName: { contains: search as string } },
-        { customerEmail: { contains: search as string } },
-        { id: { contains: search as string } },
-        { orderNumber: { contains: search as string } },
+        { customerName: { contains: search as string, mode: 'insensitive' } },
+        { customerEmail: { contains: search as string, mode: 'insensitive' } },
+        { orderNumber: { contains: search as string, mode: 'insensitive' } },
       ];
     }
 
@@ -183,18 +215,28 @@ export class OrderService {
       if (trackingCode !== undefined) updateData.trackingCode = trackingCode;
 
       if (status && existing.status !== status) {
-        const prevStatus = existing.status as OrderStatus;
-        const nextStatus = status as OrderStatus;
+        const prevStatus = (existing.status || "aguardando") as OrderStatus;
+        const nextStatus = (LEGACY_STATUS_MAP[status] || status) as OrderStatus;
 
-        const allowed = ALLOWED_TRANSITIONS[prevStatus] ?? [];
-        if (!allowed.includes(nextStatus)) {
-          throw new Error(`INVALID_TRANSITION:${prevStatus}→${nextStatus}`);
+        // Validação rigorosa do PRD
+        if (!isStatusAllowed(existing.deliveryMode as any, nextStatus)) {
+          throw new Error(`Status ${nextStatus} não é permitido para o modo ${existing.deliveryMode}`);
         }
 
         updateData.status = nextStatus;
 
-        const isCancelingNow  = !STOCK_DEBITED_STATUSES.includes(nextStatus) && STOCK_DEBITED_STATUSES.includes(prevStatus);
-        const isRestoringFromCancel = STOCK_DEBITED_STATUSES.includes(nextStatus) && !STOCK_DEBITED_STATUSES.includes(prevStatus);
+        // Gerar nova mensagem WhatsApp se o status mudou para algo relevante
+        const newWAMessage = whatsappService.generateOrderMessage({
+          orderNumber: existing.orderNumber,
+          customerName: existing.customerName,
+          status: nextStatus,
+          total: existing.total,
+          deliveryMode: existing.deliveryMode,
+        });
+        updateData.whatsappMessage = newWAMessage;
+
+        const isCancelingNow  = nextStatus === "cancelado" && prevStatus !== "cancelado";
+        const isRestoringFromCancel = nextStatus !== "cancelado" && prevStatus === "cancelado";
 
         const txAny = tx as any;
 
@@ -255,9 +297,21 @@ export class OrderService {
       if (status && existing.status !== status) {
         await orderRepository.addStatusHistory({
           orderId: updated.id,
-          status,
+          status: updated.status,
+          fromStatus: existing.status,
           changedById: requesterId,
+          notes: payload.note || "Status atualizado pelo administrativo",
         }, tx);
+
+        // Notificação interna de mudança de status
+        await notificationService.createNotification({
+          type: "order_status_updated",
+          title: "Status de pedido atualizado",
+          message: `Pedido #${existing.orderNumber} mudou para ${updated.status}.`,
+          orderId: existing.id,
+          priority: "low",
+          metadata: { orderNumber: existing.orderNumber, status: updated.status }
+        });
       }
 
       return updated;

@@ -3,11 +3,11 @@ import { z } from "zod";
 export const createOrderSchema = z.object({
   customer: z.object({
     name: z.string().min(1, "Nome é obrigatório"),
-    email: z.string().email("Email inválido"),
-    phone: z.string().optional(),
+    email: z.string().email("Email inválido").optional().or(z.literal("")),
+    phone: z.string().min(1, "Telefone é obrigatório"),
     doc: z.string().optional(),
   }),
-  fulfillmentType: z.enum(["delivery", "pickup"]).default("delivery").optional(),
+  deliveryMode: z.enum(["delivery", "pickup", "entrega", "retirada"]).default("entrega").optional(),
   address: z.object({
     zip: z.string().optional(),
     street: z.string().optional(),
@@ -25,8 +25,16 @@ export const createOrderSchema = z.object({
   paymentMethod: z.string().optional(),
   notes: z.string().optional(),
   sessionId: z.string().optional(),
+  status: z.enum([
+    "aguardando", 
+    "em_separacao", 
+    "pronto_para_retirada", 
+    "saiu_para_entrega", 
+    "entregue", 
+    "cancelado"
+  ]).default("aguardando").optional(),
 }).superRefine((data, ctx) => {
-  if (data.fulfillmentType === "delivery" || !data.fulfillmentType) {
+  if (data.deliveryMode === "delivery" || data.deliveryMode === "entrega" || !data.deliveryMode) {
     const minAddrError = (field: string) => {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

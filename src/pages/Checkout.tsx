@@ -199,7 +199,7 @@ const Checkout: React.FC = () => {
     if (!formData.nome.trim()) newErrors.nome = "Nome é obrigatório";
     if (!formData.telefone.trim()) newErrors.telefone = "Telefone é obrigatório";
     else if (!isValidPhone(formData.telefone)) newErrors.telefone = "Telefone inválido";
-    if (!formData.email.trim()) newErrors.email = "E-mail é obrigatório";
+    // E-mail is now optional
     if (!paymentMethod) newErrors.payment = "Selecione uma forma de pagamento";
 
     if (deliveryType === "delivery") {
@@ -511,7 +511,7 @@ const Checkout: React.FC = () => {
                   {errors.telefone && <p className="text-red-500 text-xs mt-1">{errors.telefone}</p>}
                 </div>
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">E-mail *</label>
+                  <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">E-mail (opcional)</label>
                   <input type="email" name="email" value={formData.email} onChange={handleInputChange}
                     className={`w-full px-5 py-4 rounded-xl bg-gray-50 border-2 ${errors.email ? "border-red-400" : "border-transparent"} focus:border-primary focus:bg-white outline-none transition-all font-medium`}
                     placeholder="seu@email.com" />

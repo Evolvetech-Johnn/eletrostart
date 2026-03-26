@@ -1,61 +1,45 @@
 /**
- * Constantes de Status de Pedido — Fonte Única de Verdade
- * Compartilhado entre backend (/server/src/constants/) e frontend (via cópia em /src/constants/)
- *
- * Fluxo principal:
- *   CREATED → PAYMENT_PENDING → PAID → PROCESSING → SHIPPED → DELIVERED
- *                                                           ↘ CANCELED → REFUNDED
+ * Constantes de Status de Pedido — Alinhado com PRD Técnico Eletrostart
  */
 
 export const ORDER_STATUSES = [
-  "CREATED",
-  "PAYMENT_PENDING",
-  "PAID",
-  "PROCESSING",
-  "SHIPPED",
-  "DELIVERED",
-  "CANCELED",
-  "REFUNDED",
+  "aguardando",
+  "em_separacao",
+  "pronto_para_retirada",
+  "saiu_para_entrega",
+  "entregue",
+  "cancelado",
 ] as const;
 
 export type OrderStatus = typeof ORDER_STATUSES[number];
-
-/**
- * Transições de status permitidas (admin pode mover para estes estados)
- */
-export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  CREATED:         ["PAYMENT_PENDING", "CANCELED"],
-  PAYMENT_PENDING: ["PAID", "CANCELED"],
-  PAID:            ["PROCESSING", "CANCELED"],
-  PROCESSING:      ["SHIPPED", "CANCELED"],
-  SHIPPED:         ["DELIVERED", "CANCELED"],
-  DELIVERED:       ["REFUNDED"],
-  CANCELED:        ["CREATED"],   // reactivação manual
-  REFUNDED:        [],
-};
 
 /**
  * Metadados de exibição (labels e cores para UI)
  */
 export const ORDER_STATUS_META: Record<OrderStatus, {
   label: string;
-  labelEn: string;
-  color: "amber" | "blue" | "green" | "indigo" | "purple" | "emerald" | "red" | "gray";
+  color: "amber" | "blue" | "purple" | "orange" | "green" | "red" | "gray";
 }> = {
-  CREATED:         { label: "Pedido Criado",          labelEn: "Created",         color: "gray"    },
-  PAYMENT_PENDING: { label: "Aguardando Pagamento",   labelEn: "Payment Pending", color: "amber"   },
-  PAID:            { label: "Pagamento Confirmado",   labelEn: "Paid",            color: "blue"    },
-  PROCESSING:      { label: "Em Preparação",          labelEn: "Processing",      color: "indigo"  },
-  SHIPPED:         { label: "Em Trânsito",            labelEn: "Shipped",         color: "purple"  },
-  DELIVERED:       { label: "Entregue",               labelEn: "Delivered",       color: "emerald" },
-  CANCELED:        { label: "Cancelado",              labelEn: "Canceled",        color: "red"     },
-  REFUNDED:        { label: "Reembolsado",            labelEn: "Refunded",        color: "gray"    },
+  aguardando:           { label: "Aguardando",           color: "amber"  },
+  em_separacao:         { label: "Em separação",         color: "blue"   },
+  pronto_para_retirada: { label: "Pronto para retirada", color: "purple" },
+  saiu_para_entrega:    { label: "Saiu para entrega",    color: "orange" },
+  entregue:             { label: "Entregue",             color: "green"  },
+  cancelado:            { label: "Cancelado",            color: "red"    },
 };
 
-/** Status considerados "finais" — sem mais transições permitidas */
-export const TERMINAL_STATUSES: OrderStatus[] = ["DELIVERED", "REFUNDED"];
-
-/** Status onde o estoque já foi debitado */
+/** Status onde o estoque está debitado */
 export const STOCK_DEBITED_STATUSES: OrderStatus[] = [
-  "CREATED", "PAYMENT_PENDING", "PAID", "PROCESSING", "SHIPPED", "DELIVERED",
+  "aguardando", "em_separacao", "pronto_para_retirada", "saiu_para_entrega", "entregue",
 ];
+
+// Fallbacks para compatibilidade com pedidos antigos (opcional, para mapeamento)
+export const LEGACY_STATUS_MAP: Record<string, OrderStatus> = {
+  "PENDING": "aguardando",
+  "CREATED": "aguardando",
+  "PAID": "em_separacao",
+  "SHIPPED": "saiu_para_entrega",
+  "DELIVERED": "entregue",
+  "CANCELED": "cancelado",
+  "CANCELLED": "cancelado",
+};

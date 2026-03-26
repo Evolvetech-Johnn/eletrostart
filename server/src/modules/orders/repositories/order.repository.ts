@@ -109,7 +109,7 @@ export class OrderRepository {
    * Add status history entry
    */
   async addStatusHistory(
-    data: { orderId: string; status: string; notes?: string; changedById?: string },
+    data: { orderId: string; status: string; fromStatus?: string | null; notes?: string; changedById?: string },
     tx?: Prisma.TransactionClient
   ) {
     const db = (tx as any) || (prisma as any);

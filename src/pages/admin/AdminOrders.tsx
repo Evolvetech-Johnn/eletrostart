@@ -5,6 +5,8 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderService, Order, UpdateOrderParams } from "../../services/orderService";
+import { ORDER_STATUS_META, ORDER_STATUSES } from "../../constants/orderStatus";
+import { OrderStatusBadge } from "./Orders/components/OrderStatusBadge";
 import AdminLayout from "./components/AdminLayout";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
@@ -12,21 +14,10 @@ import { useAuth } from "../../context/AuthContext";
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
-const STATUS_OPTIONS = [
-  { value: "PENDING", label: "Pendente" },
-  { value: "PAID", label: "Pago" },
-  { value: "SHIPPED", label: "Enviado" },
-  { value: "DELIVERED", label: "Entregue" },
-  { value: "CANCELLED", label: "Cancelado" },
-];
-
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  PAID: "bg-green-100 text-green-800",
-  SHIPPED: "bg-blue-100 text-blue-800",
-  DELIVERED: "bg-gray-100 text-gray-800",
-  CANCELLED: "bg-red-100 text-red-800",
-};
+const STATUS_OPTIONS = ORDER_STATUSES.map(s => ({
+  value: s,
+  label: ORDER_STATUS_META[s].label
+}));
 
 
 
@@ -126,7 +117,7 @@ const AdminOrders: React.FC = () => {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const status = searchParams.get("status") || "";
   const search = searchParams.get("search") || "";
-  const fulfillmentType = searchParams.get("fulfillmentType") || "";
+  const deliveryMode = searchParams.get("deliveryMode") || "";
   const [searchInput, setSearchInput] = useState(search);
 
   const [editOrder, setEditOrder] = useState<Order | null>(null);
@@ -135,20 +126,12 @@ const AdminOrders: React.FC = () => {
     user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
   const { data: orders = [], isLoading: loading, error } = useQuery<Order[]>({
-    queryKey: ["orders", { page, status, search, fulfillmentType }],
-    queryFn: () => orderService.getOrders({ page, status, search, fulfillmentType } as any),
+    queryKey: ["orders", { page, status, search, deliveryMode }],
+    queryFn: () => orderService.getOrders({ page, status, search, deliveryMode } as any),
     enabled: !authLoading && isAuthenticated,
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      orderService.updateOrderStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Status atualizado!");
-    },
-    onError: (err: any) => toast.error("Erro ao atualizar: " + (err.message || "Erro")),
-  });
+  // updateStatusMutation removed as it is handled by specialized components
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => orderService.deleteOrder(id),
@@ -227,17 +210,17 @@ const AdminOrders: React.FC = () => {
 
           <select
             className="border rounded-lg px-3 py-2 bg-white text-sm"
-            value={fulfillmentType}
+            value={deliveryMode}
             onChange={(e) => {
               const params = new URLSearchParams(searchParams);
-              if (e.target.value) params.set("fulfillmentType", e.target.value); else params.delete("fulfillmentType");
+              if (e.target.value) params.set("deliveryMode", e.target.value); else params.delete("deliveryMode");
               params.set("page", "1");
               setSearchParams(params);
             }}
           >
             <option value="">Todos os Tipos</option>
-            <option value="pickup">Retirada</option>
-            <option value="delivery">Entrega</option>
+            <option value="retirada">Retirada</option>
+            <option value="entrega">Entrega</option>
           </select>
         </div>
 
@@ -278,7 +261,7 @@ const AdminOrders: React.FC = () => {
                           {new Date(order.createdAt).toLocaleDateString("pt-BR")}
                         </td>
                         <td className="px-5 py-4 text-left">
-                          {order.fulfillmentType === "pickup" ? (
+                          {order.deliveryMode === "retirada" ? (
                             <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider whitespace-nowrap">Retirada</span>
                           ) : (
                             <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider whitespace-nowrap">Entrega</span>
@@ -288,16 +271,7 @@ const AdminOrders: React.FC = () => {
                           {fmt(order.total)}
                         </td>
                         <td className="px-5 py-4">
-                          <select
-                            value={order.status}
-                            onChange={(e) => updateStatusMutation.mutate({ id: order.id, status: e.target.value })}
-                            disabled={updateStatusMutation.isPending}
-                            className={`px-2 py-1 rounded-lg text-xs font-bold border-none outline-none cursor-pointer ${STATUS_COLORS[order.status] ?? "bg-gray-100 text-gray-800"}`}
-                          >
-                            {STATUS_OPTIONS.map((s) => (
-                              <option key={s.value} value={s.value}>{s.label}</option>
-                            ))}
-                          </select>
+                          <OrderStatusBadge status={order.status} />
                         </td>
                         <td className="px-5 py-4 text-xs text-gray-500 font-mono">
                           {order.trackingCode?.trim() || "-"}

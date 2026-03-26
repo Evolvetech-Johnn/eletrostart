@@ -4,6 +4,8 @@ import { verifyCsrfToken } from "../middlewares/csrf.middleware";
 import * as productController from "../modules/products/controllers/product.controller";
 import * as categoryController from "../modules/products/controllers/category.controller";
 import * as orderController from "../modules/orders/controllers/order.controller";
+import * as dashboardController from "../modules/orders/controllers/dashboard.controller";
+import * as notificationController from "../modules/orders/controllers/notification.controller";
 import { upload, uploadImages, validateMagicNumbers } from "../middlewares/upload.middleware";
 import { reserveStock, releaseSessionReservations } from "../services/reservation.service";
 
@@ -260,6 +262,26 @@ router.delete(
   authenticate,
   requireAdmin,
   orderController.deleteOrder,
+);
+
+// --- Dashboard & Notifications ---
+router.get(
+  "/dashboard/orders-summary",
+  authenticate,
+  requireAdmin,
+  dashboardController.getOrdersSummary,
+);
+router.get(
+  "/notifications",
+  authenticate,
+  requireAdmin,
+  notificationController.getNotifications,
+);
+router.patch(
+  "/notifications/:id/read",
+  authenticate,
+  requireAdmin,
+  notificationController.markAsRead,
 );
 
 export default router;
