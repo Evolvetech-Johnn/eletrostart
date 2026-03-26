@@ -18,6 +18,7 @@ router.get("/products/min-price-config", productController.getMinPriceConfig);
 router.get("/products", productController.getProducts);
 router.get("/products/stats/overview", productController.getProductStats);
 router.get("/products/:id", productController.getProduct);
+router.get("/products/:id/variants", productController.getProductVariants);
 
 // Categories
 router.get("/categories", categoryController.getCategories);
@@ -127,12 +128,6 @@ router.get(
 );
 
 // --- Product Variants ---
-router.get(
-  "/products/:id/variants",
-  authenticate,
-  requireAdmin,
-  productController.getProductVariants,
-);
 router.post(
   "/products/:id/variants",
   authenticate,

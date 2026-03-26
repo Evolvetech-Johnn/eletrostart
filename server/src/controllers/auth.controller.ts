@@ -102,12 +102,10 @@ export const login = async (
       path: "/",
     });
 
-    // Também inclui o token no body para compatibilidade retroativa durante a transição
-    // (será removido após o frontend ser totalmente atualizado para usar cookies)
+    // Emitir apenas os dados do usuário. O token é enviado via Cookie httpOnly (seguro).
     res.json({
       success: true,
       data: {
-        token, // ← manter por hora para não quebrar o frontend existente
         user: {
           id: user.id,
           email: user.email,

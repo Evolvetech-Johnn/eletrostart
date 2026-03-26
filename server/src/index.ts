@@ -49,21 +49,7 @@ if (!env.databaseUrl) {
 const app = express();
 const PORT = env.port;
 
-// Security Middlewares
-app.use(helmet());
-
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: "Muitas requisições deste IP, tente novamente mais tarde.",
-});
-app.use("/api/", limiter);
-
-
-// Middlewares
+// Security & CORS
 app.use(
   cors({
     origin: function (
@@ -111,6 +97,21 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token"],
   }),
 );
+
+app.use(helmet());
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Muitas requisições deste IP, tente novamente mais tarde.",
+});
+app.use("/api/", limiter);
+
+
+// Middlewares
 app.use(express.json());
 app.use(cookieParser());
 // Issue CSRF token to all clients (cookie legível por JS)

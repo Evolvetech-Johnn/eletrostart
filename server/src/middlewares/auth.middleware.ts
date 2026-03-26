@@ -20,6 +20,7 @@ export const authenticate = async (
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith("Bearer ")) {
         token = authHeader.split(" ")[1];
+        console.warn(`⚠️ [AUTH] Uso de Bearer Token detectado (Legado). IP: ${req.ip}, Rota: ${req.originalUrl}`);
       }
     }
 

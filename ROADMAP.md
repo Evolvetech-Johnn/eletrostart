@@ -23,44 +23,25 @@
 **Prioridade: CRÍTICA**
 
 ### 1.1 Migrar JWT para Cookie HttpOnly
-- **Status:** 🔄 Em andamento (`cookie-parser` instalado)
-- **Problema atual:** Token em `localStorage` exposto a XSS
-- **Solução:**
-```typescript
-res.cookie("auth_token", token, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
-  maxAge: 7 * 24 * 60 * 60 * 1000  // 7 dias
-});
-```
-- **Arquivos afetados:** `auth.controller.ts`, `auth.middleware.ts`, `apiClient.ts`, `AdminLogin.tsx`
+- **Status:** ✅ Completo (Hardening finalizado - token removido do body)
+- **Melhoria aplicada:** Token em cookie `httpOnly` + instrumentação de logs para detecção de uso legado.
+- **Arquivos consolidados:** `auth.controller.ts`, `auth.middleware.ts`, `apiClient.ts`, `AdminLogin.tsx`
 
 ### 1.2 Implementar CSRF Protection
-- **Status:** ⬜ Pendente
-- **Abordagem recomendada:** Double Submit Cookie (compatível com SPA sem state server-side)
-- **Dependência:** `csrf-csrf` ou implementação manual
+- **Status:** ✅ Completo (Double Submit Cookie ativo)
+- **Implementação:** Middleware `csrf.middleware.ts` protegendo todas as rotas mutantes `/api`.
+- **Validação:** Header `X-CSRF-Token` obrigatório para POST/PUT/PATCH/DELETE.
 
 ### 1.3 Upload Seguro
-- **Status:** ⬜ Pendente (Multer básico ativo)
-- **Melhorias:**
-  - Limite de tamanho (ex: 5 MB por arquivo)
-  - Validação de MIME type (não apenas extensão)
-  - Migração para storage externo: **Cloudinary** (recomendado)
+- **Status:** ✅ Completo (Multer + Magic Numbers + Cloudinary)
+- **Melhorias consolidadas:**
+  - Limite de tamanho (5 MB) e MIME validation.
+  - Validação de Magic Numbers (Sniffing binário) contra extensões fakes.
+  - Integração com **Cloudinary** (CDN) com fallback local seguro.
 
 ### 1.4 Rate Limit por Endpoint
-- **Status:** ⬜ Pendente (Rate limit global de 100 req/15min existe)
-- **Adicionar limites específicos:**
-
-```typescript
-// Adicionar em auth.routes.ts
-const loginLimiter = rateLimit({
-  windowMs: 60 * 1000,   // 1 minuto
-  max: 5,                 // 5 tentativas
-  message: "Muitas tentativas de login. Tente em 1 minuto."
-});
-router.post('/login', loginLimiter, login);
-```
+- **Status:** ✅ Completo
+- **Implementação:** `loginLimiter` específico para tentativas de login e CSRF (5 req/15min).
 
 ---
 
