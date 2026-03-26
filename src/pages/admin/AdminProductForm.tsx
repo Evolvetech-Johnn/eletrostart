@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -72,8 +72,6 @@ const AdminProductForm: React.FC = () => {
   const queryClient = useQueryClient();
   const isEdit = !!id;
 
-  const variantUpdateTimers = useRef<Record<string, number | undefined>>({});
-
   const { loading, isAuthenticated } = useAuth();
 
   const {
@@ -101,6 +99,9 @@ const AdminProductForm: React.FC = () => {
 
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  
+  // Local state for variant editing (avoid auto-save as requested)
+  const [editingVariants, setEditingVariants] = useState<Record<string, any>>({});
 
 
   const { data: categories = [] } = useQuery({
@@ -341,16 +342,25 @@ const AdminProductForm: React.FC = () => {
     }
   };
 
-  const queueVariantUpdate = (variantId: string, patch: any) => {
-    const current = (variants as any[]).find((v) => v.id === variantId);
-    if (!current) return;
+  const handleVariantLocalChange = (variantId: string, field: string, value: any) => {
+    setEditingVariants(prev => ({
+      ...prev,
+      [variantId]: {
+        ...(prev[variantId] || (variants as any[]).find(v => v.id === variantId) || {}),
+        [field]: value
+      }
+    }));
+  };
 
+  const saveVariant = async (variantId: string) => {
+    const patch = editingVariants[variantId];
+    if (!patch) return;
+
+    const current = (variants as any[]).find((v) => v.id === variantId);
     const candidate = {
       name: patch.name ?? current.name,
-      price:
-        typeof patch.price === "number" ? patch.price : Number(current.price),
-      stock:
-        typeof patch.stock === "number" ? patch.stock : Number(current.stock),
+      price: typeof patch.price === "number" ? patch.price : Number(current.price),
+      stock: typeof patch.stock === "number" ? patch.stock : Number(current.stock),
       sku: patch.sku ?? current.sku ?? "",
     };
 
@@ -361,17 +371,18 @@ const AdminProductForm: React.FC = () => {
       return;
     }
 
-    const existing = variantUpdateTimers.current[variantId];
-    if (existing) {
-      window.clearTimeout(existing);
+    try {
+      await updateVariant(variantId, candidate);
+      // Clear local editing state on success
+      setEditingVariants(prev => {
+        const next = { ...prev };
+        delete next[variantId];
+        return next;
+      });
+      toast.success("Variante salva com sucesso!");
+    } catch (err) {
+      // Error handled by updateVariant toast
     }
-
-    const timer = window.setTimeout(() => {
-      updateVariant(variantId, patch);
-      variantUpdateTimers.current[variantId] = undefined;
-    }, 500);
-
-    variantUpdateTimers.current[variantId] = timer;
   };
 
   const deleteVariant = async (variantId: string) => {
@@ -765,63 +776,76 @@ const AdminProductForm: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {variants.map((v: any) => (
-                      <tr key={v.id} className="border-t">
-                        <td className="px-3 py-2">
-                          <Input
-                            value={v.name}
-                            onChange={(e) =>
-                              queueVariantUpdate(v.id, { name: e.target.value })
-                            }
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={v.price}
-                            onChange={(e) =>
-                              queueVariantUpdate(v.id, {
-                                price: Number(e.target.value || 0),
-                              })
-                            }
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            value={v.stock}
-                            onChange={(e) =>
-                              queueVariantUpdate(v.id, {
-                                stock: Number(e.target.value || 0),
-                              })
-                            }
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <Input
-                            value={v.sku || ""}
-                            onChange={(e) =>
-                              queueVariantUpdate(v.id, { sku: e.target.value })
-                            }
-                          />
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              deleteVariant(v.id);
-                            }}
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                    {variants.map((v: any) => {
+                      const editState = editingVariants[v.id];
+                      const name = editState?.name ?? v.name;
+                      const price = editState?.price ?? v.price;
+                      const stock = editState?.stock ?? v.stock;
+                      const sku = editState?.sku ?? v.sku ?? "";
+                      const hasChanges = !!editState;
+
+                      return (
+                        <tr key={v.id} className="border-t">
+                          <td className="px-3 py-2">
+                            <Input
+                              value={name}
+                              onChange={(e) => handleVariantLocalChange(v.id, "name", e.target.value)}
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={price}
+                              onChange={(e) => handleVariantLocalChange(v.id, "price", Number(e.target.value || 0))}
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={stock}
+                              onChange={(e) => handleVariantLocalChange(v.id, "stock", Number(e.target.value || 0))}
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <Input
+                              value={sku}
+                              onChange={(e) => handleVariantLocalChange(v.id, "sku", e.target.value)}
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <div className="flex justify-end gap-2">
+                              {hasChanges && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    saveVariant(v.id);
+                                  }}
+                                >
+                                  <Save size={14} />
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  deleteVariant(v.id);
+                                }}
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {variants.length === 0 && (
                       <tr>
                         <td
