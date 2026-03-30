@@ -119,7 +119,7 @@ export class ProductRepository {
     });
   }
 
-  async createImage(data: any) {
+  async createImage(data: { productId: string; url: string; publicId?: string; isPrimary: boolean; order: number }) {
     return (prisma as any).productImage.create({ data });
   }
 

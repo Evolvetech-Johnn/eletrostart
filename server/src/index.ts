@@ -16,6 +16,7 @@ import customerRoutes from "./routes/customer.routes"; // [NEW] Módulo de Clien
 import ecommerceRoutes from "./routes/ecommerce.routes";
 import executiveRoutes from "./modules/executive/routes";
 import paymentRoutes from "./routes/payment.routes";
+import cloudinaryRoutes from "./routes/cloudinary.routes";
 import { logisticsRoutes } from "./modules/logistics/routes";
 import { initAnalyticsCron } from "./cron/analytics.cron";
 import { initReservationCron } from "./cron/reservation.cron";
@@ -152,6 +153,9 @@ app.use("/api/logistics", verifyCsrfToken, logisticsRoutes);
 
 // Payment routes — sem CSRF para permitir webhooks externos do MercadoPago
 app.use("/api/payments", paymentRoutes);
+
+// Cloudinary — GET /api/cloudinary/signature (autenticação própria na rota, CSRF isento para GET)
+app.use("/api/cloudinary", verifyCsrfToken, cloudinaryRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

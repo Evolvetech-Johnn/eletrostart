@@ -175,20 +175,29 @@ export class ExecutiveService {
   async getCustomers(filter: PeriodFilter): Promise<CustomerKPIs> {
     const orders = await executiveRepository.getCustomerOrderStats(filter);
 
-    // Agrupa por email
+    // Agrupa por email — ignora pedidos sem email (não podem ser atribuídos a um cliente)
     const customerMap: Record<
       string,
       { name: string; email: string; orders: number; totalSpent: number }
     > = {};
 
     for (const order of orders) {
+      // customerEmail pode ser null no schema — pedidos sem email são descartados do agrupamento
       const email = order.customerEmail;
+      if (!email) continue;
+
       if (!customerMap[email]) {
-        customerMap[email] = { name: order.customerName, email, orders: 0, totalSpent: 0 };
+        customerMap[email] = {
+          name: order.customerName ?? "",
+          email,
+          orders: 0,
+          totalSpent: 0,
+        };
       }
       customerMap[email].orders += 1;
       customerMap[email].totalSpent += Number(order.total ?? 0);
     }
+
 
     const customers = Object.values(customerMap);
     const totalCustomers = customers.length;

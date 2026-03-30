@@ -235,7 +235,11 @@ export const getProductImages = async (req: Request, res: Response) => {
 export const createProductImage = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { url, isPrimary, order } = req.body;
+    const { url, publicId, isPrimary, order } = req.body;
+
+    if (!url) {
+      return res.status(400).json({ success: false, message: "URL da imagem é obrigatória" });
+    }
 
     if (isPrimary) {
       await productRepository.clearPrimaryFlags(id);
@@ -244,15 +248,14 @@ export const createProductImage = async (req: Request, res: Response) => {
     const image = await productRepository.createImage({
       productId: id,
       url,
+      publicId: publicId || undefined,  // Cloudinary public_id para deletà-la do CDN
       isPrimary: Boolean(isPrimary),
       order: typeof order === "number" ? order : 0,
     });
     await cacheService.invalidate("products:*");
     res.status(201).json({ success: true, data: image });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Erro ao criar imagem do produto" });
+    res.status(500).json({ success: false, message: "Erro ao criar imagem do produto" });
   }
 };
 
@@ -288,14 +291,34 @@ export const updateProductImage = async (req: Request, res: Response) => {
 export const deleteProductImage = async (req: Request, res: Response) => {
   try {
     const imageId = req.params.imageId as string;
+
+    // Busca a imagem ANTES de deletar para capturar o publicId do Cloudinary
+    let publicId: string | undefined;
+    try {
+      const image = await (require("../../../lib/prisma").prisma as any).productImage.findUnique({
+        where: { id: imageId },
+        select: { publicId: true },
+      });
+      publicId = image?.publicId;
+    } catch {
+      // Se a busca falhar, continua sem deletar do CDN
+    }
+
     await productRepository.deleteImage(imageId);
     await cacheService.invalidate("products:*");
+
+    // Deleta do Cloudinary em background (não bloqueia a resposta)
+    if (publicId) {
+      const { deleteFromCloudinary } = await import("../../../services/cloudinary.service");
+      deleteFromCloudinary(publicId).catch((e) =>
+        console.error("[deleteProductImage] Falha ao deletar do CDN:", e.message)
+      );
+    }
+
     res.json({ success: true, message: "Imagem removida" });
   } catch (error: any) {
     if (error.code === "P2025") {
-      return res
-        .status(404)
-        .json({ success: false, message: "Imagem não encontrada" });
+      return res.status(404).json({ success: false, message: "Imagem não encontrada" });
     }
     res.status(500).json({ success: false, message: "Erro ao remover imagem" });
   }
@@ -306,20 +329,24 @@ export const uploadProductImages = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const files = (req as any).files as Express.Multer.File[];
     if (!files || files.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Nenhuma imagem enviada" });
+      return res.status(400).json({ success: false, message: "Nenhuma imagem enviada" });
     }
 
     const created: any[] = [];
     for (const file of files) {
       if (!file.mimetype.startsWith("image/")) continue;
 
-      const publicUrl = await uploadImageToStore(file.buffer, file.originalname, `eletrostart/produtos/${id}`);
+      const { uploadImageToStore } = await import("../../../services/cloudinary.service");
+      const { url, publicId } = await uploadImageToStore(
+        file.buffer,
+        file.originalname,
+        `eletrostart/produtos/${id}`
+      );
 
       const image = await productRepository.createImage({
         productId: id,
-        url: publicUrl,
+        url,
+        publicId,
         isPrimary: false,
         order: 0,
       });
@@ -329,7 +356,7 @@ export const uploadProductImages = async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true, data: created });
   } catch (error: any) {
-    console.error("Error uploading images:", error);
+    console.error("[uploadProductImages] Erro:", error);
     res.status(500).json({ success: false, message: "Erro ao enviar imagens" });
   }
 };

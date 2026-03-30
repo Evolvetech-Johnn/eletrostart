@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +25,7 @@ import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { useAuth } from "../../context/AuthContext";
 import apiClient from "../../services/apiClient";
+import { uploadMultipleImages, validateImageFile, MAX_FILE_SIZE_MB, MAX_IMAGES_PER_PRODUCT } from "../../services/cloudinaryUploadService";
 
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
@@ -99,9 +100,12 @@ const AdminProductForm: React.FC = () => {
 
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  
+  // Upload progress: array of 0-100 values, one per file being uploaded
+  const [uploadProgress, setUploadProgress] = useState<number[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   // Local state for variant editing (avoid auto-save as requested)
   const [editingVariants, setEditingVariants] = useState<Record<string, any>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
   const { data: categories = [] } = useQuery({
@@ -175,9 +179,12 @@ const AdminProductForm: React.FC = () => {
     onSuccess: async (res: any) => {
       const newProductId = res.data?.id || res.id;
       if (pendingFiles.length > 0 && newProductId) {
-        toast.loading("Enviando imagens...", { id: "upload-status" });
-        await handleUploadImages(pendingFiles as unknown as FileList, newProductId);
-        toast.success("Imagens enviadas!", { id: "upload-status" });
+        const toastId = toast.loading(`Enviando ${pendingFiles.length} imagem(ns)...`);
+        try {
+          await handleUploadImages(pendingFiles, newProductId, toastId);
+        } catch {
+          toast.dismiss(toastId);
+        }
       }
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Produto criado com sucesso!");
@@ -223,35 +230,101 @@ const AdminProductForm: React.FC = () => {
     }
   };
 
-  const handleUploadImages = async (files: FileList | null | File[], targetId?: string) => {
+  /**
+   * Faz upload usando Signed Upload direto ao Cloudinary.
+   * 1. Solicita assinatura ao backend
+   * 2. Envia arquivo diretamente (sem passar pelo servidor)
+   * 3. Salva URL + publicId no banco via API
+   */
+  const handleUploadImages = async (
+    files: File[],
+    targetId?: string,
+    toastId?: string
+  ) => {
     const uploadId = targetId || id;
-    if (!files || !uploadId) return;
+    if (!files || files.length === 0 || !uploadId) return;
 
-    const formData = new FormData();
-    if (files instanceof FileList) {
-      Array.from(files).forEach((f) => formData.append("files", f));
-    } else {
-      files.forEach((f) => formData.append("files", f));
+    // Validar antes de iniciar qualquer upload
+    const validationErrors: string[] = [];
+    files.forEach((f) => {
+      const err = validateImageFile(f);
+      if (err) validationErrors.push(err);
+    });
+    if (validationErrors.length > 0) {
+      toast.error(validationErrors[0]);
+      return;
     }
 
+    setIsUploading(true);
+    setUploadProgress(files.map(() => 0));
+
+    const folder = `eletrostart/produtos/${uploadId}`;
+
+    try {
+      const results = await uploadMultipleImages(
+        files,
+        folder,
+        // Progresso por arquivo
+        (fileIndex, progress) => {
+          setUploadProgress((prev) => {
+            const next = [...prev];
+            next[fileIndex] = progress;
+            return next;
+          });
+        },
+        // Quando cada arquivo termina — salva imediatamente no banco
+        async (_fileIndex, result) => {
+          try {
+            await apiClient.post(`/ecommerce/products/${uploadId}/images`, {
+              url: result.url,
+              publicId: result.publicId,
+              isPrimary: false,
+              order: 0,
+            });
+          } catch (err: any) {
+            console.error("[handleUploadImages] Erro ao salvar imagem no DB:", err?.message);
+          }
+        }
+      );
+
+      if (toastId) {
+        toast.success(`${results.length} imagem(ns) enviada(s)!`, { id: toastId });
+      } else if (!targetId) {
+        toast.success("Imagens enviadas com sucesso!");
+        refetchImages();
+      }
+      return true;
+    } catch (err: any) {
+      const errMsg = err?.message || "Erro ao enviar imagens";
+      // Cloudinary não configurado — fallback para upload pelo backend
+      if (err?.message?.includes("CLOUDINARY_NOT_CONFIGURED") || err?.message?.includes("503")) {
+        return await handleUploadImagesFallback(files, uploadId, toastId);
+      }
+      toast.error(errMsg);
+      return false;
+    } finally {
+      setIsUploading(false);
+      setUploadProgress([]);
+    }
+  };
+
+  /** Fallback: upload via backend (Multer → Cloudinary). Usado quando signed upload não está disponível. */
+  const handleUploadImagesFallback = async (files: File[], uploadId: string, toastId?: string) => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append("files", f));
     try {
       const data: any = await apiClient.post(
         `/ecommerce/products/${uploadId}/images/upload`,
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
       if (data.success !== false) {
-        if (!targetId) {
-          toast.success("Imagens enviadas");
-          refetchImages();
-        }
+        if (toastId) toast.success("Imagens enviadas (via backend)!", { id: toastId });
+        else refetchImages();
         return true;
-      } else {
-        toast.error(data.message || "Erro ao enviar imagens");
-        return false;
       }
+      toast.error(data.message || "Erro ao enviar imagens");
+      return false;
     } catch (err: any) {
       toast.error(err.message || "Erro ao enviar imagens");
       return false;
@@ -259,16 +332,30 @@ const AdminProductForm: React.FC = () => {
   };
 
   const handleFileSelect = (files: FileList | null) => {
-    if (!files) return;
+    if (!files || files.length === 0) return;
     const newFiles = Array.from(files);
 
     if (isEdit) {
-      handleUploadImages(files);
+      // Modo edição: upload imediato
+      handleUploadImages(newFiles);
     } else {
-      setPendingFiles((prev: File[]) => [...prev, ...newFiles]);
-      const newPreviews = newFiles.map(f => URL.createObjectURL(f));
-      setPreviews((prev: string[]) => [...prev, ...newPreviews]);
+      // Modo criação: acumula para upload após produto ser criado
+      const totalPending = pendingFiles.length + newFiles.length;
+      if (totalPending > MAX_IMAGES_PER_PRODUCT) {
+        toast.error(`Máximo de ${MAX_IMAGES_PER_PRODUCT} imagens por produto.`);
+        return;
+      }
+      // Valida todos antes de acumular
+      const firstError = newFiles.map(validateImageFile).find(Boolean);
+      if (firstError) { toast.error(firstError); return; }
+
+      setPendingFiles((prev) => [...prev, ...newFiles]);
+      const newPreviews = newFiles.map((f) => URL.createObjectURL(f));
+      setPreviews((prev) => [...prev, ...newPreviews]);
     }
+
+    // Reset input para permitir selecionar o mesmo arquivo novamente
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const removePendingFile = (index: number) => {
@@ -509,36 +596,72 @@ const AdminProductForm: React.FC = () => {
               </h3>
 
               <div
-                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all border-gray-300 hover:border-primary hover:bg-primary/5 focus-within:ring-2 focus-within:ring-primary-500 outline-none"
-                onDragOver={(e) => e.preventDefault()}
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-all outline-none ${
+                  isUploading
+                    ? "border-blue-300 bg-blue-50/50 cursor-not-allowed"
+                    : "border-gray-300 hover:border-primary hover:bg-primary/5 cursor-pointer focus-within:ring-2 focus-within:ring-primary-500"
+                }`}
+                onDragOver={(e) => { if (!isUploading) e.preventDefault(); }}
                 onDrop={(e) => {
                   e.preventDefault();
-                  handleFileSelect(e.dataTransfer.files);
+                  if (!isUploading) handleFileSelect(e.dataTransfer.files);
                 }}
-                onClick={() => document.getElementById("file-input")?.click()}
+                onClick={() => { if (!isUploading) fileInputRef.current?.click(); }}
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && document.getElementById("file-input")?.click()}
+                onKeyDown={(e) => e.key === 'Enter' && !isUploading && fileInputRef.current?.click()}
               >
                 <div className="flex flex-col items-center">
-                  <div className="p-4 bg-gray-50 rounded-full mb-3 group-hover:bg-primary/10 transition-colors">
-                    <ImageIcon size={48} className="text-gray-400 group-hover:text-primary transition-colors" />
+                  <div className="p-4 bg-gray-50 rounded-full mb-3">
+                    {isUploading
+                      ? <Loader2 size={48} className="text-blue-500 animate-spin" />
+                      : <ImageIcon size={48} className="text-gray-400" />
+                    }
                   </div>
                   <p className="text-base font-semibold text-gray-900">
-                    {isEdit ? "Adicionar fotos à galeria" : "Enviar fotos do produto"}
+                    {isUploading
+                      ? "Enviando para Cloudinary CDN..."
+                      : isEdit ? "Adicionar fotos à galeria" : "Enviar fotos do produto"
+                    }
                   </p>
                   <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto">
-                    Arraste imagens aqui ou clique para selecionar. Você pode enviar várias fotos de uma vez.
+                    {isUploading
+                      ? "Aguarde, suas imagens estão sendo otimizadas automaticamente."
+                      : `Arraste imagens aqui ou clique para selecionar (JPEG, PNG, WebP • máx ${MAX_FILE_SIZE_MB}MB cada)`
+                    }
                   </p>
                 </div>
                 <input
                   id="file-input"
+                  ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
                   multiple
                   className="hidden"
                   onChange={(e) => handleFileSelect(e.target.files)}
+                  disabled={isUploading}
                 />
               </div>
+
+              {/* Barras de progresso durante upload */}
+              {isUploading && uploadProgress.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Progresso do upload</p>
+                  {uploadProgress.map((progress, idx) => (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>Imagem {idx + 1}</span>
+                        <span>{progress}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all duration-200"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Pending Upload Previews */}
               {previews.length > 0 && !isEdit && (
