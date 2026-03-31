@@ -4,6 +4,7 @@ import { logAction } from "../../../services/audit.service";
 import { importExportService } from "../../../services/importExport.service";
 import { googleSheetsService } from "../../../services/googleSheets.service";
 import { productRepository } from "../repositories/product.repository";
+import { slugify, makeUniqueSlug } from "../../../utils/slugify";
 
 export const CATEGORY_MIN_PRICE_BY_SLUG: Record<string, number> = {
   iluminacao: 9.9,
@@ -133,6 +134,13 @@ export const createProduct = async (data: any, userId: string = "unknown") => {
     if (existing) throw new Error("SKU já existe");
   }
 
+  // Gera slug automático se não fornecido
+  const baseSlug = data.slug ? slugify(data.slug) : slugify(data.name);
+  const slug = await makeUniqueSlug(baseSlug, async (s) => {
+    const existing = await prisma.product.findUnique({ where: { slug: s } });
+    return !!existing;
+  });
+
   const minPrice =
     typeof data.categoryId === "string"
       ? await getMinPriceForCategoryId(data.categoryId)
@@ -148,6 +156,7 @@ export const createProduct = async (data: any, userId: string = "unknown") => {
   const product = await prisma.product.create({
     data: {
       ...data,
+      slug,
       variants: data.variants || null,
       features: data.features || null,
       specifications: data.specifications || null,
@@ -207,6 +216,23 @@ export const updateProduct = async (
   if (data.specifications !== undefined)
     updateData.specifications = data.specifications;
   if (data.images !== undefined) updateData.images = data.images;
+
+  // Lógica de slug na atualização
+  if (data.slug) {
+    updateData.slug = slugify(data.slug);
+  } else if (data.name) {
+    // Só altera slug se explicitamente solicitado ou se o produto ainda não tiver um
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      select: { slug: true },
+    });
+    if (!existingProduct?.slug) {
+      updateData.slug = await makeUniqueSlug(slugify(data.name), async (s) => {
+        const dup = await prisma.product.findUnique({ where: { slug: s } });
+        return !!dup && dup.id !== id;
+      });
+    }
+  }
 
   // Category handling
   if (data.categoryId !== undefined) {

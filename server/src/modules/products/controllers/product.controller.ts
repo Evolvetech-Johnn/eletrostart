@@ -10,7 +10,7 @@ import { productRepository } from "../repositories/product.repository";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import fs from "fs";
-import ExcelJS from "exceljs";
+import * as ExcelJS from "exceljs";
 import { cacheService } from "../../../services/redis.service";
 import { uploadImageToStore } from "../../../services/cloudinary.service";
 

@@ -13,6 +13,7 @@ export const createProductSchema = z.object({
   sku: z.string().optional().nullable(),
   image: z.string().optional(),
   unit: z.string().optional(),
+  slug: z.string().optional().nullable(),
   variants: z.any().optional(),
   features: z.any().optional(),
   specifications: z.any().optional(),

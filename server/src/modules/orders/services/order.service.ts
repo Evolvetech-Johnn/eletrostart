@@ -156,14 +156,12 @@ export class OrderService {
     const emailDetails = orderToMessageDetails(order);
     const emailPreview = buildOrderEmailTemplates(emailDetails);
     
-    try {
       await logAction({
-        action: "EXPORT",
+        action: "ORDER_CREATED",
         targetType: "ORDER",
         targetId: order.id,
         details: { emailSubject: emailPreview.subject, emailTo: order.customerEmail },
       });
-    } catch {}
     
     // Marcar como notificado internamente
     await orderRepository.update(order.id, { internalNotificationCreated: true });

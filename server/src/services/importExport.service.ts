@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs";
+import * as ExcelJS from "exceljs";
 import { Product } from "@prisma/client";
 import { Readable } from "stream";
 

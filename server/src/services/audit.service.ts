@@ -11,6 +11,7 @@ export type AuditAction =
   | "EXPORT"
   | "BULK_UPDATE"
   | "BULK_DELETE"
+  | "ORDER_CREATED"
   | "PAYMENT_INITIATED"
   | "PAYMENT_CONFIRMED"
   | "INVOICE_EMITTED"

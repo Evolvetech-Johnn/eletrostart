@@ -348,11 +348,12 @@ const AdminDashboard: React.FC = () => {
                           <td className="px-6 py-4 text-sm font-semibold text-gray-700">{fmt(order.total)}</td>
                           <td className="px-6 py-4">
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              order.status === "PAID" ? "bg-emerald-100 text-emerald-700" :
-                              order.status === "PENDING" ? "bg-amber-100 text-amber-700" :
-                              "bg-gray-100 text-gray-600"
+                              order.status === "entregue" ? "bg-emerald-100 text-emerald-700" :
+                              order.status === "aguardando" ? "bg-amber-100 text-amber-700" :
+                              order.status === "cancelado" ? "bg-red-100 text-red-700" :
+                              "bg-blue-100 text-blue-700"
                             }`}>
-                              {order.status}
+                              {order.status.replace(/_/g, " ").toUpperCase()}
                             </span>
                           </td>
                         </tr>

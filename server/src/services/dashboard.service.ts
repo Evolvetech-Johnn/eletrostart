@@ -53,7 +53,7 @@ export const getDashboardStats = async () => {
     orders: {
       total: orders,
       pending: await prisma.order.count({
-        where: { status: "PENDING" },
+        where: { status: "aguardando" },
       }),
     },
     customers: {

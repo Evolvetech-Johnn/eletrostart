@@ -154,6 +154,7 @@ model Category {
 model Product {
   id          String  @id @default(auto()) @map("_id") @db.ObjectId
   name        String
+  slug        String? @unique // Opcional para retrocompatibilidade, mas único
   description String?
   price       Float   @default(0.0)
   stock       Int     @default(0)
