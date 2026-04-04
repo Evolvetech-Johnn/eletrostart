@@ -34,9 +34,14 @@ if (isConfigured) {
   });
   console.log("☁️ [Cloudinary] Configurado e ativo");
 } else {
+  const missing = [];
+  if (!CLOUDINARY_CLOUD_NAME) missing.push("CLOUDINARY_CLOUD_NAME");
+  if (!CLOUDINARY_API_KEY) missing.push("CLOUDINARY_API_KEY");
+  if (!CLOUDINARY_API_SECRET) missing.push("CLOUDINARY_API_SECRET");
+
   console.warn(
-    "⚠️ [Cloudinary] Credenciais não configuradas. Fallback para disco ativado. " +
-    "Configure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY e CLOUDINARY_API_SECRET no .env."
+    `⚠️ [Cloudinary] Credenciais não configuradas (${missing.join(", ")}). Fallback para disco ativado. ` +
+    "Configure as variáveis no .env ou no Render Dashboard para evitar perda de imagens."
   );
 }
 

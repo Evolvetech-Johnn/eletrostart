@@ -47,8 +47,8 @@ export const createPix = async (req: Request, res: Response) => {
       orderId,
       amount: order.total,
       description: `Pedido #${orderId.slice(0, 8)} — Eletrostart`,
-      payerEmail: order.customerEmail ?? "",   // customerEmail pode ser null no schema
-      payerName: order.customerName ?? "Cliente",
+      payerEmail: (order.customerEmail as string) || "cliente@eletrostart.com.br",
+      payerName: (order.customerName as string) || "Cliente",
       notificationUrl: isProduction
         ? `${process.env.BACKEND_URL || baseUrl}/api/payments/webhook`
         : undefined, // Webhooks não chegam em localhost

@@ -183,7 +183,7 @@ export class ExecutiveService {
 
     for (const order of orders) {
       // customerEmail pode ser null no schema — pedidos sem email são descartados do agrupamento
-      const email = order.customerEmail;
+      const email = order.customerEmail as string;
       if (!email) continue;
 
       if (!customerMap[email]) {

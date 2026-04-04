@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { notificationService } from "../services/notification.service";
-import { normalizeQueryParam } from "../../../utils/query.util";
+import { normalizeQueryParam, normalizeRouteParam } from "../../../utils/query.util";
 
 export const getNotifications = async (req: Request, res: Response) => {
   try {
@@ -21,9 +21,8 @@ export const getNotifications = async (req: Request, res: Response) => {
 
 export const markAsRead = async (req: Request, res: Response) => {
   try {
-    // req.params.id é sempre string no runtime, mas validamos defensivamente
-    const id = req.params.id;
-    if (!id || typeof id !== "string") {
+    const id = normalizeRouteParam(req.params.id);
+    if (!id) {
       return res.status(400).json({
         success: false,
         message: "ID de notificação inválido ou ausente.",

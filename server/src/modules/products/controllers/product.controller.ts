@@ -235,21 +235,27 @@ export const getProductImages = async (req: Request, res: Response) => {
 export const createProductImage = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { url, publicId, isPrimary, order } = req.body;
+    const { url, publicId, order } = req.body;
+    let isPrimary = Boolean(req.body.isPrimary);
 
     if (!url) {
       return res.status(400).json({ success: false, message: "URL da imagem é obrigatória" });
     }
 
-    if (isPrimary) {
+    const { productRepository } = await import("../repositories/product.repository");
+    const existingImages = await productRepository.getImages(id);
+
+    // Se for a primeira imagem ou explicitamente solicitado, define como primária
+    if (isPrimary || existingImages.length === 0) {
+      isPrimary = true;
       await productRepository.clearPrimaryFlags(id);
     }
 
     const image = await productRepository.createImage({
       productId: id,
       url,
-      publicId: publicId || undefined,  // Cloudinary public_id para deletà-la do CDN
-      isPrimary: Boolean(isPrimary),
+      publicId: publicId || undefined,
+      isPrimary,
       order: typeof order === "number" ? order : 0,
     });
     await cacheService.invalidate("products:*");
@@ -332,6 +338,12 @@ export const uploadProductImages = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "Nenhuma imagem enviada" });
     }
 
+    const { productRepository } = await import("../repositories/product.repository");
+    // Verifica se já existem imagens para este produto
+    const existingImages = await productRepository.getImages(id);
+    const hasPrimary = existingImages.some((img: any) => img.isPrimary);
+    let firstInBatch = true;
+
     const created: any[] = [];
     for (const file of files) {
       if (!file.mimetype.startsWith("image/")) continue;
@@ -343,14 +355,18 @@ export const uploadProductImages = async (req: Request, res: Response) => {
         `eletrostart/produtos/${id}`
       );
 
+      // Marca como primária se não houver nenhuma primária E for a primeira deste lote
+      const isPrimary = !hasPrimary && firstInBatch;
+
       const image = await productRepository.createImage({
         productId: id,
         url,
         publicId,
-        isPrimary: false,
+        isPrimary,
         order: 0,
       });
       created.push(image);
+      firstInBatch = false;
     }
     await cacheService.invalidate("products:*");
 
