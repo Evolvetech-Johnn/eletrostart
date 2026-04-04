@@ -162,6 +162,7 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`🌍 Ambiente: ${process.env.NODE_ENV || "development"} (Render: ${!!process.env.RENDER})`);
   console.log(`🌍 Frontend URL: ${env.frontendUrl}`);
   initAnalyticsCron();
   initReservationCron();

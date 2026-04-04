@@ -93,13 +93,15 @@ export const login = async (
       },
     );
 
-    const isProduction = process.env.NODE_ENV === "production";
+    const isLocalhost = req.get("host")?.includes("localhost") || req.get("host")?.includes("127.0.0.1");
+    // Em produção (ou especificamente no Render), precisamos de SameSite: None e Secure: True para cookies cross-domain
+    const useSecureCookies = !isLocalhost || process.env.NODE_ENV === "production" || !!process.env.RENDER;
 
     // Emitir token via httpOnly Cookie (seguro contra XSS)
     res.cookie(AUTH_COOKIE, token, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "none" : "lax", // 'none' permite cross-site cookie
+      secure: useSecureCookies,
+      sameSite: useSecureCookies ? "none" : "lax", // 'none' permite cross-site cookie entre Netlify e Render
       maxAge: getMaxAgeMs(),
       path: "/",
     });
