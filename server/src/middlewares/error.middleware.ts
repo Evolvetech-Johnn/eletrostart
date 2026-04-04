@@ -21,14 +21,15 @@ export const errorHandler = (
     return res.status(400).json({
       success: false,
       message: "Database operation failed",
-      error: process.env.NODE_ENV === "development" ? (err as any).message : undefined,
+      code: (err as any).code,
+      error: (err as any).message, // Exposto temporariamente para depuração no Render
     });
   }
 
   return res.status(500).json({
     success: false,
     message: "Internal Server Error",
-    error: err.message, // ENVIAR MESSAGEM REAL PARA DEBUG
-    stack: err.stack, // ENVIAR STACK PARA DEBUG
+    error: err.message,
+    stack: err.stack,
   });
 };

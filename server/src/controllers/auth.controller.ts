@@ -33,8 +33,10 @@ export const login = async (
 ) => {
   try {
     const { email, password } = req.body;
+    console.log(`🔐 Tentativa de login para: ${email || "e-mail ausente"}`);
 
     if (!email || !password) {
+      console.warn("⚠️ Falha no login: E-mail ou senha ausentes no body.");
       return res.status(400).json({
         error: true,
         message: "E-mail e senha são obrigatórios",
