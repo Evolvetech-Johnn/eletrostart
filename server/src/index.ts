@@ -35,14 +35,21 @@ if (process.env.SENTRY_DSN) {
 // Validate Database URL on Startup
 if (!env.databaseUrl) {
   console.error("❌ Erro Crítico: DATABASE_URL não definida!");
-} else if (!env.databaseUrl.includes("mongodb.net/")) {
-  console.error(
-    "❌ Erro Crítico: DATABASE_URL parece inválida (falta o nome do banco?)",
-  );
 } else {
   // Mask credentials for safe logging
-  const maskedUrl = env.databaseUrl.replace(/:([^@]+)@/, ":****@");
-  console.log(`🔌 Configuração de Banco: ${maskedUrl}`);
+  const isMongoUrl =
+    env.databaseUrl.startsWith("mongodb://") ||
+    env.databaseUrl.startsWith("mongodb+srv://");
+
+  if (!isMongoUrl) {
+    console.error("❌ Erro Crítico: DATABASE_URL parece inválida!");
+  } else {
+    const maskedUrl = env.databaseUrl.replace(
+      /(mongodb(?:\+srv)?:\/\/[^:]+):([^@]+)@/i,
+      "$1:****@",
+    );
+    console.log(`🔌 Configuração de Banco: ${maskedUrl}`);
+  }
 }
 
 

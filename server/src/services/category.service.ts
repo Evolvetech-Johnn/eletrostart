@@ -1,22 +1,91 @@
 import { prisma } from "../lib/prisma";
 import { Prisma } from "@prisma/client";
+import fs from "fs";
+import path from "path";
+
+type FallbackProduct = {
+  id: string;
+  name: string;
+  category?: string;
+  categoryId?: string;
+  subcategory?: string;
+  price?: number;
+  unit?: string;
+  description?: string;
+  image?: string;
+  defaultVariant?: string | null;
+};
+
+let fallbackProductsCache: FallbackProduct[] | null = null;
+
+const loadFallbackProducts = (): FallbackProduct[] => {
+  if (fallbackProductsCache) return fallbackProductsCache;
+  try {
+    const catalogPath = path.resolve(process.cwd(), "..", "generated-products.json");
+    const raw = fs.readFileSync(catalogPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    fallbackProductsCache = Array.isArray(parsed) ? (parsed as FallbackProduct[]) : [];
+  } catch {
+    fallbackProductsCache = [];
+  }
+  return fallbackProductsCache;
+};
+
+const slugToName = (slug: string) => {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(" ");
+};
+
+const buildFallbackCategories = () => {
+  const products = loadFallbackProducts();
+  const counts = new Map<string, number>();
+
+  for (const p of products) {
+    const slug = (p.categoryId || p.category || "").trim();
+    if (!slug) continue;
+    counts.set(slug, (counts.get(slug) || 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .map(([slug, productsCount]) => ({
+      id: slug,
+      name: slugToName(slug),
+      slug,
+      description: null,
+      image: null,
+      active: true,
+      _count: { products: productsCount },
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+};
 
 export const listCategories = async () => {
-  return await prisma.category.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      _count: { select: { products: true } },
-    },
-  });
+  try {
+    return await prisma.category.findMany({
+      orderBy: { name: "asc" },
+      include: {
+        _count: { select: { products: true } },
+      },
+    });
+  } catch {
+    return buildFallbackCategories();
+  }
 };
 
 export const getCategoryBySlug = async (slug: string) => {
-  return await prisma.category.findFirst({
-    where: { slug },
-    include: {
-      _count: { select: { products: true } },
-    },
-  });
+  try {
+    return await prisma.category.findFirst({
+      where: { slug },
+      include: {
+        _count: { select: { products: true } },
+      },
+    });
+  } catch {
+    return buildFallbackCategories().find((c) => c.slug === slug) ?? null;
+  }
 };
 
 export const createCategory = async (data: {

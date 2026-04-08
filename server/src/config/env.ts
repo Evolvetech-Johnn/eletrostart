@@ -1,8 +1,5 @@
 import dotenv from "dotenv";
-// Only load .env in non-production environments
-if (process.env.NODE_ENV !== "production") {
-  dotenv.config();
-}
+dotenv.config({ override: !process.env.RENDER });
 
 const requiredEnvVars = ["DATABASE_URL", "JWT_SECRET"];
 

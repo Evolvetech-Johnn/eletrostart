@@ -5,6 +5,78 @@ import { importExportService } from "../../../services/importExport.service";
 import { googleSheetsService } from "../../../services/googleSheets.service";
 import { productRepository } from "../repositories/product.repository";
 import { slugify, makeUniqueSlug } from "../../../utils/slugify";
+import fs from "fs";
+import path from "path";
+
+type FallbackProduct = {
+  id: string;
+  name: string;
+  category?: string;
+  categoryId?: string;
+  subcategory?: string;
+  price?: number;
+  unit?: string;
+  description?: string;
+  image?: string;
+  defaultVariant?: string | null;
+};
+
+let fallbackProductsCache: FallbackProduct[] | null = null;
+
+const loadFallbackProducts = (): FallbackProduct[] => {
+  if (fallbackProductsCache) return fallbackProductsCache;
+  try {
+    const catalogPath = path.resolve(process.cwd(), "..", "generated-products.json");
+    const raw = fs.readFileSync(catalogPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    fallbackProductsCache = Array.isArray(parsed) ? (parsed as FallbackProduct[]) : [];
+  } catch {
+    fallbackProductsCache = [];
+  }
+  return fallbackProductsCache;
+};
+
+const slugToName = (slug: string) => {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(" ");
+};
+
+const mapFallbackProductToApiProduct = (p: FallbackProduct) => {
+  const categorySlug = (p.categoryId || p.category || "").trim() || undefined;
+  const now = new Date().toISOString();
+  const apiProduct: any = {
+    id: p.id,
+    name: p.name,
+    description: p.description ?? null,
+    price: typeof p.price === "number" ? p.price : 0,
+    costPrice: null,
+    stock: 999,
+    stockReserved: 0,
+    sku: null,
+    code: null,
+    unit: p.unit ?? "un",
+    categoryId: categorySlug ?? null,
+    category: categorySlug
+      ? { id: categorySlug, name: slugToName(categorySlug), slug: categorySlug, active: true, image: null }
+      : null,
+    subcategory: p.subcategory ?? null,
+    image: p.image ?? null,
+    active: true,
+    featured: false,
+    variants: [],
+    features: null,
+    specifications: null,
+    images: null,
+    defaultVariant: p.defaultVariant ?? null,
+    createdAt: now,
+    updatedAt: now,
+    slug: p.id,
+  };
+  return apiProduct;
+};
 
 export const CATEGORY_MIN_PRICE_BY_SLUG: Record<string, number> = {
   iluminacao: 9.9,
@@ -92,37 +164,90 @@ export const listProducts = async (params: any) => {
   const pageNum = parseInt(page as string);
   const limitNum = parseInt(limit as string);
 
-  const total = await prisma.product.count({ where });
-  const products = await prisma.product.findMany({
-    where,
-    include: { category: true },
-    skip: (pageNum - 1) * limitNum,
-    take: limitNum,
-    orderBy: { createdAt: "desc" },
-  });
+  try {
+    const total = await prisma.product.count({ where });
+    const products = await prisma.product.findMany({
+      where,
+      include: { category: true },
+      skip: (pageNum - 1) * limitNum,
+      take: limitNum,
+      orderBy: { createdAt: "desc" },
+    });
 
-  return {
-    products: products.map(formatProduct),
-    pagination: {
-      total,
-      page: pageNum,
-      limit: limitNum,
-      totalPages: Math.ceil(total / limitNum),
-    },
-  };
+    return {
+      products: products.map(formatProduct),
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    };
+  } catch {
+    const all = loadFallbackProducts().map(mapFallbackProductToApiProduct);
+
+    const categoryFilter = typeof category === "string" && category.trim() ? category.trim() : null;
+    const subcategoryFilter =
+      typeof subcategory === "string" && subcategory.trim() ? subcategory.trim() : null;
+    const searchFilter = typeof search === "string" && search.trim() ? search.trim().toLowerCase() : null;
+    const featuredFilter = featured === "true";
+
+    let filtered = all;
+    if (active === "false") filtered = filtered.filter((p: any) => p.active === false);
+    else if (active === "all") {
+    } else filtered = filtered.filter((p: any) => p.active === true);
+
+    if (categoryFilter) {
+      filtered = filtered.filter((p: any) => {
+        const slug = p.category?.slug || p.categoryId || "";
+        return slug === categoryFilter;
+      });
+    }
+    if (subcategoryFilter) filtered = filtered.filter((p: any) => (p.subcategory || "") === subcategoryFilter);
+    if (featuredFilter) filtered = filtered.filter((p: any) => p.featured === true);
+
+    if (searchFilter) {
+      filtered = filtered.filter((p: any) => {
+        const n = (p.name || "").toLowerCase();
+        const d = (p.description || "").toLowerCase();
+        const sku = (p.sku || "").toLowerCase();
+        return n.includes(searchFilter) || d.includes(searchFilter) || sku.includes(searchFilter);
+      });
+    }
+
+    const safePage = Number.isFinite(pageNum) && pageNum > 0 ? pageNum : 1;
+    const safeLimit = Number.isFinite(limitNum) && limitNum > 0 ? limitNum : 20;
+    const total = filtered.length;
+    const start = (safePage - 1) * safeLimit;
+    const pageItems = filtered.slice(start, start + safeLimit);
+
+    return {
+      products: pageItems.map(formatProduct),
+      pagination: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
+      },
+    };
+  }
 };
 
 export const getProduct = async (idOrSku: string) => {
   const isObjectId = /^[0-9a-fA-F]{24}$/.test(idOrSku);
 
-  const product = await prisma.product.findFirst({
-    where: isObjectId
-      ? { OR: [{ id: idOrSku }, { sku: idOrSku }] }
-      : { sku: idOrSku },
-    include: { category: true },
-  });
-
-  return formatProduct(product);
+  try {
+    const product = await prisma.product.findFirst({
+      where: isObjectId
+        ? { OR: [{ id: idOrSku }, { sku: idOrSku }] }
+        : { sku: idOrSku },
+      include: { category: true },
+    });
+    return formatProduct(product);
+  } catch {
+    const p = loadFallbackProducts().find((x) => x.id === idOrSku);
+    return formatProduct(p ? mapFallbackProductToApiProduct(p) : null);
+  }
 };
 
 export const createProduct = async (data: any, userId: string = "unknown") => {
