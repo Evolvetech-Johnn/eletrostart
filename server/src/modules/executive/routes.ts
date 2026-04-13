@@ -1,8 +1,7 @@
 // Executive Module – Rotas
 
 import { Router } from 'express';
-import { authenticate } from '../../middlewares/auth.middleware';
-import { requireExecutiveAccess } from '../../middlewares/executive.middleware';
+import { authenticate, requireAdmin } from '../../middlewares/auth.middleware';
 import {
   getOverview,
   getFinancial,
@@ -15,7 +14,7 @@ const router = Router();
 
 // Todas as rotas executivas requerem autenticação + ADMIN/SUPER_ADMIN
 router.use(authenticate);
-router.use(requireExecutiveAccess);
+router.use(requireAdmin);
 
 router.get('/overview', getOverview);
 router.get('/financial', getFinancial);

@@ -110,7 +110,7 @@ const AdminExecutive: React.FC = () => {
         {error ? (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2 mb-6">
             <AlertCircle className="w-5 h-5 shrink-0" />
-            <p>Erro ao carregar dados executivos. Verifique se você tem permissão de Super Administrador.</p>
+            <p>Erro ao carregar dados executivos. Verifique se você tem permissão de administrador.</p>
           </div>
         ) : isLoading ? (
           <div className="flex justify-center items-center h-64">

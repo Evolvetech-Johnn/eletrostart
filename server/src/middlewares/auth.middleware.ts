@@ -56,7 +56,7 @@ export const authenticate = async (
       id: user.id,
       email: user.email,
       name: user.name || "",
-      role: (user.role || "").toUpperCase(),
+      role: String(user.role || "").trim().toUpperCase(),
     };
 
     next();
@@ -87,7 +87,7 @@ export const requireAdmin = (
   res: Response,
   next: NextFunction,
 ) => {
-  const role = (req.user?.role || "").toUpperCase();
+  const role = String(req.user?.role || "").trim().toUpperCase();
   if (!req.user || (role !== "ADMIN" && role !== "SUPER_ADMIN")) {
     console.log(`🔒 [AUTH] Acesso negado por ROLE. Role atual: ${role}, Usuário ID: ${req.user?.id}, Rota: ${req.originalUrl}`);
     return res.status(403).json({
