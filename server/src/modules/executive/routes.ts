@@ -2,7 +2,7 @@
 
 import { Router } from 'express';
 import { authenticate } from '../../middlewares/auth.middleware';
-import { requireSuperAdmin } from '../../middlewares/executive.middleware';
+import { requireExecutiveAccess } from '../../middlewares/executive.middleware';
 import {
   getOverview,
   getFinancial,
@@ -13,9 +13,9 @@ import {
 
 const router = Router();
 
-// Todas as rotas executivas requerem autenticação + SUPER_ADMIN
+// Todas as rotas executivas requerem autenticação + ADMIN/SUPER_ADMIN
 router.use(authenticate);
-router.use(requireSuperAdmin);
+router.use(requireExecutiveAccess);
 
 router.get('/overview', getOverview);
 router.get('/financial', getFinancial);

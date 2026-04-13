@@ -43,7 +43,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { path: "/admin/stock-movements", label: "Estoque", icon: Activity },
   ];
 
-  const isSuperAdmin = (user?.role || "").toUpperCase() === "SUPER_ADMIN";
+  const role = (user?.role || "").toUpperCase();
+  const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -89,7 +90,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               </Link>
             );
           })}
-          {isSuperAdmin && (
+          {isAdmin && (
             <>
               <div className="border-t border-white/10 my-2" />
               <Link
@@ -166,7 +167,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   </Link>
                 );
               })}
-              {isSuperAdmin && (
+              {isAdmin && (
                 <>
                   <div className="border-t border-white/10 my-2" />
                   <Link

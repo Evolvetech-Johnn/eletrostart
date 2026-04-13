@@ -44,7 +44,8 @@ type AnalyticsData = Awaited<ReturnType<typeof adminService.getDashboardAnalytic
 
 const AdminDashboard: React.FC = () => {
   const { loading, isAuthenticated, user } = useAuth();
-  const isSuperAdmin = (user?.role || "").toUpperCase() === "SUPER_ADMIN";
+  const role = (user?.role || "").toUpperCase();
+  const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
   const [days] = useState(30);
 
   const { data, isLoading: dashLoading, error: dashError, refetch } = useQuery<DashboardData>({
@@ -137,7 +138,7 @@ const AdminDashboard: React.FC = () => {
     { label: "Pedidos", to: "/admin/orders", icon: ShoppingBag, color: "text-orange-600", bg: "bg-orange-50" },
     { label: "Produtos", to: "/admin/products", icon: Package, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "Analytics", to: "/admin/analytics", icon: BarChart2, color: "text-emerald-600", bg: "bg-emerald-50" },
-    ...(isSuperAdmin
+    ...(isAdmin
       ? [{ label: "Executivo", to: "/admin/executive", icon: TrendingUp, color: "text-indigo-600", bg: "bg-indigo-50" }]
       : []),
     { label: "Usuários", to: "/admin/users", icon: Users, color: "text-cyan-600", bg: "bg-cyan-50" },
