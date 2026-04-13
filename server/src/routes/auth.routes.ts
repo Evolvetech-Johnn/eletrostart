@@ -2,6 +2,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { login, me, createAdmin, logout, getCsrfToken } from '../controllers/auth.controller';
 import { authenticate } from '../middlewares/auth.middleware';
+import { prisma } from '../lib/prisma';
 
 const router = express.Router();
 
@@ -32,6 +33,20 @@ router.post('/logout', logout);
 router.get('/me', authenticate, me);
 
 // POST /api/auth/register — Criar novo admin (protegido)
-router.post('/register', authenticate, createAdmin);
+const bootstrapOrAuthenticate = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction,
+) => {
+  try {
+    const adminCount = await prisma.adminUser.count();
+    if (adminCount === 0) return next();
+    return authenticate(req, res, next);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+router.post('/register', bootstrapOrAuthenticate, createAdmin);
 
 export default router;
