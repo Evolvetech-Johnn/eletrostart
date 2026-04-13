@@ -62,6 +62,8 @@ const buildFallbackCategories = () => {
     .sort((a, b) => a.name.localeCompare(b.name));
 };
 
+const isFallbackEnabled = () => process.env.NODE_ENV !== "production";
+
 export const listCategories = async () => {
   try {
     return await prisma.category.findMany({
@@ -71,6 +73,7 @@ export const listCategories = async () => {
       },
     });
   } catch {
+    if (!isFallbackEnabled()) throw new Error("Database unavailable");
     return buildFallbackCategories();
   }
 };
@@ -84,6 +87,7 @@ export const getCategoryBySlug = async (slug: string) => {
       },
     });
   } catch {
+    if (!isFallbackEnabled()) throw new Error("Database unavailable");
     return buildFallbackCategories().find((c) => c.slug === slug) ?? null;
   }
 };

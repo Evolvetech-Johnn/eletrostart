@@ -78,6 +78,8 @@ const mapFallbackProductToApiProduct = (p: FallbackProduct) => {
   return apiProduct;
 };
 
+const isFallbackEnabled = () => process.env.NODE_ENV !== "production";
+
 export const CATEGORY_MIN_PRICE_BY_SLUG: Record<string, number> = {
   iluminacao: 9.9,
   "chuveiros-torneiras": 99,
@@ -184,6 +186,7 @@ export const listProducts = async (params: any) => {
       },
     };
   } catch {
+    if (!isFallbackEnabled()) throw new Error("Database unavailable");
     const all = loadFallbackProducts().map(mapFallbackProductToApiProduct);
 
     const categoryFilter = typeof category === "string" && category.trim() ? category.trim() : null;
@@ -245,6 +248,7 @@ export const getProduct = async (idOrSku: string) => {
     });
     return formatProduct(product);
   } catch {
+    if (!isFallbackEnabled()) throw new Error("Database unavailable");
     const p = loadFallbackProducts().find((x) => x.id === idOrSku);
     return formatProduct(p ? mapFallbackProductToApiProduct(p) : null);
   }
