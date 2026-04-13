@@ -7,6 +7,7 @@ import { issueCsrfToken, verifyCsrfToken } from "./middlewares/csrf.middleware";
 import { env } from "./config/env";
 import { errorHandler } from "./middlewares/error.middleware";
 import { prisma } from "./lib/prisma";
+import bcrypt from "bcryptjs";
 
 // Routes
 import authRoutes from "./routes/auth.routes";
@@ -129,6 +130,33 @@ app.use(cookieParser());
 // Issue CSRF token to all clients (cookie legível por JS)
 app.use(issueCsrfToken);
 
+const ensureInitialAdminUser = async () => {
+  const rawEmail = process.env.ADMIN_EMAIL;
+  const rawPassword = process.env.ADMIN_PASSWORD;
+  if (!rawEmail || !rawPassword) return;
+
+  const email = rawEmail.trim().toLowerCase();
+  const password = rawPassword.trim();
+  if (!email || !password) return;
+
+  const existingCount = await prisma.adminUser.count();
+  if (existingCount > 0) return;
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+  await prisma.adminUser.create({
+    data: {
+      email,
+      password: hashedPassword,
+      name: "Admin",
+      role: "ADMIN",
+      active: true,
+    },
+    select: { id: true },
+  });
+
+  console.log(`👤 Admin inicial criado: ${email}`);
+};
+
 // Health check
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
@@ -171,6 +199,9 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`🌍 Ambiente: ${process.env.NODE_ENV || "development"} (Render: ${!!process.env.RENDER})`);
   console.log(`🌍 Frontend URL: ${env.frontendUrl}`);
+  ensureInitialAdminUser().catch(() => {
+    console.warn("⚠️ Falha ao criar admin inicial (seeding).");
+  });
   initAnalyticsCron();
   initReservationCron();
 });

@@ -22,28 +22,58 @@ import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 import * as Sentry from "@sentry/node";
 
-const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
+type ResolvedCloudinaryEnv = {
+  configured: boolean;
+  cloudName?: string;
+  apiKey?: string;
+  apiSecret?: string;
+};
 
-const isConfigured = Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET);
+let resolvedEnv: ResolvedCloudinaryEnv | null = null;
 
-if (isConfigured) {
-  cloudinary.config({
-    cloud_name: CLOUDINARY_CLOUD_NAME,
-    api_key: CLOUDINARY_API_KEY,
-    api_secret: CLOUDINARY_API_SECRET,
-  });
-  console.log("☁️ [Cloudinary] Configurado e ativo");
-} else {
-  const missing = [];
-  if (!CLOUDINARY_CLOUD_NAME) missing.push("CLOUDINARY_CLOUD_NAME");
-  if (!CLOUDINARY_API_KEY) missing.push("CLOUDINARY_API_KEY");
-  if (!CLOUDINARY_API_SECRET) missing.push("CLOUDINARY_API_SECRET");
+const resolveCloudinaryEnv = (): ResolvedCloudinaryEnv => {
+  if (resolvedEnv) return resolvedEnv;
 
-  console.warn(
-    `⚠️ [Cloudinary] Credenciais não configuradas (${missing.join(", ")}). Fallback para disco ativado. ` +
-    "Configure as variáveis no .env ou no Render Dashboard para evitar perda de imagens."
-  );
-}
+  const rawUrl = (process.env.CLOUDINARY_URL || "").trim();
+
+  let cloudName = (process.env.CLOUDINARY_CLOUD_NAME || "").trim();
+  let apiKey = (process.env.CLOUDINARY_API_KEY || process.env.API_KEY || "").trim();
+  let apiSecret = (process.env.CLOUDINARY_API_SECRET || process.env.API_SECRET || "").trim();
+
+  if ((!cloudName || !apiKey || !apiSecret) && rawUrl) {
+    try {
+      const parsed = new URL(rawUrl);
+      if (!cloudName) cloudName = (parsed.hostname || "").trim();
+      if (!apiKey) apiKey = decodeURIComponent(parsed.username || "").trim();
+      if (!apiSecret) apiSecret = decodeURIComponent(parsed.password || "").trim();
+    } catch {}
+  }
+
+  const configured = Boolean(cloudName && apiKey && apiSecret);
+  resolvedEnv = { configured, cloudName, apiKey, apiSecret };
+
+  if (configured) {
+    cloudinary.config({
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
+    });
+    console.log("☁️ [Cloudinary] Configurado e ativo");
+  } else {
+    const missing = [];
+    if (!cloudName) missing.push("CLOUDINARY_CLOUD_NAME");
+    if (!apiKey) missing.push("CLOUDINARY_API_KEY");
+    if (!apiSecret) missing.push("CLOUDINARY_API_SECRET");
+    if (rawUrl && missing.length > 0) missing.push("CLOUDINARY_URL (inválida/incompleta)");
+
+    console.warn(
+      `⚠️ [Cloudinary] Credenciais não configuradas (${missing.join(", ")}). Fallback para disco ativado. ` +
+        "Configure as variáveis no .env ou no Render Dashboard para evitar perda de imagens.",
+    );
+  }
+
+  return resolvedEnv;
+};
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -71,7 +101,7 @@ export const uploadImageToStore = async (
   originalName: string,
   folder: string = "eletrostart"
 ): Promise<CloudinaryUploadResult> => {
-  if (isConfigured) {
+  if (resolveCloudinaryEnv().configured) {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
@@ -117,7 +147,8 @@ export const uploadImageToStore = async (
  * @throws Error se Cloudinary não estiver configurado
  */
 export const generateUploadSignature = (folder: string = "eletrostart/produtos"): CloudinarySignature => {
-  if (!isConfigured) {
+  const envConfig = resolveCloudinaryEnv();
+  if (!envConfig.configured) {
     throw new Error(
       "Cloudinary não configurado. Configure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY e CLOUDINARY_API_SECRET."
     );
@@ -128,13 +159,13 @@ export const generateUploadSignature = (folder: string = "eletrostart/produtos")
   // Os parâmetros aqui DEVEM ser exatamente os que o frontend vai incluir no FormData
   const paramsToSign: Record<string, string | number> = { folder, timestamp };
 
-  const signature = cloudinary.utils.api_sign_request(paramsToSign, CLOUDINARY_API_SECRET!);
+  const signature = cloudinary.utils.api_sign_request(paramsToSign, envConfig.apiSecret!);
 
   return {
     timestamp,
     signature,
-    api_key: CLOUDINARY_API_KEY!,
-    cloud_name: CLOUDINARY_CLOUD_NAME!,
+    api_key: envConfig.apiKey!,
+    cloud_name: envConfig.cloudName!,
     folder,
   };
 };
@@ -166,7 +197,7 @@ export const getThumbnailUrl = (url: string, size = 300): string => {
  * Falhas são silenciosas — não bloqueiam a resposta da API.
  */
 export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
-  if (!isConfigured || !publicId) return;
+  if (!resolveCloudinaryEnv().configured || !publicId) return;
   try {
     const result = await cloudinary.uploader.destroy(publicId);
     if (result.result !== "ok" && result.result !== "not found") {
@@ -179,4 +210,5 @@ export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
 
 // ─── Status ───────────────────────────────────────────────────────────────────
 
-export const isCloudinaryConfigured = (): boolean => isConfigured;
+export const isCloudinaryConfigured = (): boolean =>
+  resolveCloudinaryEnv().configured;

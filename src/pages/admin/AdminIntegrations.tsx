@@ -55,7 +55,7 @@ const AdminIntegrations: React.FC = () => {
               <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100 flex items-start gap-2">
                 <AlertCircle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-amber-800">
-                  Configure <strong>CLOUDINARY_CLOUD_NAME</strong>, <strong>API_KEY</strong> e <strong>API_SECRET</strong> no Render.
+                  Configure <strong>CLOUDINARY_CLOUD_NAME</strong>, <strong>CLOUDINARY_API_KEY</strong> e <strong>CLOUDINARY_API_SECRET</strong> no Render.
                 </p>
               </div>
             )}

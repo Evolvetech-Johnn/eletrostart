@@ -33,9 +33,14 @@ export const login = async (
 ) => {
   try {
     const { email, password } = req.body;
-    console.log(`🔐 Tentativa de login para: ${email || "e-mail ausente"}`);
+    const normalizedEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : "";
+    const normalizedPassword = typeof password === "string" ? password.trim() : "";
+    console.log(
+      `🔐 Tentativa de login para: ${normalizedEmail || "e-mail ausente"}`,
+    );
 
-    if (!email || !password) {
+    if (!normalizedEmail || !normalizedPassword) {
       console.warn("⚠️ Falha no login: E-mail ou senha ausentes no body.");
       return res.status(400).json({
         error: true,
@@ -45,7 +50,7 @@ export const login = async (
 
     // Buscar usuário
     const user = await prisma.adminUser.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
@@ -56,7 +61,7 @@ export const login = async (
     }
 
     // Verificar senha
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await bcrypt.compare(normalizedPassword, user.password);
 
     if (!isValidPassword) {
       return res.status(401).json({
@@ -158,8 +163,11 @@ export const createAdmin = async (
 ) => {
   try {
     const { email, password, name } = req.body;
+    const normalizedEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : "";
+    const normalizedPassword = typeof password === "string" ? password.trim() : "";
 
-    if (!email || !password) {
+    if (!normalizedEmail || !normalizedPassword) {
       return res.status(400).json({
         error: true,
         message: "E-mail e senha são obrigatórios",
@@ -168,7 +176,7 @@ export const createAdmin = async (
 
     // Verificar se já existe
     const existing = await prisma.adminUser.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizedEmail },
     });
 
     if (existing) {
@@ -179,12 +187,12 @@ export const createAdmin = async (
     }
 
     // Hash da senha
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(normalizedPassword, 12);
 
     // Criar usuário
     const user = await prisma.adminUser.create({
       data: {
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         password: hashedPassword,
         name: name || null,
         role: "ADMIN",
