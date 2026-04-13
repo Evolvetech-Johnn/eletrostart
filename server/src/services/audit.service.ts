@@ -34,6 +34,11 @@ interface AuditLogData {
  */
 export const logAction = async (data: AuditLogData) => {
   try {
+    const toObjectIdOrUndefined = (value?: string) => {
+      if (!value) return undefined;
+      return /^[0-9a-fA-F]{24}$/.test(value) ? value : undefined;
+    };
+
     const detailsString = 
       typeof data.details === 'object' 
         ? JSON.stringify(data.details) 
@@ -43,10 +48,10 @@ export const logAction = async (data: AuditLogData) => {
       data: {
         action: data.action,
         details: detailsString,
-        userId: data.userId,
+        userId: toObjectIdOrUndefined(data.userId),
         targetId: data.targetId,
         targetType: data.targetType,
-        messageId: data.messageId,
+        messageId: toObjectIdOrUndefined(data.messageId),
       },
     });
   } catch (error) {

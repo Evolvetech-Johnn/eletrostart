@@ -66,6 +66,8 @@ describe('ImportExport Service', () => {
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
       sku: 'TEST-001',
+      code: 'TEST-001',
+      slug: 'TEST-001',
       name: 'Produto Teste',
       price: 10.5,
       stock: 100,
@@ -125,7 +127,7 @@ describe('ImportExport Service', () => {
 
     await expect(
       importExportService.parseImportFile(buffer, 'text/csv')
-    ).rejects.toThrow('Coluna SKU ou Código é obrigatória');
+    ).rejects.toThrow('Coluna SKU/Código/ID é obrigatória');
   });
 
    it('should generate an export buffer', async () => {

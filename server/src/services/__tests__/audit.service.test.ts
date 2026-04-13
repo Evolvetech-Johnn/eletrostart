@@ -18,7 +18,7 @@ describe('Audit Service', () => {
   it('should create an audit log entry', async () => {
     const mockData = {
       action: 'UPDATE' as const,
-      userId: 'user-123',
+      userId: '507f1f77bcf86cd799439011',
       targetId: 'prod-456',
       targetType: 'PRODUCT' as const,
       details: 'Changed price from 10 to 20',
@@ -31,7 +31,7 @@ describe('Audit Service', () => {
     expect(prisma.auditLog.create).toHaveBeenCalledWith({
       data: {
         action: 'UPDATE',
-        userId: 'user-123',
+        userId: '507f1f77bcf86cd799439011',
         targetId: 'prod-456',
         targetType: 'PRODUCT',
         details: 'Changed price from 10 to 20',

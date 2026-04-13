@@ -6,14 +6,31 @@ export type ProductImportData = {
   sku: string;
   name: string;
   price?: number;
+  costPrice?: number;
   stock?: number;
   categoryName?: string;
+  categorySlug?: string;
+  subcategory?: string;
   description?: string;
   active?: boolean;
   image?: string;
+  unit?: string;
+  code?: string;
+  slug?: string;
+  brand?: string;
 };
 
 export class ImportExportService {
+  private parsePtBrNumber(value: unknown): number | undefined {
+    if (value === null || value === undefined) return undefined;
+    if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+    const str = String(value).trim();
+    if (!str) return undefined;
+    const normalized = str.replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, "");
+    const num = Number(normalized);
+    return Number.isFinite(num) ? num : undefined;
+  }
+
   /**
    * Parse an Excel or CSV file buffer into product data
    */
@@ -25,7 +42,15 @@ export class ImportExportService {
 
     if (mimetype.includes("csv") || mimetype.includes("text/plain")) {
       const stream = Readable.from(buffer);
-      await workbook.csv.read(stream);
+      const firstLine = buffer
+        .toString("utf8")
+        .split(/\r?\n/, 1)[0]
+        ?.trim();
+      const delimiter = firstLine && firstLine.includes(";") ? ";" : ",";
+      await workbook.csv.read(stream, {
+        delimiter,
+        parserOptions: { delimiter },
+      } as any);
     } else {
       await workbook.xlsx.load(buffer as any);
     }
@@ -44,16 +69,21 @@ export class ImportExportService {
     const headers: { [col: number]: string } = {};
     const headerRow = worksheet.getRow(1);
     headerRow.eachCell((cell, colNumber) => {
-      const header = cell.text?.toLowerCase().trim();
+      const header = cell.text?.toLowerCase().trim().replace(/^\uFEFF/, "");
       headers[colNumber] = header;
     });
 
-    // Validate minimal headers
-    const hasSku = Object.values(headers).some(
-      (h) => h.includes("sku") || h.includes("código"),
-    );
-    if (!hasSku) {
-      throw new Error("Coluna SKU ou Código é obrigatória");
+    const hasSkuLike = Object.values(headers).some((h) => {
+      return (
+        h.includes("sku") ||
+        h.includes("código") ||
+        h === "id" ||
+        h.includes("codigo") ||
+        h.includes("cod")
+      );
+    });
+    if (!hasSkuLike) {
+      throw new Error("Coluna SKU/Código/ID é obrigatória");
     }
 
     worksheet.eachRow((row, rowNumber) => {
@@ -73,17 +103,47 @@ export class ImportExportService {
           else if ("result" in value) value = (value as any).result;
         }
 
-        if (header.includes("sku") || header.includes("código")) {
-          product.sku = String(value).trim();
+        if (
+          header.includes("sku") ||
+          header.includes("código") ||
+          header === "id" ||
+          header.includes("codigo") ||
+          header.includes("cod")
+        ) {
+          const code = String(value).trim();
+          product.sku = code;
+          product.code = code;
+          product.slug = code;
           if (product.sku) isValidRow = true;
         } else if (header.includes("nome") || header.includes("produto")) {
           product.name = String(value).trim();
         } else if (header.includes("preço") || header.includes("valor")) {
-          product.price = Number(value) || 0;
+          product.price = this.parsePtBrNumber(value) ?? 0;
+        } else if (header.includes("custo")) {
+          product.costPrice = this.parsePtBrNumber(value) ?? 0;
         } else if (header.includes("estoque")) {
           product.stock = Number(value) || 0;
-        } else if (header.includes("cat")) {
-          product.categoryName = String(value).trim();
+        } else if (header.includes("subcat") || header.includes("subcategoria")) {
+          product.subcategory = String(value).trim();
+        } else if (
+          header === "categoria" ||
+          (header.includes("categoria") && !header.includes("subcategoria")) ||
+          header === "cat"
+        ) {
+          const raw = String(value).trim();
+          product.categoryName = raw;
+          product.categorySlug = raw
+            ? raw
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/ /g, "-")
+                .replace(/[^\w-]+/g, "")
+            : undefined;
+        } else if (header.includes("unid") || header.includes("unidade") || header === "unidade") {
+          product.unit = String(value).trim();
+        } else if (header.includes("marca")) {
+          product.brand = String(value).trim();
         } else if (header.includes("desc")) {
           product.description = String(value).trim();
         } else if (header.includes("img") || header.includes("foto")) {

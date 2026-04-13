@@ -450,6 +450,7 @@ export const importProducts = async (req: Request, res: Response) => {
       req.file.mimetype,
       userId,
     );
+    await cacheService.invalidate("products:*");
 
     res.json({
       success: true,

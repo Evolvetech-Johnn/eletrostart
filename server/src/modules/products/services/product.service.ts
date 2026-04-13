@@ -517,33 +517,128 @@ export const processImport = async (
 
   for (const item of importedData) {
     try {
+      const rawSlug = (item.slug || item.sku || "").trim();
+      let resolvedSlug = rawSlug;
+      if (!resolvedSlug) {
+        const base = slugify(item.name);
+        const exists = await prisma.product.findFirst({ where: { slug: base } });
+        resolvedSlug = exists ? `${base}-${Date.now()}` : base;
+      }
+
+      const categorySlugRaw =
+        (item as any).categorySlug ||
+        (typeof item.categoryName === "string" ? item.categoryName : undefined);
+      const categorySlug =
+        typeof categorySlugRaw === "string" && categorySlugRaw.trim()
+          ? slugify(categorySlugRaw.trim())
+          : null;
+
+      let categoryId: string | undefined = undefined;
+      if (categorySlug) {
+        const existingCategory = await prisma.category.findUnique({
+          where: { slug: categorySlug },
+        });
+        if (existingCategory) {
+          categoryId = existingCategory.id;
+        } else {
+          const createdCategory = await prisma.category.create({
+            data: {
+              slug: categorySlug,
+              name:
+                typeof item.categoryName === "string" && item.categoryName.trim()
+                  ? item.categoryName.trim()
+                  : slugToName(categorySlug),
+            },
+          });
+          categoryId = createdCategory.id;
+        }
+      }
+
+      const orWhere: Prisma.ProductWhereInput[] = [];
+      if (resolvedSlug) orWhere.push({ slug: resolvedSlug });
+      if (item.sku) orWhere.push({ sku: item.sku });
+      if ((item as any).code) orWhere.push({ code: (item as any).code });
+
       const existing = await prisma.product.findFirst({
-        where: { sku: item.sku },
+        where: orWhere.length > 0 ? { OR: orWhere } : { sku: item.sku },
       });
+
+      const stockValue =
+        typeof item.stock === "number" && Number.isFinite(item.stock)
+          ? Math.max(0, Math.trunc(item.stock))
+          : 100;
+      const priceValue =
+        typeof item.price === "number" && Number.isFinite(item.price)
+          ? item.price
+          : 0;
+      const costValue =
+        typeof (item as any).costPrice === "number" &&
+        Number.isFinite((item as any).costPrice)
+          ? (item as any).costPrice
+          : 0;
+
+      const description =
+        typeof item.description === "string" && item.description.trim()
+          ? item.description.trim()
+          : undefined;
+      const image =
+        typeof item.image === "string" && item.image.trim()
+          ? item.image.trim()
+          : undefined;
+      const unit =
+        typeof (item as any).unit === "string" && (item as any).unit.trim()
+          ? (item as any).unit.trim()
+          : undefined;
+      const subcategory =
+        typeof (item as any).subcategory === "string" &&
+        (item as any).subcategory.trim()
+          ? (item as any).subcategory.trim()
+          : undefined;
+
+      const brand =
+        typeof (item as any).brand === "string" && (item as any).brand.trim()
+          ? (item as any).brand.trim()
+          : undefined;
+      const specifications = brand ? { marca: brand } : undefined;
 
       if (existing) {
         await prisma.product.update({
           where: { id: existing.id },
           data: {
             name: item.name || undefined,
-            price: item.price,
-            stock: item.stock,
+            slug: resolvedSlug,
+            sku: item.sku || undefined,
+            code: (item as any).code || item.sku || undefined,
+            price: priceValue,
+            costPrice: costValue,
+            stock: stockValue,
+            unit,
+            subcategory,
             active: item.active,
-            description: item.description || undefined,
-            image: item.image || undefined,
+            description,
+            image,
+            ...(categoryId ? { categoryId } : {}),
+            ...(specifications ? { specifications } : {}),
           },
         });
         updatedCount++;
       } else {
         await prisma.product.create({
           data: {
+            slug: resolvedSlug,
             sku: item.sku,
+            code: (item as any).code || item.sku,
             name: item.name,
-            price: item.price || 0,
-            stock: item.stock || 0,
+            price: priceValue,
+            costPrice: costValue,
+            stock: stockValue,
+            unit,
+            subcategory,
             active: item.active !== undefined ? item.active : true,
-            description: item.description || "",
-            image: item.image,
+            description: description || "",
+            image,
+            ...(categoryId ? { categoryId } : {}),
+            ...(specifications ? { specifications } : {}),
           },
         });
         createdCount++;
